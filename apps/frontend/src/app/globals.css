@@ -1,49 +1,128 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
+
+  html {
+    height: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    color-scheme: dark;
+  }
+
+  body {
+    height: 100%;
+    background-color: #0C0B09;
+    color: #F0EDE6;
+    font-family: var(--font-body), Outfit, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0C0B09;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2E2A22;
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3E3A32;
   }
 }
 
-html {
-  height: 100%;
-}
+@layer components {
+  /* Skeleton loader */
+  .skeleton {
+    border-radius: 4px;
+    background: linear-gradient(
+      90deg,
+      #1C1916 0%,
+      #252118 25%,
+      #2E2A22 50%,
+      #252118 75%,
+      #1C1916 100%
+    );
+    background-size: 400% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
+  /* Navigation item base */
+  .nav-item {
+    @apply relative flex items-center gap-2.5 px-3 py-2 rounded text-sm transition-all duration-200 cursor-pointer;
+    @apply text-maison-cream-muted hover:text-maison-cream hover:bg-surface-2;
+  }
 
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  .nav-item-active {
+    @apply text-maison-amber bg-maison-amber-glow;
+  }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
+  .nav-item-active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: #D4975A;
+    border-radius: 0 2px 2px 0;
+  }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+  /* Card base */
+  .card {
+    @apply bg-surface-1 border border-maison-border rounded-lg shadow-card;
+  }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+  .card-hover {
+    @apply transition-all duration-200 hover:border-maison-border-subtle hover:shadow-card-hover hover:-translate-y-px;
+  }
+
+  /* Badge variants */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-medium tracking-wide uppercase;
+  }
+
+  .badge-active {
+    @apply badge bg-maison-sage-bg text-maison-sage;
+  }
+
+  .badge-inactive {
+    @apply badge bg-surface-3 text-maison-cream-dim;
+  }
+
+  .badge-suspended {
+    @apply badge bg-maison-ruby-bg text-maison-ruby;
+  }
+
+  .badge-trial {
+    @apply badge bg-maison-gold-bg text-maison-gold;
+  }
+
+  /* Section label */
+  .section-label {
+    @apply text-2xs font-semibold tracking-widest uppercase text-maison-cream-dim px-3 py-1.5;
+  }
+
+  /* Stats number */
+  .stat-number {
+    @apply font-mono text-2xl font-medium text-maison-cream tabular-nums;
   }
 }
