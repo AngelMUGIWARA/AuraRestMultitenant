@@ -36,7 +36,7 @@ export default function DashboardPage() {
           className="inline-flex items-center gap-2 rounded border border-maison-amber bg-maison-amber-glow px-4 py-2 text-sm font-medium text-maison-amber transition-colors hover:bg-maison-amber hover:text-surface-0 self-start sm:self-auto"
         >
           <IconPlus className="h-4 w-4" />
-          Nuevo Tenant
+          Nueva Sucursal
         </button>
       </header>
 
@@ -56,7 +56,7 @@ export default function DashboardPage() {
           ) : (
             <>
               <StatCard
-                label="Total Tenants"
+                label="Total Sucursales"
                 value={stats ? formatNumber(stats.totalTenants) : '—'}
                 delta={
                   stats ? `+${stats.newTenantsThisMonth} este mes` : undefined
@@ -112,7 +112,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Recent tenants table */}
+      {/* Sucursales recientes */}
       <TenantTable
         isLoading={isLoading}
         error={hasError}

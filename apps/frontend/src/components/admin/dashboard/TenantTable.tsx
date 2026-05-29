@@ -13,7 +13,7 @@ interface TenantTableProps {
   error?: boolean;
 }
 
-const COLUMNS = ['Tenant', 'Plan', 'Estado', 'Ingresos / mes', 'Pedidos', 'Rating', ''];
+const COLUMNS = ['Sucursal', 'Plan', 'Estado', 'Ingresos / mes', 'Pedidos', 'Rating', ''];
 
 export function TenantTable({ tenants, isLoading = false, error = false }: TenantTableProps) {
   return (
@@ -21,14 +21,14 @@ export function TenantTable({ tenants, isLoading = false, error = false }: Tenan
       <div className="flex items-center justify-between border-b border-maison-border px-5 py-3.5">
         <div>
           <h2 id="tenants-title" className="text-sm font-medium text-maison-cream">
-            Tenants Recientes
+            Sucursales Recientes
           </h2>
           <p className="text-2xs text-maison-cream-dim mt-0.5">
-            Últimos registros en la plataforma
+            Últimas sucursales registradas en la plataforma
           </p>
         </div>
         <Link
-          href="/tenants"
+          href="/sucursales"
           className="text-2xs font-medium text-maison-amber hover:text-maison-amber-light transition-colors"
         >
           Ver todos →
@@ -40,8 +40,8 @@ export function TenantTable({ tenants, isLoading = false, error = false }: Tenan
       {!isLoading && (error || !tenants?.length) && (
         <EmptyState
           icon={<IconTenants className="h-6 w-6" />}
-          title="Sin tenants registrados"
-          description="Los tenants aparecerán aquí cuando el API esté disponible."
+          title="Sin sucursales registradas"
+          description="Las sucursales aparecerán aquí cuando el API esté disponible."
           className="py-12"
         />
       )}
@@ -117,7 +117,7 @@ function TenantRow({ tenant }: { tenant: Tenant }) {
       </td>
       <td className="px-4 py-3">
         <Link
-          href={`/tenants/${tenant.id}`}
+          href={`/sucursales/${tenant.id}`}
           className="flex items-center justify-end text-maison-cream-dim hover:text-maison-amber transition-colors"
           aria-label={`Ver detalle de ${tenant.name}`}
         >
