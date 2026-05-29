@@ -9,7 +9,15 @@ export const ADMIN_NAV = [
     label: 'Visión General',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { href: '/analytics', label: 'Analytics', icon: 'analytics' },
+      { href: '/reportes', label: 'Reportes', icon: 'analytics' },
+    ],
+  },
+  {
+    label: 'Operaciones',
+    items: [
+      { href: '/inventario', label: 'Inventario', icon: 'inventory' },
+      { href: '/categorias', label: 'Categorías', icon: 'categories' },
+      { href: '/reservaciones', label: 'Reservaciones', icon: 'reservations' },
     ],
   },
   {
@@ -42,4 +50,20 @@ export const PLAN_LABELS = {
   starter: 'Starter',
   professional: 'Professional',
   enterprise: 'Enterprise',
+} as const;
+
+export const STOCK_STATUS_LABELS = {
+  ok: 'Normal',
+  low: 'Bajo',
+  critical: 'Crítico',
+  out_of_stock: 'Sin Stock',
+} as const;
+
+export const RESERVATION_STATUS_LABELS = {
+  pending: 'Pendiente',
+  confirmed: 'Confirmada',
+  arrived: 'En mesa',
+  completed: 'Completada',
+  cancelled: 'Cancelada',
+  no_show: 'No se presentó',
 } as const;

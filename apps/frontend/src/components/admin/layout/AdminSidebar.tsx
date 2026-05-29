@@ -5,21 +5,19 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ADMIN_NAV } from '@/lib/constants';
 import {
-  IconDashboard,
-  IconAnalytics,
-  IconTenants,
-  IconUsers,
-  IconMenus,
-  IconOrders,
-  IconSettings,
-  IconIntegrations,
-  IconLogs,
+  IconDashboard, IconAnalytics,
+  IconInventory, IconCategories, IconCalendar,
+  IconTenants, IconUsers, IconMenus, IconOrders,
+  IconSettings, IconIntegrations, IconLogs,
   IconLogOut,
 } from '@/components/ui/Icons';
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   dashboard: IconDashboard,
   analytics: IconAnalytics,
+  inventory: IconInventory,
+  categories: IconCategories,
+  reservations: IconCalendar,
   tenants: IconTenants,
   users: IconUsers,
   menus: IconMenus,
@@ -34,29 +32,21 @@ export function AdminSidebar() {
 
   return (
     <aside
-      className="hidden lg:flex flex-col h-screen sticky top-0 w-60 bg-surface-1 border-r border-maison-border"
+      className="hidden lg:flex flex-col h-screen sticky top-0 w-60 bg-surface-1 border-r border-maison-border transition-colors"
       aria-label="Navegación principal"
     >
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-4 py-5 border-b border-maison-border flex-shrink-0">
         <div
           className="flex h-7 w-7 items-center justify-center rounded-[7px] flex-shrink-0"
-          style={{
-            background: 'linear-gradient(140deg, #7A5530 0%, #D4975A 100%)',
-          }}
+          style={{ background: 'linear-gradient(140deg, rgb(var(--color-accent-dim)) 0%, rgb(var(--color-accent)) 100%)' }}
           aria-hidden="true"
         >
-          <span className="font-display text-lg font-medium italic text-white leading-none">
-            M
-          </span>
+          <span className="font-display text-lg font-medium italic text-white leading-none">M</span>
         </div>
         <div className="flex flex-col gap-0.5">
-          <span className="font-display text-[17px] font-medium text-maison-cream leading-none">
-            Maison
-          </span>
-          <span className="text-2xs font-semibold tracking-widest uppercase text-maison-cream-dim">
-            Admin
-          </span>
+          <span className="font-display text-[17px] font-medium text-maison-cream leading-none">Maison</span>
+          <span className="text-2xs font-semibold tracking-widest uppercase text-maison-cream-dim">Admin</span>
         </div>
       </div>
 
@@ -68,8 +58,7 @@ export function AdminSidebar() {
             <ul role="list" className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = ICON_MAP[item.icon];
-                const isActive =
-                  pathname === item.href || pathname.startsWith(item.href + '/');
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                 return (
                   <li key={item.href}>
                     <Link
@@ -88,14 +77,12 @@ export function AdminSidebar() {
         ))}
       </nav>
 
-      {/* Footer — admin user card */}
+      {/* Footer */}
       <div className="flex-shrink-0 border-t border-maison-border px-2 py-3">
         <div className="flex items-center gap-2.5 rounded px-2 py-2 hover:bg-surface-2 transition-colors cursor-pointer group">
           <div
             className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white"
-            style={{
-              background: 'linear-gradient(140deg, #2E2A22 0%, #5C5850 100%)',
-            }}
+            style={{ background: 'linear-gradient(140deg, rgb(var(--color-border)) 0%, rgb(var(--color-muted)) 100%)' }}
             aria-hidden="true"
           >
             SA

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Cormorant, Outfit, JetBrains_Mono } from 'next/font/google';
+import { ThemeProvider, themeScript } from '@/context/ThemeContext';
 import './globals.css';
 
 const cormorant = Cormorant({
@@ -39,8 +40,15 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${cormorant.variable} ${outfit.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
     >
-      <body>{children}</body>
+      <head>
+        {/* Blocking script: sets dark/light class before first paint to prevent flash */}
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body>
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

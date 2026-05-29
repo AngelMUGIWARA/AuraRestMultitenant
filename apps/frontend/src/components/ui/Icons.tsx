@@ -99,6 +99,36 @@ export const IconLogs = base(
   </>,
 );
 
+/* ─── New section icons ─────────────────────────────────────────── */
+
+export const IconInventory = base(
+  <>
+    <path d="m7.5 4.27 9 5.15" />
+    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+    <path d="m3.3 7 8.7 5 8.7-5" />
+    <path d="M12 22V12" />
+  </>,
+);
+
+export const IconCategories = base(
+  <>
+    <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" />
+    <path d="M7 7h.01" />
+  </>,
+);
+
+export const IconCalendar = base(
+  <>
+    <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+    <line x1="16" x2="16" y1="2" y2="6" />
+    <line x1="8" x2="8" y1="2" y2="6" />
+    <line x1="3" x2="21" y1="10" y2="10" />
+    <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" />
+  </>,
+);
+
+/* ─── UI utility icons ──────────────────────────────────────────── */
+
 export const IconSearch = base(
   <>
     <circle cx="11" cy="11" r="8" />
@@ -114,7 +144,6 @@ export const IconBell = base(
 );
 
 export const IconChevronDown = base(<path d="m6 9 6 6 6-6" />);
-
 export const IconChevronRight = base(<path d="m9 18 6-6-6-6" />);
 
 export const IconTrendingUp = base(
@@ -179,6 +208,13 @@ export const IconAlertCircle = base(
   </>,
 );
 
+export const IconAlertTriangle = base(
+  <>
+    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+    <path d="M12 9v4M12 17h.01" />
+  </>,
+);
+
 export const IconPlus = base(
   <>
     <path d="M5 12h14" />
@@ -213,5 +249,28 @@ export const IconExternalLink = base(
     <path d="M15 3h6v6" />
     <path d="M10 14 21 3" />
     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+  </>,
+);
+
+export const IconFilter = base(
+  <>
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+  </>,
+);
+
+export const IconRefresh = base(
+  <>
+    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" />
+    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+    <path d="M8 16H3v5" />
+  </>,
+);
+
+export const IconDownload = base(
+  <>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" x2="12" y1="15" y2="3" />
   </>,
 );
