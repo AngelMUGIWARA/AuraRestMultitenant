@@ -23,7 +23,7 @@ export const ADMIN_NAV = [
   {
     label: 'Gestión',
     items: [
-      { href: '/tenants', label: 'Tenants', icon: 'tenants' },
+      { href: '/sucursales', label: 'Sucursales', icon: 'branches' },
       { href: '/users', label: 'Usuarios', icon: 'users' },
       { href: '/menus', label: 'Menús', icon: 'menus' },
       { href: '/orders', label: 'Pedidos', icon: 'orders' },
@@ -66,4 +66,11 @@ export const RESERVATION_STATUS_LABELS = {
   completed: 'Completada',
   cancelled: 'Cancelada',
   no_show: 'No se presentó',
+} as const;
+
+export const SUCURSAL_STATUS_LABELS = {
+  active: 'Activa',
+  inactive: 'Inactiva',
+  suspended: 'Suspendida',
+  trial: 'Prueba',
 } as const;

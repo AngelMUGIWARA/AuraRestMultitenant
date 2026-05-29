@@ -1,22 +1,20 @@
 'use client';
 
-import type { Metadata } from 'next';
 import { useState } from 'react';
 import { useBranch } from '@/context/BranchContext';
 import { useInventory } from '@/hooks/useInventory';
 import { formatCurrency, formatNumber, cn } from '@/lib/utils';
 import { STOCK_STATUS_LABELS } from '@/lib/constants';
 import { StatCard, StatCardSkeleton } from '@/components/admin/dashboard/StatCard';
-import { Skeleton, SkeletonRow } from '@/components/ui/Skeleton';
+import { Skeleton, SkeletonAvatar } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import {
   IconInventory, IconAlertTriangle, IconAlertCircle,
-  IconDollarSign, IconSearch, IconFilter, IconPlus,
-  IconRefresh, IconPackage,
+  IconDollarSign, IconSearch, IconPlus, IconRefresh, IconPackage,
 } from '@/components/ui/Icons';
-import type { InventoryItem, StockStatus, InventoryFilters } from '@/types/inventory.types';
+import type { InventoryItem, StockStatus } from '@/types/inventory.types';
 
-/* ─── Status config ─────────────────────────────────────────────── */
+/* ─── Config ────────────────────────────────────────────────────── */
 
 const STATUS_BADGE: Record<StockStatus, string> = {
   ok: 'badge-active',
@@ -28,43 +26,61 @@ const STATUS_BADGE: Record<StockStatus, string> = {
 const STATUS_FILTERS: { value: StockStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'Todos' },
   { value: 'ok', label: 'Normal' },
-  { value: 'low', label: 'Bajo' },
+  { value: 'low', label: 'Stock bajo' },
   { value: 'critical', label: 'Crítico' },
-  { value: 'out_of_stock', label: 'Sin Stock' },
+  { value: 'out_of_stock', label: 'Sin stock' },
 ];
 
-/* ─── Sub-components ────────────────────────────────────────────── */
+/* ─── Stock bar ─────────────────────────────────────────────────── */
 
 function StockBar({ current, max }: { current: number; max: number }) {
   const pct = max > 0 ? Math.min((current / max) * 100, 100) : 0;
-  const colorClass =
-    pct < 10
-      ? 'bg-maison-ruby'
-      : pct < 30
-        ? 'bg-maison-amber'
-        : 'bg-maison-sage';
-
+  const color =
+    pct < 10 ? 'bg-maison-ruby' : pct < 30 ? 'bg-maison-amber' : 'bg-maison-sage';
   return (
     <div className="flex items-center gap-2">
-      <span className="font-mono text-xs tabular-nums text-maison-cream">{current}</span>
-      <div className="h-1.5 w-14 overflow-hidden rounded-full bg-surface-3">
-        <div className={cn('h-full rounded-full transition-all', colorClass)} style={{ width: `${pct}%` }} />
+      <span className="w-8 text-right font-mono text-xs tabular-nums text-maison-cream">
+        {current}
+      </span>
+      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-3">
+        <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
 }
 
-function InventoryTableSkeleton() {
+/* ─── Skeletons ─────────────────────────────────────────────────── */
+
+function TableSkeleton() {
   return (
     <div aria-hidden="true">
-      <div className="border-b border-maison-border bg-surface-2 px-4 py-2.5">
-        <div className="flex gap-3">
-          {[0.3, 1, 0.5, 0.5, 0.4, 0.4, 0.2].map((f, i) => (
-            <Skeleton key={i} className="h-2.5" style={{ flex: f }} />
-          ))}
-        </div>
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b border-maison-border bg-surface-2 px-4 py-2.5">
+        {[0.3, 1, 0.5, 0.5, 0.4, 0.4, 0.2].map((f, i) => (
+          <Skeleton key={i} className="h-2.5" style={{ flex: f }} />
+        ))}
       </div>
-      {Array.from({ length: 7 }).map((_, i) => <SkeletonRow key={i} cols={7} />)}
+      {/* Rows */}
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-3 border-b border-maison-border px-4 py-3.5 last:border-b-0"
+        >
+          <Skeleton className="h-3 w-14" /> {/* SKU */}
+          <div className="flex flex-1 flex-col gap-1.5">
+            <Skeleton className="h-3 w-36" />
+            <Skeleton className="h-2.5 w-20" />
+          </div>
+          <Skeleton className="h-3 w-20" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-3 w-8" />
+            <Skeleton className="h-1.5 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-5 w-16 rounded-full" />
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-3 w-16" />
+        </div>
+      ))}
     </div>
   );
 }
@@ -73,11 +89,15 @@ function AlertsSkeleton() {
   return (
     <div className="flex flex-col gap-2.5 p-4" aria-hidden="true">
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 rounded-lg border border-maison-border bg-surface-2 p-3">
-          <Skeleton className="h-7 w-7 rounded flex-shrink-0" />
-          <div className="flex-1 flex flex-col gap-1.5">
+        <div
+          key={i}
+          className="flex items-start gap-3 rounded-lg border border-maison-border bg-surface-2 p-3"
+        >
+          <SkeletonAvatar size="sm" />
+          <div className="min-w-0 flex-1 space-y-1.5">
             <Skeleton className="h-3 w-3/4" />
             <Skeleton className="h-2.5 w-1/2" />
+            <Skeleton className="h-2.5 w-1/3" />
           </div>
         </div>
       ))}
@@ -85,15 +105,17 @@ function AlertsSkeleton() {
   );
 }
 
+/* ─── Alert item ────────────────────────────────────────────────── */
+
 function AlertItem({ item }: { item: InventoryItem }) {
   const isCritical = item.status === 'critical' || item.status === 'out_of_stock';
   return (
     <div
       className={cn(
-        'flex items-start gap-3 rounded-lg border p-3 transition-colors',
+        'flex items-start gap-3 rounded-lg border p-3 transition-colors hover:brightness-105',
         isCritical
-          ? 'border-maison-ruby/30 bg-maison-ruby-bg'
-          : 'border-maison-gold/30 bg-maison-gold-bg',
+          ? 'border-maison-ruby/20 bg-maison-ruby-bg'
+          : 'border-maison-gold/20 bg-maison-gold-bg',
       )}
     >
       <div
@@ -107,8 +129,13 @@ function AlertItem({ item }: { item: InventoryItem }) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-medium text-maison-cream">{item.name}</p>
-        <p className="text-2xs text-maison-cream-muted mt-0.5">{item.categoryName}</p>
-        <p className={cn('text-2xs mt-1 font-medium', isCritical ? 'text-maison-ruby' : 'text-maison-gold')}>
+        <p className="mt-0.5 truncate text-2xs text-maison-cream-muted">{item.categoryName}</p>
+        <p
+          className={cn(
+            'mt-1 text-2xs font-semibold',
+            isCritical ? 'text-maison-ruby' : 'text-maison-gold',
+          )}
+        >
           {item.currentStock} {item.unit} restantes
         </p>
       </div>
@@ -116,7 +143,7 @@ function AlertItem({ item }: { item: InventoryItem }) {
   );
 }
 
-/* ─── Main Page ─────────────────────────────────────────────────── */
+/* ─── Page ──────────────────────────────────────────────────────── */
 
 export default function InventarioPage() {
   const { selectedBranch } = useBranch();
@@ -137,10 +164,11 @@ export default function InventarioPage() {
 
   return (
     <div className="flex flex-col gap-7 animate-fade-in">
+
       {/* ── Page Header ──────────────────────────────────────── */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-3xl font-medium text-maison-cream leading-none">
+          <h1 className="font-display text-3xl font-medium leading-none text-maison-cream">
             Inventario
           </h1>
           <p className="mt-1.5 text-sm text-maison-cream-muted">
@@ -150,13 +178,7 @@ export default function InventarioPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={refresh}
-            className="btn-ghost"
-            aria-label="Actualizar datos"
-            disabled={isLoading}
-          >
+          <button type="button" onClick={refresh} className="btn-ghost" disabled={isLoading}>
             <IconRefresh className={cn('h-4 w-4', isLoading && 'animate-spin')} />
             Actualizar
           </button>
@@ -167,23 +189,17 @@ export default function InventarioPage() {
         </div>
       </header>
 
-      {/* ── Métricas (SIEMPRE PRIMERO) ────────────────────────
-           Regla de negocio crítica: los KPIs deben aparecer en la
-           parte superior antes que cualquier tabla o detalle.       */}
-      <section aria-labelledby="inventory-kpis">
-        <h2 id="inventory-kpis" className="sr-only">Métricas de inventario</h2>
+      {/* ── Métricas Primero ───────────────────────────────────
+           KPIs obligatoriamente en la parte superior de cada módulo. */}
+      <section aria-labelledby="inv-kpis">
+        <h2 id="inv-kpis" className="sr-only">Métricas de inventario</h2>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {isLoading ? (
-            <>
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-            </>
+            <><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></>
           ) : (
             <>
               <StatCard
-                label="Total Productos"
+                label="Total productos"
                 value={stats ? formatNumber(stats.totalProducts) : '—'}
                 delta={stats ? `${formatNumber(stats.totalActive)} activos` : undefined}
                 deltaPositive
@@ -192,22 +208,22 @@ export default function InventarioPage() {
                 colorVariant="cream"
               />
               <StatCard
-                label="Stock Bajo"
+                label="Stock bajo"
                 value={stats ? formatNumber(stats.lowStockItems) : '—'}
-                delta={stats ? `${formatNumber(stats.criticalItems)} críticos` : undefined}
+                delta={stats?.criticalItems ? `${formatNumber(stats.criticalItems)} críticos` : undefined}
                 deltaPositive={false}
                 deltaLabel=""
                 icon={<IconAlertTriangle className="h-3.5 w-3.5" />}
                 colorVariant="gold"
               />
               <StatCard
-                label="Sin Stock"
+                label="Sin stock"
                 value={stats ? formatNumber(stats.outOfStockItems) : '—'}
                 icon={<IconAlertCircle className="h-3.5 w-3.5" />}
                 colorVariant="amber"
               />
               <StatCard
-                label="Valor Total"
+                label="Valor total"
                 value={stats ? formatCurrency(stats.totalInventoryValue) : '—'}
                 icon={<IconDollarSign className="h-3.5 w-3.5" />}
                 colorVariant="sage"
@@ -217,9 +233,8 @@ export default function InventarioPage() {
         </div>
       </section>
 
-      {/* ── Filter Bar ───────────────────────────────────────── */}
+      {/* ── Filter bar ───────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Search */}
         <div className="relative max-w-xs flex-1">
           <IconSearch className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-maison-cream-dim" />
           <input
@@ -231,8 +246,6 @@ export default function InventarioPage() {
             aria-label="Buscar en inventario"
           />
         </div>
-
-        {/* Status pills */}
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por estado">
           {STATUS_FILTERS.map((f) => (
             <button
@@ -253,15 +266,15 @@ export default function InventarioPage() {
         </div>
       </div>
 
-      {/* ── Main Content: Table + Alerts ─────────────────────── */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_300px]">
+      {/* ── Main: Table + Alerts ─────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_296px]">
 
-        {/* Inventory Table */}
-        <section className="card overflow-hidden" aria-labelledby="inventory-table-title">
+        {/* Inventory table */}
+        <section className="card overflow-hidden" aria-labelledby="inv-table-title">
           <div className="flex items-center justify-between border-b border-maison-border px-5 py-3.5">
             <div>
-              <h2 id="inventory-table-title" className="text-sm font-medium text-maison-cream">
-                Productos en inventario
+              <h2 id="inv-table-title" className="text-sm font-medium text-maison-cream">
+                Productos
               </h2>
               {!isLoading && items && (
                 <p className="mt-0.5 text-2xs text-maison-cream-dim">
@@ -269,21 +282,17 @@ export default function InventarioPage() {
                 </p>
               )}
             </div>
-            <button type="button" className="btn-ghost text-xs py-1 px-2">
-              <IconFilter className="h-3.5 w-3.5" />
-              Columnas
-            </button>
           </div>
 
-          {isLoading && <InventoryTableSkeleton />}
+          {isLoading && <TableSkeleton />}
 
           {!isLoading && (hasError || !items?.data?.length) && (
             <EmptyState
               icon={<IconPackage className="h-6 w-6" />}
-              title={hasError ? 'Error al cargar inventario' : 'Sin productos'}
+              title={hasError ? 'No se pudo cargar el inventario' : 'Sin productos'}
               description={
                 hasError
-                  ? 'No se pudo conectar al API. Verifica la conexión.'
+                  ? 'Verifica la conexión con el API del servidor.'
                   : 'No hay productos que coincidan con los filtros aplicados.'
               }
               className="py-16"
@@ -292,7 +301,7 @@ export default function InventarioPage() {
 
           {!isLoading && !hasError && items?.data && items.data.length > 0 && (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs" aria-labelledby="inventory-table-title">
+              <table className="w-full text-xs" aria-labelledby="inv-table-title">
                 <thead>
                   <tr className="border-b border-maison-border bg-surface-2">
                     {['SKU', 'Producto', 'Categoría', 'Stock', 'Estado', 'Costo unit.', 'Valor total'].map(
@@ -301,7 +310,7 @@ export default function InventarioPage() {
                           key={col}
                           scope="col"
                           className={cn(
-                            'px-4 py-2.5 text-left text-2xs font-medium uppercase tracking-widest text-maison-cream-dim whitespace-nowrap',
+                            'whitespace-nowrap px-4 py-2.5 text-left text-2xs font-medium uppercase tracking-widest text-maison-cream-dim',
                             (col === 'Costo unit.' || col === 'Valor total') && 'text-right',
                           )}
                         >
@@ -315,15 +324,15 @@ export default function InventarioPage() {
                   {items.data.map((item) => (
                     <tr
                       key={item.id}
-                      className="border-b border-maison-border last:border-b-0 hover:bg-surface-2 transition-colors"
+                      className="border-b border-maison-border last:border-b-0 transition-colors hover:bg-surface-2"
                     >
-                      <td className="px-4 py-3 font-mono text-maison-cream-muted text-2xs whitespace-nowrap">
+                      <td className="px-4 py-3 font-mono text-2xs text-maison-cream-muted">
                         {item.sku}
                       </td>
-                      <td className="px-4 py-3 font-medium text-maison-cream max-w-[160px] truncate">
+                      <td className="max-w-[160px] truncate px-4 py-3 font-medium text-maison-cream">
                         {item.name}
                       </td>
-                      <td className="px-4 py-3 text-maison-cream-muted whitespace-nowrap">
+                      <td className="whitespace-nowrap px-4 py-3 text-maison-cream-muted">
                         {item.categoryName}
                       </td>
                       <td className="px-4 py-3">
@@ -349,7 +358,7 @@ export default function InventarioPage() {
           )}
         </section>
 
-        {/* Stock Alerts Sidebar */}
+        {/* Stock alerts sidebar */}
         <section className="card" aria-labelledby="alerts-title">
           <div className="flex items-center justify-between border-b border-maison-border px-5 py-3.5">
             <div>
@@ -357,11 +366,11 @@ export default function InventarioPage() {
                 Alertas de Stock
               </h2>
               <p className="mt-0.5 text-2xs text-maison-cream-dim">
-                Productos que requieren atención
+                Requieren atención inmediata
               </p>
             </div>
             {!isLoading && alertItems.length > 0 && (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-maison-ruby-bg px-1.5 text-2xs font-medium text-maison-ruby">
+              <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-maison-ruby-bg px-1.5 text-2xs font-semibold text-maison-ruby">
                 {alertItems.length}
               </span>
             )}
@@ -371,7 +380,7 @@ export default function InventarioPage() {
 
           {!isLoading && alertItems.length === 0 && (
             <EmptyState
-              icon={<IconInventory className="h-6 w-6" />}
+              icon={<IconInventory className="h-5 w-5" />}
               title="Todo en orden"
               description="No hay productos con niveles críticos de stock."
               className="py-12"

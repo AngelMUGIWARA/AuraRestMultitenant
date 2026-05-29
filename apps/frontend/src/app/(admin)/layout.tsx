@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { BranchProvider } from '@/context/BranchContext';
-import { AdminSidebar } from '@/components/admin/layout/AdminSidebar';
-import { AdminTopbar } from '@/components/admin/layout/AdminTopbar';
+import { SidebarProvider } from '@/context/SidebarContext';
+import { AdminShell } from '@/components/admin/layout/AdminShell';
 
 export const metadata: Metadata = {
   title: {
@@ -13,13 +13,9 @@ export const metadata: Metadata = {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <BranchProvider>
-      <div className="grid min-h-screen grid-cols-1 bg-surface-0 lg:grid-cols-[240px_1fr]">
-        <AdminSidebar />
-        <div className="flex min-w-0 flex-col">
-          <AdminTopbar />
-          <main className="flex-1 px-5 py-6 pb-20 lg:px-7">{children}</main>
-        </div>
-      </div>
+      <SidebarProvider>
+        <AdminShell>{children}</AdminShell>
+      </SidebarProvider>
     </BranchProvider>
   );
 }
