@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils';
-import { Skeleton, SkeletonAvatar } from '@/components/ui/Skeleton';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { Skeleton, SkeletonAvatar } from '@maison/ui';
+import { EmptyState } from '@maison/ui';
 import {
   IconActivity,
   IconUserPlus,
@@ -10,7 +10,7 @@ import {
   IconBan,
   IconMenus,
   IconAlertCircle,
-} from '@/components/ui/Icons';
+} from '@maison/ui';
 import type { ActivityItem, ActivityEventType } from '@/types/dashboard.types';
 
 const EVENT_CONFIG: Record<

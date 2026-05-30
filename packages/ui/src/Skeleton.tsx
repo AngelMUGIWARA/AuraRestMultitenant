@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn } from './cn';
 
 interface SkeletonProps {
   className?: string;
@@ -29,11 +29,7 @@ export function SkeletonText({
 }
 
 export function SkeletonAvatar({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
-  const sizes = {
-    sm: 'h-7 w-7',
-    md: 'h-9 w-9',
-    lg: 'h-11 w-11',
-  };
+  const sizes = { sm: 'h-7 w-7', md: 'h-9 w-9', lg: 'h-11 w-11' };
   return <Skeleton className={cn('rounded-full flex-shrink-0', sizes[size])} />;
 }
 

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback } from 'react';
 import type { Branch } from '@/types/branch.types';
+import { emit } from '@maison/event-bus';
 
 export const GLOBAL_BRANCH: Branch = {
   id: 'global',
@@ -36,6 +37,11 @@ export function BranchProvider({ children, initialBranches = [] }: BranchProvide
 
   const setBranch = useCallback((branch: Branch) => {
     setSelectedBranch(branch);
+    emit('branch:changed', {
+      branchId: branch.id,
+      branchName: branch.name,
+      isGlobal: branch.id === 'global',
+    });
   }, []);
 
   return (

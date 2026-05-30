@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn } from './cn';
 
 interface IconProps {
   className?: string;
@@ -99,8 +99,6 @@ export const IconLogs = base(
   </>,
 );
 
-/* ─── New section icons ─────────────────────────────────────────── */
-
 export const IconInventory = base(
   <>
     <path d="m7.5 4.27 9 5.15" />
@@ -126,8 +124,6 @@ export const IconCalendar = base(
     <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" />
   </>,
 );
-
-/* ─── UI utility icons ──────────────────────────────────────────── */
 
 export const IconSearch = base(
   <>

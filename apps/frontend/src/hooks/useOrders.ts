@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ordersService } from '@/services/orders.service';
 import type { Order, OrderStats, OrderFilters } from '@/types/order.types';
-import type { PaginatedResponse } from '@/types/api.types';
+import type { PaginatedResponse } from '@maison/types';
 
 interface UseOrdersReturn {
   stats: OrderStats | null;

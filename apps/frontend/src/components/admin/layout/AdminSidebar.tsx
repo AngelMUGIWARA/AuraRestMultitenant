@@ -11,7 +11,7 @@ import {
   IconUsers, IconMenus, IconOrders,
   IconSettings, IconIntegrations, IconLogs,
   IconLogOut, IconChevronLeft, IconChevronRight, IconX,
-} from '@/components/ui/Icons';
+} from '@maison/ui';
 
 /* ─── Icon Map ──────────────────────────────────────────────────── */
 

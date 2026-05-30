@@ -19,7 +19,11 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@maison/types": ["../../packages/types/src/index.ts"],
+      "@maison/api-client": ["../../packages/api-client/src/index.ts"],
+      "@maison/ui": ["../../packages/ui/src/index.ts"],
+      "@maison/event-bus": ["../../packages/event-bus/src/index.ts"]
     }
   },
   "include": [
@@ -28,7 +32,12 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "../../packages/types/src/**/*.ts",
+    "../../packages/api-client/src/**/*.ts",
+    "../../packages/ui/src/**/*.ts",
+    "../../packages/ui/src/**/*.tsx",
+    "../../packages/event-bus/src/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

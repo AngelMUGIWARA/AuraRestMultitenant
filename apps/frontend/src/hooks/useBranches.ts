@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { branchesService } from '@/services/branches.service';
 import type { Branch, BranchStats, BranchFilters } from '@/types/branch.types';
-import type { PaginatedResponse } from '@/types/api.types';
+import type { PaginatedResponse } from '@maison/types';
 
 interface UseBranchesReturn {
   stats: BranchStats | null;

@@ -11,7 +11,12 @@
   "dependencies": {
     "next": "16.2.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "@maison/types": "workspace:*",
+    "@maison/api-client": "workspace:*",
+    "@maison/ui": "workspace:*",
+    "@maison/event-bus": "workspace:*",
+    "@module-federation/runtime": "^2.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",

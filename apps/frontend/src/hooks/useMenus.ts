@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { menusService } from '@/services/menus.service';
 import type { MenuItem, MenuStats, MenuFilters } from '@/types/menu.types';
-import type { PaginatedResponse } from '@/types/api.types';
+import type { PaginatedResponse } from '@maison/types';
 
 interface UseMenusReturn {
   stats: MenuStats | null;

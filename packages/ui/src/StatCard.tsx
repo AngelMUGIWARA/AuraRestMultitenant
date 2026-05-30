@@ -1,6 +1,6 @@
-import { cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { IconTrendingUp, IconTrendingDown } from '@/components/ui/Icons';
+import { cn } from './cn';
+import { Skeleton } from './Skeleton';
+import { IconTrendingUp, IconTrendingDown } from './Icons';
 
 type ColorVariant = 'amber' | 'sage' | 'gold' | 'cream';
 
@@ -37,10 +37,7 @@ export function StatCard({
           {label}
         </p>
         <div
-          className={cn(
-            'flex h-7 w-7 items-center justify-center rounded',
-            ICON_BG[colorVariant],
-          )}
+          className={cn('flex h-7 w-7 items-center justify-center rounded', ICON_BG[colorVariant])}
           aria-hidden="true"
         >
           {icon}

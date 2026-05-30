@@ -1,1 +1,9 @@
- 
+packages:
+  # Backend excluido hasta que se migre al workspace (sus paquetes no están en la store de pnpm)
+  - 'apps/frontend'
+  - 'apps/mfe-admin'
+  - 'packages/*'
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true

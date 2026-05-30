@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { formatCurrency, getInitials } from '@/lib/utils';
-import { Skeleton, SkeletonRow } from '@/components/ui/Skeleton';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { Skeleton, SkeletonRow } from '@maison/ui';
+import { EmptyState } from '@maison/ui';
 import { StatusBadge, PlanBadge } from '@/components/ui/Badge';
-import { IconTenants, IconExternalLink } from '@/components/ui/Icons';
+import { IconTenants, IconExternalLink } from '@maison/ui';
 import type { Tenant } from '@/types/tenant.types';
 
 interface TenantTableProps {

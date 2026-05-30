@@ -1,21 +1,11 @@
 import type { Metadata } from 'next';
-import { BranchProvider } from '@/context/BranchContext';
-import { SidebarProvider } from '@/context/SidebarContext';
-import { AdminShell } from '@/components/admin/layout/AdminShell';
 
 export const metadata: Metadata = {
-  title: {
-    default: 'Dashboard · Maison Admin',
-    template: '%s · Maison',
-  },
+  title: { default: 'Dashboard · Maison Admin', template: '%s · Maison' },
 };
 
+// El shell ya no provee AdminShell/BranchProvider/SidebarProvider.
+// El mfe-admin incluye su propio chrome completo.
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <BranchProvider>
-      <SidebarProvider>
-        <AdminShell>{children}</AdminShell>
-      </SidebarProvider>
-    </BranchProvider>
-  );
+  return <>{children}</>;
 }

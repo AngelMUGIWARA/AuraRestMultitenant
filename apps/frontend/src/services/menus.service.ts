@@ -1,5 +1,5 @@
-import { apiClient } from './api-client';
-import type { ApiResponse, PaginatedResponse } from '@/types/api.types';
+import { apiClient } from '@maison/api-client';
+import type { ApiResponse, PaginatedResponse } from '@maison/types';
 import type {
   MenuItem,
   MenuStats,

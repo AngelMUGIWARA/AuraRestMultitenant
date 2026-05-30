@@ -7,7 +7,7 @@ import { ADMIN_NAV } from '@/lib/constants';
 import { useSidebar } from '@/context/SidebarContext';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BranchSelector } from '@/components/ui/BranchSelector';
-import { IconSearch, IconBell, IconChevronRight } from '@/components/ui/Icons';
+import { IconSearch, IconBell, IconChevronRight } from '@maison/ui';
 
 /* ─── Hamburger icon ────────────────────────────────────────────── */
 

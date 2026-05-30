@@ -4,7 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "pnpm build:admin && start \"MFE Admin :5002\" cmd /k \"pnpm preview:admin\" && pnpm --filter frontend dev",
+    "dev:shell": "pnpm --filter frontend dev",
+    "dev:admin": "pnpm --filter mfe-admin dev",
+    "dev:admin:watch": "pnpm --filter mfe-admin build --watch",
+    "preview:admin": "pnpm --filter mfe-admin preview",
+    "build:admin": "pnpm --filter mfe-admin build",
+    "build:shell": "pnpm --filter frontend build",
+    "build": "pnpm build:admin && pnpm build:shell"
   },
   "keywords": [],
   "author": "",

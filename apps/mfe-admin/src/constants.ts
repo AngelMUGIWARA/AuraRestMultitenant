@@ -1,0 +1,51 @@
+export const ADMIN_NAV = [
+  {
+    label: 'Visión General',
+    items: [
+      { href: '/dashboard',    label: 'Dashboard',     icon: 'dashboard' },
+      { href: '/reportes',     label: 'Reportes',      icon: 'analytics' },
+    ],
+  },
+  {
+    label: 'Operaciones',
+    items: [
+      { href: '/inventario',   label: 'Inventario',    icon: 'inventory' },
+      { href: '/categorias',   label: 'Categorías',    icon: 'categories' },
+      { href: '/reservaciones',label: 'Reservaciones', icon: 'reservations' },
+    ],
+  },
+  {
+    label: 'Gestión',
+    items: [
+      { href: '/sucursales',   label: 'Sucursales',    icon: 'branches' },
+      { href: '/users',        label: 'Usuarios',      icon: 'users' },
+      { href: '/menus',        label: 'Menús',         icon: 'menus' },
+      { href: '/orders',       label: 'Pedidos',       icon: 'orders' },
+    ],
+  },
+  {
+    label: 'Sistema',
+    items: [
+      { href: '/settings',     label: 'Configuración', icon: 'settings' },
+      { href: '/integrations', label: 'Integraciones', icon: 'integrations' },
+      { href: '/logs',         label: 'Registros',     icon: 'logs' },
+    ],
+  },
+] as const;
+
+export const RESERVATION_STATUS_LABELS = {
+  pending: 'Pendiente', confirmed: 'Confirmada', arrived: 'En mesa',
+  completed: 'Completada', cancelled: 'Cancelada', no_show: 'No se presentó',
+} as const;
+
+export const STOCK_STATUS_LABELS = {
+  ok: 'Normal', low: 'Bajo', critical: 'Crítico', out_of_stock: 'Sin Stock',
+} as const;
+
+export const TENANT_STATUS_LABELS = {
+  active: 'Activo', inactive: 'Inactivo', suspended: 'Suspendido', trial: 'Prueba',
+} as const;
+
+export const PLAN_LABELS = {
+  starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise',
+} as const;

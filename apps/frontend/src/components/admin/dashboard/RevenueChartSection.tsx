@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { IconAnalytics } from '@/components/ui/Icons';
+import { Skeleton } from '@maison/ui';
+import { EmptyState } from '@maison/ui';
+import { IconAnalytics } from '@maison/ui';
 import type { RevenueDataPoint } from '@/types/dashboard.types';
 
 type Period = 'weekly' | 'monthly' | 'yearly';

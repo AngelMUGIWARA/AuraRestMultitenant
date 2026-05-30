@@ -1,5 +1,5 @@
-import { StatCardSkeleton } from '@/components/admin/dashboard/StatCard';
-import { Skeleton } from '@/components/ui/Skeleton';
+import { StatCardSkeleton } from '@maison/ui';
+import { Skeleton } from '@maison/ui';
 
 export default function DashboardLoading() {
   return (

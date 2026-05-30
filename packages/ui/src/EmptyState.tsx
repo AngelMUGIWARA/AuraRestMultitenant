@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn } from './cn';
 
 interface EmptyStateProps {
   icon: React.ReactNode;
@@ -8,13 +8,7 @@ interface EmptyStateProps {
   className?: string;
 }
 
-export function EmptyState({
-  icon,
-  title,
-  description,
-  action,
-  className,
-}: EmptyStateProps) {
+export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
   return (
     <div
       className={cn(

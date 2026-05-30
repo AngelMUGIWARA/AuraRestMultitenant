@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { inventoryService } from '@/services/inventory.service';
 import type { InventoryItem, InventoryStats, InventoryFilters } from '@/types/inventory.types';
-import type { PaginatedResponse } from '@/types/api.types';
+import type { PaginatedResponse } from '@maison/types';
 
 interface UseInventoryReturn {
   stats: InventoryStats | null;
