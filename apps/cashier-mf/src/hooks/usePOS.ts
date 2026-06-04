@@ -1,0 +1,129 @@
+import { useState, useEffect, useCallback } from 'react';
+import { on, emit } from '@maison/event-bus';
+import { cashierService } from '../services/cashier.service';
+import type { MenuItem, RestaurantTable, Order, PaymentMethod } from '@maison/types';
+
+interface CartItem {
+  menuItem: MenuItem;
+  quantity: number;
+  notes?: string;
+}
+
+export function usePOS() {
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [tables, setTables] = useState<RestaurantTable[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
+  const [branchId, setBranchId] = useState<string | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
+
+  const loadData = useCallback(async (bId?: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [menuRes, tablesRes] = await Promise.all([
+        cashierService.getMenuItems({ branchId: bId }),
+        cashierService.getTables(bId),
+      ]);
+      setMenuItems(menuRes.data.data);
+      setTables(tablesRes.data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al cargar datos');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData(branchId);
+
+    const offBranch = on('branch:changed', ({ branchId: id, isGlobal }) => {
+      const newBranchId = isGlobal ? undefined : id;
+      setBranchId(newBranchId);
+      loadData(newBranchId);
+      setCart([]);
+      setSelectedTable(null);
+    });
+
+    const offMenuUpdated = on('menu:updated', () => loadData(branchId));
+
+    return () => { offBranch(); offMenuUpdated(); };
+  }, [loadData]);
+
+  const addToCart = useCallback((item: MenuItem, quantity = 1, notes?: string) => {
+    setCart((prev) => {
+      const existing = prev.find((c) => c.menuItem.id === item.id);
+      if (existing) {
+        return prev.map((c) => c.menuItem.id === item.id ? { ...c, quantity: c.quantity + quantity } : c);
+      }
+      return [...prev, { menuItem: item, quantity, notes }];
+    });
+  }, []);
+
+  const removeFromCart = useCallback((menuItemId: string) => {
+    setCart((prev) => prev.filter((c) => c.menuItem.id !== menuItemId));
+  }, []);
+
+  const clearCart = useCallback(() => { setCart([]); setSelectedTable(null); setCompletedOrder(null); }, []);
+
+  const cartTotal = cart.reduce((sum, item) => sum + item.menuItem.price * item.quantity, 0);
+  const cartSubtotal = cartTotal / 1.16;
+  const cartTax = cartTotal - cartSubtotal;
+
+  const submitOrder = useCallback(async (customerName: string) => {
+    if (cart.length === 0) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const res = await cashierService.createOrder({
+        type: selectedTable ? 'dine_in' : 'takeaway',
+        items: cart.map((c) => ({ menuItemId: c.menuItem.id, quantity: c.quantity, notes: c.notes })),
+        customerName,
+        tableNumber: selectedTable?.name,
+        branchId: branchId ?? '',
+      });
+      const order = res.data;
+      setCompletedOrder(order);
+      emit('order:created', { order });
+      setCart([]);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al crear la orden');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [cart, selectedTable, branchId]);
+
+  const processPayment = useCallback(async (method: PaymentMethod, amountPaid: number) => {
+    if (!completedOrder) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await cashierService.processPayment({
+        orderId: completedOrder.id,
+        method,
+        amount: completedOrder.total,
+      });
+      emit('payment:completed', {
+        orderId: completedOrder.id,
+        orderNumber: completedOrder.orderNumber,
+        method,
+        amount: completedOrder.total,
+      });
+      clearCart();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al procesar el pago');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [completedOrder, clearCart]);
+
+  return {
+    menuItems, tables, cart, selectedTable, setSelectedTable,
+    cartTotal, cartSubtotal, cartTax,
+    isLoading, isSubmitting, error, completedOrder,
+    addToCart, removeFromCart, clearCart, submitOrder, processPayment,
+  };
+}

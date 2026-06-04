@@ -1,8 +1,7 @@
 import { ApiClientError } from './errors';
 
-const API_BASE_URL =
-  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL) ||
-  'http://localhost:4000/api/v1';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const API_BASE_URL: string = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:4000/api/v1';
 
 type RequestOptions = Omit<RequestInit, 'body'> & {
   params?: Record<string, string | number | boolean | undefined>;
