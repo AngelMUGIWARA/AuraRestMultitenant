@@ -12,6 +12,7 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-06B6D4?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Vite](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![pnpm](https://img.shields.io/badge/pnpm-11-F69220?style=flat-square&logo=pnpm&logoColor=white)](https://pnpm.io/)
 [![License](https://img.shields.io/badge/License-ISC-808080?style=flat-square)]()
 
@@ -22,15 +23,23 @@
 ## 📋 Tabla de Contenidos
 
 - [Visión General](#-visión-general)
-- [Arquitectura](#-arquitectura)
+- [Arquitectura SOFEA + MFE](#-arquitectura-sofea--mfe)
+- [Mapa de Puertos](#-mapa-de-puertos)
+- [Mapa de Eventos (Event Bus)](#-mapa-de-eventos-event-bus)
 - [Stack Tecnológico](#-stack-tecnológico)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
-- [Módulos del Sistema](#-módulos-del-sistema)
-- [Primeros Pasos](#-primeros-pasos)
+- [Cómo Correr el Proyecto](#-cómo-correr-el-proyecto)
+  - [Prerrequisitos](#prerrequisitos)
+  - [Instalación](#instalación)
+  - [Variables de Entorno](#variables-de-entorno)
+  - [Modo Desarrollo — Todo en Paralelo](#modo-desarrollo--todo-en-paralelo)
+  - [Modo Desarrollo — MFEs Individuales](#modo-desarrollo--mfes-individuales)
+  - [Build de Producción](#build-de-producción)
 - [Scripts Disponibles](#-scripts-disponibles)
-- [Frontend: Componentes y UI](#-frontend-componentes-y-ui)
-- [Patrones de Diseño](#-patrones-de-diseño)
-- [Estados de Carga y Vacío](#-estados-de-carga-y-vacío)
+- [Responsabilidades de Cada MFE](#-responsabilidades-de-cada-mfe)
+- [Packages Compartidos](#-packages-compartidos)
+- [Sistema de Diseño](#-sistema-de-diseño)
+- [Patrones SOFEA](#-patrones-sofea)
 - [Contribuir](#-contribuir)
 - [Licencia](#-licencia)
 
@@ -38,435 +47,516 @@
 
 ## 🎯 Visión General
 
-**AuraRest Multitenant** es un panel de administración SaaS diseñado para la gestión integral de restaurantes con arquitectura **multitenant**. Permite administrar múltiples restaurantes (tenants) desde una única plataforma, cada uno con sus propias sucursales, menús, inventarios, pedidos y reservaciones.
-
-### ✨ Funcionalidades Clave
-
-| Funcionalidad | Descripción |
-|:---|---|
-| **Dashboard** | Vista general con métricas clave, gráfico de ingresos y feed de actividad |
-| **Multitenant** | Gestión centralizada de múltiples restaurantes con aislamiento de datos |
-| **Sucursales** | Administración de sucursales por tenant con métricas individuales |
-| **Inventario** | Control de stock con alertas de nivel bajo y crítico |
-| **Menús** | Catálogo de productos con precios, disponibilidad y gestión de categorías |
-| **Pedidos** | Seguimiento en tiempo real con polling cada 30s y múltiples estados |
-| **Reservaciones** | Gestión de reservas con estados: pendiente, confirmada, en mesa, completada |
-| **Usuarios** | Roles y permisos: super_admin, admin, manager, staff |
-| **Categorías** | Estructura jerárquica de categorías padre e hijo |
-| **Tema Oscuro/Claro** | Alternancia suave con persistencia en localStorage |
-| **Selector de Sucursal** | Contexto global para filtrar datos por sucursal |
+**AuraRest Multitenant** es una plataforma SaaS de administración para restaurantes implementada con **arquitectura SOFEA** (Service Oriented Front-End Architecture) y **Microfrontends** via Module Federation. La plataforma está diseñada para administrar múltiples restaurantes (tenants) con sus propias sucursales, carta, pedidos, cocina, caja y reservaciones, todo desde un único shell que orquesta 8 microfrontends independientes.
 
 ---
 
-## 🏗️ Arquitectura
+## 🏗️ Arquitectura SOFEA + MFE
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    AuraRest Multitenant                       │
-│                    (Monorepo pnpm)                            │
-├────────────────────┬────────────────────────────────────────┤
-│                    │                                         │
-│   apps/backend     │            apps/frontend                 │
-│   (NestJS 11)      │          (Next.js 16 + React 19)        │
-│                    │                                         │
-│   ┌──────────────┐ │  ┌──────────────────────────────────┐  │
-│   │ AppModule    │ │  │  Pages (App Router)              │  │
-│   │ AppController│ │  │  ├── Dashboard                   │  │
-│   │ AppService   │ │  │  ├── Sucursales                  │  │
-│   └──────────────┘ │  │  ├── Inventario                  │  │
-│                    │  │  ├── Menús                       │  │
-│   API: /api/v1     │  │  ├── Pedidos                     │  │
-│   Puerto: 4000     │  │  ├── Reservaciones               │  │
-│                    │  │  ├── Usuarios                    │  │
-│                    │  │  ├── Categorías                  │  │
-│                    │  │  ├── Tenants                     │  │
-│                    │  │  ├── Reportes                    │  │
-│                    │  │  ├── Settings                    │  │
-│                    │  │  └── Integraciones               │  │
-│                    │  └──────────────────────────────────┘  │
-└────────────────────┴────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                    pnpm Monorepo Workspace                           │
+│                                                                      │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  web-shell  (Next.js · :3000)                                │   │
+│  │  ┌──────────────────────────────────────────────────────┐   │   │
+│  │  │  AuthGuard → comprueba @maison/auth-client           │   │   │
+│  │  │  ThemeProvider → <html class="dark">                 │   │   │
+│  │  │  federation.ts → registra 8 remotes                  │   │   │
+│  │  │  AppRouter → <RemoteLoader remote="..." />           │   │   │
+│  │  └──────────────────────────────────────────────────────┘   │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                               │                                      │
+│       ┌───────────────────────┼──────────────────────────┐          │
+│       │           Module Federation (ESM)                │          │
+│       ▼           remoteEntry.js por cada MFE            ▼          │
+│  ┌─────────┐ ┌──────────┐ ┌────────┐ ┌────────┐ ┌────────────┐    │
+│  │auth-mf  │ │dashboard │ │menu-mf │ │orders  │ │kitchen-mf  │    │
+│  │  :5001  │ │   :5002  │ │  :5003 │ │  :5004 │ │   :5005    │    │
+│  └─────────┘ └──────────┘ └────────┘ └────────┘ └────────────┘    │
+│  ┌────────────┐ ┌────────────┐ ┌─────────────────┐                 │
+│  │cashier-mf  │ │reports-mf  │ │ reservations-mf │                 │
+│  │   :5006    │ │   :5007    │ │      :5008      │                 │
+│  └────────────┘ └────────────┘ └─────────────────┘                 │
+│                                                                      │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Packages compartidos (workspace:*)                          │   │
+│  │  @maison/types · @maison/api-client · @maison/ui             │   │
+│  │  @maison/event-bus · @maison/auth-client                     │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  apps/backend  (NestJS · :4000)                              │   │
+│  │  API REST: /api/v1                                           │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
+
+> **Principio SOFEA:** El `web-shell` es el único punto de entrada HTML y el único orquestador. Cada MFE posee su propio dominio de negocio, sus servicios REST y su estado local. La única comunicación entre MFEs es mediante el `@maison/event-bus` (Custom Events).
+
+---
+
+## 🗺️ Mapa de Puertos
+
+| Puerto | App | Rol |
+|:------:|:----|:----|
+| **4000** | `apps/backend` | API REST NestJS |
+| **3000** | `apps/web-shell` | Orquestador (Next.js) |
+| **5001** | `apps/auth-mf` | Autenticación y sesión |
+| **5002** | `apps/dashboard-mf` | Dashboard, sucursales, usuarios |
+| **5003** | `apps/menu-mf` | Carta, categorías, inventario |
+| **5004** | `apps/orders-mf` | Gestión de pedidos |
+| **5005** | `apps/kitchen-mf` | Kitchen Display System (KDS) |
+| **5006** | `apps/cashier-mf` | Punto de venta (POS) |
+| **5007** | `apps/reports-mf` | Reportes y analíticas |
+| **5008** | `apps/reservations-mf` | Reservaciones |
+
+---
+
+## 📡 Mapa de Eventos (Event Bus)
+
+| Publicador | Evento | Suscriptores |
+|:-----------|:-------|:-------------|
+| `auth-mf` | `auth:login` | web-shell, todos los MFEs |
+| `auth-mf` | `auth:logout` | web-shell, todos los MFEs |
+| `dashboard-mf` | `branch:changed` | orders, kitchen, cashier, reports, reservations |
+| `cashier-mf` | `order:created` | orders-mf, kitchen-mf |
+| `cashier-mf` | `payment:completed` | reports-mf |
+| `kitchen-mf` | `order:status-changed` | orders-mf |
+| `orders-mf` | `order:cancelled` | kitchen-mf, reports-mf |
+| `menu-mf` | `menu:updated` | cashier-mf, kitchen-mf |
+| `reservations-mf` | `reservation:created` | reports-mf |
 
 ---
 
 ## 🛠️ Stack Tecnológico
 
-### Backend (`apps/backend`)
+### Shell y MFEs
 
 | Tecnología | Versión | Propósito |
-|:---|---:|:---|
-| [NestJS](https://nestjs.com/) | 11 | Framework backend progresivo |
+|:-----------|--------:|:----------|
+| [Next.js](https://nextjs.org/) | 16.2.6 | Shell orquestador (web-shell) |
+| [Vite](https://vitejs.dev/) | 6.3 | Bundler para los 8 MFEs |
+| [React](https://react.dev/) | 19.2.4 | UI en todos los MFEs |
+| [React Router DOM](https://reactrouter.com/) | 7.x | Routing interno de cada MFE |
+| [@module-federation/vite](https://module-federation.io/) | 1.x | Module Federation en MFEs Vite |
+| [@module-federation/runtime](https://module-federation.io/) | 2.x | Carga dinámica de remotes en el shell |
+| [TypeScript](https://www.typescriptlang.org/) | 5 | Tipado estático en todo el monorepo |
+| [Tailwind CSS](https://tailwindcss.com/) | 3.4 | Estilos utilitarios compartidos |
+
+### Backend
+
+| Tecnología | Versión | Propósito |
+|:-----------|--------:|:----------|
+| [NestJS](https://nestjs.com/) | 11 | API REST |
 | [TypeScript](https://www.typescriptlang.org/) | 5.7 | Tipado estático |
-| [Jest](https://jestjs.io/) | 30 | Testing unitario y E2E |
-| [ESLint](https://eslint.org/) + [Prettier](https://prettier.io/) | — | Linting y formateo |
 
-### Frontend (`apps/frontend`)
-
-| Tecnología | Versión | Propósito |
-|:---|---:|:---|
-| [Next.js](https://nextjs.org/) | 16.2.6 | Framework React con App Router |
-| [React](https://react.dev/) | 19.2.4 | Librería de UI |
-| [TypeScript](https://www.typescriptlang.org/) | 5 | Tipado estático |
-| [Tailwind CSS](https://tailwindcss.com/) | 3.4 | Estilos utilitarios |
-| [React Compiler](https://react.dev/learn/react-compiler) | 1.0 | Optimización de re-renders |
-
-### Herramientas Globales
+### Herramientas globales
 
 | Herramienta | Versión | Propósito |
-|:---|---:|:---|
-| [pnpm](https://pnpm.io/) | ≥11.4 | Gestor de paquetes con workspaces |
-| Node.js | — | Entorno de ejecución |
+|:------------|--------:|:----------|
+| [pnpm](https://pnpm.io/) | ≥ 11.4 | Gestor de paquetes con workspaces |
+| [concurrently](https://github.com/open-cli-tools/concurrently) | 9.x | Ejecución paralela de MFEs en dev |
+| Node.js | ≥ 18 | Entorno de ejecución |
 
 ---
 
 ## 📁 Estructura del Proyecto
 
 ```
-aurarest-multitenant/
+AuraRestMultitenant/
 ├── apps/
-│   ├── backend/                          # API REST NestJS
-│   │   ├── src/
-│   │   │   ├── main.ts                   # Punto de entrada
-│   │   │   ├── app.module.ts             # Módulo raíz
-│   │   │   ├── app.controller.ts         # Controlador raíz
-│   │   │   └── app.service.ts            # Servicio raíz
-│   │   ├── test/                         # Tests E2E
-│   │   ├── eslint.config.mjs             # Config ESLint plana
-│   │   ├── nest-cli.json                 # Config NestJS CLI
-│   │   ├── tsconfig.json
-│   │   └── package.json
+│   ├── backend/              # API REST NestJS (:4000)
 │   │
-│   └── frontend/                         # Panel admin Next.js
-│       └── src/
-│           ├── app/
-│           │   ├── globals.css           # Design tokens + reset
-│           │   ├── layout.tsx            # Root layout (3 fuentes)
-│           │   ├── page.tsx              # Redirecciona a /dashboard
-│           │   └── (admin)/              # Grupo de rutas admin
-│           │       ├── layout.tsx        # Admin layout (providers)
-│           │       ├── dashboard/        # Panel principal
-│           │       ├── analytics/        # Analíticas
-│           │       ├── categorias/       # Categorías
-│           │       ├── inventario/       # Inventario
-│           │       ├── menus/            # Menús
-│           │       ├── orders/           # Pedidos
-│           │       ├── reportes/         # Reportes
-│           │       ├── reservaciones/    # Reservaciones
-│           │       ├── settings/         # Configuración
-│           │       ├── sucursales/       # Sucursales
-│           │       ├── tenants/          # Tenants (multitenant)
-│           │       ├── integrations/     # Integraciones
-│           │       └── users/            # Usuarios
-│           │
-│           ├── components/
-│           │   ├── admin/
-│           │   │   ├── layout/           # AdminShell, Sidebar, Topbar
-│           │   │   └── dashboard/        # StatCard, RevenueChart, etc.
-│           │   └── ui/                  # Componentes reutilizables
-│           │       ├── Icons.tsx         # 40+ iconos SVG inline
-│           │       ├── Badge.tsx         # StatusBadge, PlanBadge
-│           │       ├── Skeleton.tsx      # Esqueletos de carga
-│           │       ├── EmptyState.tsx    # Estado vacío
-│           │       ├── BranchSelector.tsx# Selector de sucursal
-│           │       └── ThemeToggle.tsx   # Alternancia dark/light
-│           │
-│           ├── context/                  # Contextos React
-│           │   ├── ThemeContext.tsx       # Tema oscuro/claro
-│           │   ├── SidebarContext.tsx     # Sidebar colapsable
-│           │   └── BranchContext.tsx      # Sucursal seleccionada
-│           │
-│           ├── hooks/                    # Custom hooks
-│           │   ├── useDashboard.ts       # Dashboard + actividad
-│           │   ├── useBranches.ts        # Sucursales CRUD
-│           │   ├── useCategories.ts      # Categorías
-│           │   ├── useInventory.ts       # Inventario
-│           │   ├── useMenus.ts           # Menús
-│           │   ├── useOrders.ts          # Pedidos (con polling)
-│           │   ├── useReservations.ts    # Reservaciones
-│           │   └── useUsers.ts           # Usuarios
-│           │
-│           ├── services/                 # Capa API
-│           │   ├── api-client.ts         # Cliente HTTP genérico
-│           │   ├── dashboard.service.ts
-│           │   ├── branches.service.ts
-│           │   ├── categories.service.ts
-│           │   ├── inventory.service.ts
-│           │   ├── menus.service.ts
-│           │   ├── orders.service.ts
-│           │   ├── reservations.service.ts
-│           │   ├── tenants.service.ts
-│           │   └── users.service.ts
-│           │
-│           ├── types/                    # Tipos TypeScript
-│           │   ├── api.types.ts          # ApiResponse, Paginated
-│           │   ├── dashboard.types.ts
-│           │   ├── branch.types.ts
-│           │   ├── category.types.ts
-│           │   ├── inventory.types.ts
-│           │   ├── menu.types.ts
-│           │   ├── order.types.ts
-│           │   ├── reservation.types.ts
-│           │   ├── tenant.types.ts
-│           │   └── user.types.ts
-│           │
-│           └── lib/
-│               ├── constants.ts          # Nav, labels, config
-│               └── utils.ts             # cn(), formatCurrency(), etc.
+│   ├── web-shell/            # Orquestador Next.js (:3000)
+│   │   └── src/
+│   │       ├── app/
+│   │       │   ├── layout.tsx          # ThemeProvider + fuentes
+│   │       │   ├── page.tsx            # Redirecciona según auth
+│   │       │   ├── auth/login/         # Carga auth-mf
+│   │       │   └── (admin)/            # Protegido por AuthGuard
+│   │       │       ├── layout.tsx      # <AuthGuard>
+│   │       │       ├── dashboard/      # → dashboard_mf
+│   │       │       ├── sucursales/     # → dashboard_mf
+│   │       │       ├── orders/         # → orders_mf
+│   │       │       ├── kitchen/        # → kitchen_mf
+│   │       │       ├── cashier/        # → cashier_mf
+│   │       │       ├── menus/          # → menu_mf
+│   │       │       ├── categorias/     # → menu_mf
+│   │       │       ├── inventario/     # → menu_mf
+│   │       │       ├── reportes/       # → reports_mf
+│   │       │       ├── analytics/      # → reports_mf
+│   │       │       ├── logs/           # → reports_mf
+│   │       │       ├── reservaciones/  # → reservations_mf
+│   │       │       ├── users/          # → dashboard_mf
+│   │       │       ├── tenants/        # → dashboard_mf
+│   │       │       └── settings/       # → dashboard_mf
+│   │       ├── components/shell/
+│   │       │   ├── RemoteLoader.tsx    # Carga dinámica de MFEs
+│   │       │   └── AuthGuard.tsx       # Protección de rutas
+│   │       └── lib/
+│   │           └── federation.ts       # Registra los 8 remotes
+│   │
+│   ├── auth-mf/              # Autenticación (:5001)
+│   ├── dashboard-mf/         # Admin central (:5002)
+│   ├── menu-mf/              # Carta e inventario (:5003)
+│   ├── orders-mf/            # Pedidos (:5004)
+│   ├── kitchen-mf/           # KDS cocina (:5005)
+│   ├── cashier-mf/           # POS caja (:5006)
+│   ├── reports-mf/           # Reportes y BI (:5007)
+│   └── reservations-mf/      # Reservaciones (:5008)
 │
-├── package.json                          # Root monorepo
-├── pnpm-workspace.yaml                   # Config workspaces
-├── pnpm-lock.yaml
-└── README.md
+├── packages/
+│   ├── types/                # @maison/types — todos los tipos de dominio
+│   ├── api-client/           # @maison/api-client — cliente HTTP base
+│   ├── ui/                   # @maison/ui — design system compartido
+│   ├── event-bus/            # @maison/event-bus — comunicación entre MFEs
+│   └── auth-client/          # @maison/auth-client — gestión de tokens JWT
+│
+├── .env.example              # Variables de entorno de referencia
+├── package.json              # Scripts globales + concurrently
+├── pnpm-workspace.yaml       # Definición de workspaces
+└── pnpm-lock.yaml
 ```
 
 ---
 
-## 🧩 Módulos del Sistema
-
-### 🔢 Dashboard
-Vista principal con 4 tarjetas KPI (Sucursales, Usuarios, Ingresos, Rating), gráfico de ingresos por período (semana/mes/año), feed de actividad reciente y tabla de sucursales.
-
-### 🏪 Sucursales (Branches)
-Gestión de sucursales por tenant. Cada sucursal tiene nombre, ciudad, dirección, teléfono, capacidad, horario y encargado. Estados: activa, inactiva, mantenimiento.
-
-### 📦 Inventario
-Control de stock con seguimiento de productos, unidades, costos y estados: normal, bajo, crítico, sin stock. Valoración total del inventario.
-
-### 🍽️ Menús
-Catálogo de productos con precios, imágenes, tiempos de preparación, alérgenos y estados (disponible, no disponible, agotado). Soporte para productos populares y destacados.
-
-### 📋 Pedidos (Orders)
-Seguimiento completo: pendiente, confirmado, preparando, listo, entregado, cancelado. Tipos: en mesa, para llevar, delivery. Polling automático cada 30s.
-
-### 📅 Reservaciones
-Gestión de reservas con código de confirmación, tamaño del grupo, fecha/hora, duración y estados: pendiente, confirmada, en mesa, completada, cancelada, no show.
-
-### 👥 Usuarios
-Roles: super_admin, admin, manager, staff. Gestión de invitaciones, estados (activo, inactivo, pendiente) y cambios de rol.
-
-### 🏛️ Tenants
-Núcleo multitenant. Planes: Starter, Professional, Enterprise. Estados: activo, inactivo, suspendido, prueba. Estadísticas por tenant.
-
-### 🏷️ Categorías
-Estructura jerárquica con categorías padre e hijo, colores y orden personalizado.
-
----
-
-## 🚀 Primeros Pasos
+## 🚀 Cómo Correr el Proyecto
 
 ### Prerrequisitos
 
-- **Node.js** ≥ 18
-- **pnpm** ≥ 11.4
-
 ```bash
-# Instalar pnpm globalmente si no lo tienes
+# Node.js >= 18
+node --version   # v18.x o superior
+
+# pnpm >= 11.4
 npm install -g pnpm
+pnpm --version   # 11.x
 ```
 
 ### Instalación
 
 ```bash
-# Clonar el repositorio
+# 1. Clonar el repositorio
 git clone <url-del-repositorio>
-cd aurarest-multitenant
+cd AuraRestMultitenant
 
-# Instalar dependencias (raíz + workspaces)
+# 2. Instalar TODAS las dependencias del monorepo de una sola vez
 pnpm install
 ```
 
-### Ejecutar en Desarrollo
+> `pnpm install` instala las dependencias de todos los `apps/*` y `packages/*` automáticamente gracias al workspace.
 
-```bash
-# Backend (NestJS con watch mode — ejecutar dentro de apps/backend)
-cd apps/backend
-pnpm start:dev
-
-# Frontend (Next.js con hot reload — ejecutar dentro de apps/frontend)
-cd apps/frontend
-pnpm dev
-```
-
-El frontend estará disponible en `http://localhost:3000`.
+---
 
 ### Variables de Entorno
 
-Crea un archivo `.env.local` en `apps/frontend/` para configurar la URL de la API (por defecto apunta a `http://localhost:4000`):
+Copia el archivo de ejemplo y ajusta los valores:
 
-```env
-NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+```bash
+cp .env.example .env.local
 ```
 
-> ⚠️ **Nota**: El backend de NestJS escucha en el puerto `3000` por defecto. Para que coincida con la URL que espera el frontend, ejecuta el backend con la variable `PORT=4000`:
->
-> ```bash
-> cd apps/backend
-> PORT=4000 pnpm start:dev
-> ```
+**.env.example** (referencia completa):
+
+```env
+# URL de la API para todos los MFEs (Vite)
+VITE_API_URL=http://localhost:4000/api/v1
+
+# URLs de los remoteEntry.js de cada MFE (usados por el web-shell)
+NEXT_PUBLIC_MFE_AUTH_URL=http://localhost:5001/remoteEntry.js
+NEXT_PUBLIC_MFE_DASHBOARD_URL=http://localhost:5002/remoteEntry.js
+NEXT_PUBLIC_MFE_MENU_URL=http://localhost:5003/remoteEntry.js
+NEXT_PUBLIC_MFE_ORDERS_URL=http://localhost:5004/remoteEntry.js
+NEXT_PUBLIC_MFE_KITCHEN_URL=http://localhost:5005/remoteEntry.js
+NEXT_PUBLIC_MFE_CASHIER_URL=http://localhost:5006/remoteEntry.js
+NEXT_PUBLIC_MFE_REPORTS_URL=http://localhost:5007/remoteEntry.js
+NEXT_PUBLIC_MFE_RESERVATIONS_URL=http://localhost:5008/remoteEntry.js
+```
+
+Cada MFE necesita su propio `.env.local` con `VITE_API_URL`. Crea uno en cada app:
+
+```bash
+# Ejemplo para dashboard-mf (repetir para cada MFE)
+echo "VITE_API_URL=http://localhost:4000/api/v1" > apps/dashboard-mf/.env.local
+```
+
+---
+
+### Modo Desarrollo — Todo en Paralelo
+
+Esta es la forma recomendada para desarrollo local. Levanta todos los MFEs y el shell con un solo comando:
+
+```bash
+# Levanta los 8 MFEs + el web-shell simultáneamente
+pnpm dev:all
+```
+
+Salida esperada (cada MFE en su color):
+
+```
+[shell]   - Local: http://localhost:3000
+[auth]    - Local: http://localhost:5001
+[dash]    - Local: http://localhost:5002
+[menu]    - Local: http://localhost:5003
+[orders]  - Local: http://localhost:5004
+[kitchen] - Local: http://localhost:5005
+[cashier] - Local: http://localhost:5006
+[reports] - Local: http://localhost:5007
+[reserv]  - Local: http://localhost:5008
+```
+
+**La aplicación completa estará en** → `http://localhost:3000`
+
+> **Primer arranque:** Todos los MFEs Vite compilan en modo dev (HMR). El shell Next.js tarda ~3-5 segundos adicionales. Espera a que todos los puertos estén listos antes de abrir el navegador.
+
+---
+
+#### Solo los MFEs (sin el shell)
+
+Útil cuando desarrollas un MFE específico y ya tienes el shell corriendo:
+
+```bash
+# Levanta los 8 MFEs sin el shell
+pnpm dev:mfes
+```
+
+---
+
+### Modo Desarrollo — MFEs Individuales
+
+Cuando trabajas en un único dominio y no necesitas todos los demás MFEs corriendo:
+
+```bash
+# Shell orquestador (siempre debe estar levantado)
+pnpm dev:shell         # → :3000
+
+# MFE de autenticación
+pnpm dev:auth          # → :5001
+
+# MFE de dashboard y gestión
+pnpm dev:dashboard     # → :5002
+
+# MFE de carta (menús, categorías, inventario)
+pnpm dev:menu          # → :5003
+
+# MFE de pedidos
+pnpm dev:orders        # → :5004
+
+# MFE de cocina (KDS)
+pnpm dev:kitchen       # → :5005
+
+# MFE de caja (POS)
+pnpm dev:cashier       # → :5006
+
+# MFE de reportes y analíticas
+pnpm dev:reports       # → :5007
+
+# MFE de reservaciones
+pnpm dev:reservations  # → :5008
+```
+
+> **Tip:** Si solo quieres trabajar en `dashboard-mf`, ejecuta `pnpm dev:shell` en una terminal y `pnpm dev:dashboard` en otra. El shell cargará únicamente el dashboard; el resto mostrará el error de "módulo remoto no disponible" hasta que levantes esos MFEs.
+
+---
+
+### Backend (NestJS)
+
+El backend **no está incluido en el workspace pnpm** todavía. Para levantarlo:
+
+```bash
+cd apps/backend
+npm install          # usa npm, no pnpm
+npm run start:dev    # modo watch en :4000
+```
+
+---
+
+### Build de Producción
+
+```bash
+# Compila todos los MFEs y luego el shell
+pnpm build
+
+# O por separado:
+pnpm build:mfes      # Compila los 8 MFEs en orden
+pnpm build:shell     # Compila el Next.js shell (requiere MFEs ya compilados)
+```
+
+Build de un MFE específico:
+
+```bash
+pnpm build:dashboard
+pnpm build:auth
+pnpm build:menu
+pnpm build:orders
+pnpm build:kitchen
+pnpm build:cashier
+pnpm build:reports
+pnpm build:reservations
+```
+
+> **Nota importante:** El web-shell se construye con `output: 'export'` (HTML estático). Para producción, sirve el directorio `apps/web-shell/out/` con cualquier servidor estático (Nginx, Caddy, etc.) y asegúrate de que cada MFE esté disponible en su URL pública configurada en las variables de entorno.
 
 ---
 
 ## 📜 Scripts Disponibles
 
-### Backend (`apps/backend`)
+### Desde la raíz del monorepo
 
 | Script | Descripción |
-|:---|---:|
-| `pnpm start:dev` | Inicia con watch mode |
-| `pnpm build` | Compila a `dist/` |
-| `pnpm start:prod` | Inicia en producción |
-| `pnpm test` | Ejecuta tests unitarios |
-| `pnpm test:e2e` | Ejecuta tests E2E |
-| `pnpm lint` | Linting con ESLint |
-| `pnpm format` | Formateo con Prettier |
+|:-------|:------------|
+| `pnpm dev:all` | Levanta shell + 8 MFEs en paralelo |
+| `pnpm dev:mfes` | Levanta solo los 8 MFEs en paralelo |
+| `pnpm dev:shell` | Solo el web-shell (:3000) |
+| `pnpm dev:auth` | Solo auth-mf (:5001) |
+| `pnpm dev:dashboard` | Solo dashboard-mf (:5002) |
+| `pnpm dev:menu` | Solo menu-mf (:5003) |
+| `pnpm dev:orders` | Solo orders-mf (:5004) |
+| `pnpm dev:kitchen` | Solo kitchen-mf (:5005) |
+| `pnpm dev:cashier` | Solo cashier-mf (:5006) |
+| `pnpm dev:reports` | Solo reports-mf (:5007) |
+| `pnpm dev:reservations` | Solo reservations-mf (:5008) |
+| `pnpm build` | Build completo (MFEs + shell) |
+| `pnpm build:mfes` | Build secuencial de los 8 MFEs |
+| `pnpm build:shell` | Build del web-shell |
+| `pnpm build:<nombre>` | Build de un MFE específico |
 
-### Frontend (`apps/frontend`)
+### Desde la carpeta de cada app
 
-| Script | Descripción |
-|:---|---:|
-| `pnpm dev` | Inicia servidor de desarrollo |
-| `pnpm build` | Build de producción |
-| `pnpm start` | Inicia servidor de producción |
-| `pnpm lint` | Linting con ESLint |
+```bash
+cd apps/dashboard-mf
+pnpm dev        # servidor Vite con HMR
+pnpm build      # bundle para producción
+pnpm preview    # sirve el build de producción localmente
+```
 
 ---
 
-## 🎨 Frontend: Componentes y UI
+## 🧩 Responsabilidades de Cada MFE
 
-### Sistema de Diseño
+| MFE | Puerto | Dominio | Publica eventos | Suscribe a |
+|:----|:------:|:--------|:----------------|:-----------|
+| `auth-mf` | 5001 | Autenticación, sesión, tokens | `auth:login`, `auth:logout` | — |
+| `dashboard-mf` | 5002 | Dashboard, sucursales, usuarios, tenants | `branch:changed` | `auth:login/logout` |
+| `menu-mf` | 5003 | Menús, categorías, inventario | `menu:updated` | `branch:changed` |
+| `orders-mf` | 5004 | Ciclo de vida de pedidos | `order:cancelled`, `order:updated` | `order:created`, `order:status-changed`, `branch:changed` |
+| `kitchen-mf` | 5005 | KDS — cola en tiempo real (WS + polling) | `order:status-changed` | `order:created`, `order:updated`, `branch:changed` |
+| `cashier-mf` | 5006 | POS — creación de órdenes, pago | `order:created`, `payment:completed` | `branch:changed`, `menu:updated` |
+| `reports-mf` | 5007 | Reportes, analíticas, logs, integraciones | — | `branch:changed`, `payment:completed` |
+| `reservations-mf` | 5008 | Reservaciones, calendario, mesas | `reservation:created`, `reservation:cancelled` | `branch:changed` |
 
-El frontend utiliza un sistema de diseño personalizado con **design tokens** CSS que se adaptan automáticamente al tema claro/oscuro:
+---
+
+## 📦 Packages Compartidos
+
+Todos los packages usan `"main": "./src/index.ts"` — se importan directamente desde su TypeScript fuente. Vite y Next.js los transpilan en tiempo de build.
+
+| Package | Propósito |
+|:--------|:----------|
+| `@maison/types` | Todos los tipos de dominio: `Order`, `Branch`, `MenuItem`, `Reservation`, `KitchenTicket`, `Payment`, etc. |
+| `@maison/api-client` | Cliente HTTP base (`apiClient.get/post/put/patch/delete`) con manejo de errores |
+| `@maison/ui` | Design system: `StatCard`, `Skeleton*`, `EmptyState`, `Icons`, `cn()` |
+| `@maison/event-bus` | `emit()` y `on()` fuertemente tipados via `MaisonEventMap`. SSR-safe. |
+| `@maison/auth-client` | `AuthClient.getToken/setToken/clearTokens/isAuthenticated/getUser` — único lugar donde vive el JWT |
+
+---
+
+## 🎨 Sistema de Diseño
+
+### Design Tokens (CSS Variables)
 
 ```css
-:root {
-  /* → Modo claro */
-  --color-bg: 245 244 241;      /* Fondo cálido */
-  --color-surface: 255 255 255; /* Superficie */
-  --color-accent: 172 126 64;   /* Acento ámbar */
-}
-
+/* Modo oscuro (default) */
 .dark {
-  /* → Modo oscuro */
-  --color-bg: 12 11 9;          /* Fondo profundo */
-  --color-surface: 20 18 16;    /* Superficie oscura */
-  --color-accent: 212 151 90;   /* Ámbar más brillante */
+  --color-bg: 12 11 9;           /* surface-0: fondo profundo */
+  --color-surface: 20 18 16;     /* surface-1 */
+  --color-accent: 212 151 90;    /* maison-amber */
 }
 ```
 
 ### Tipografía
 
-| Estilo | Fuente | Uso |
-|:---|---:|:---|
-| Display | **Cormorant** (serif) | Títulos y encabezados |
-| Body | **Outfit** (sans-serif) | Texto general |
-| Mono | **JetBrains Mono** (mono) | Números y código |
+| Estilo | Fuente | Variable CSS | Uso |
+|:-------|:-------|:-------------|:----|
+| Display | Cormorant (serif) | `--font-display` | Títulos de página |
+| Body | Outfit (sans-serif) | `--font-body` | Texto general |
+| Mono | JetBrains Mono | `--font-mono` | Números, código, KDS |
 
-### Paleta de Colores
+### Paleta
 
-| Token | Propósito |
-|:---|---:|
-| `maison-cream` | Texto principal |
-| `maison-cream-muted` | Texto secundario |
-| `maison-cream-dim` | Texto terciario / muted |
-| `maison-amber` | Acento principal |
-| `maison-sage` | Éxito / positivo |
-| `maison-ruby` | Error / peligro |
-| `maison-gold` | Advertencia / destacado |
-| `surface-0/1/2/3` | Capas de fondo |
-
-### Componentes UI
-
-| Componente | Descripción |
-|:---|---:|
-| `AdminShell` | Layout principal con sidebar y topbar |
-| `AdminSidebar` | Sidebar colapsable con navegación agrupada |
-| `AdminTopbar` | Barra superior con breadcrumbs, búsqueda y acciones |
-| `StatCard` | Tarjeta de indicador con icono, valor y tendencia |
-| `StatCardSkeleton` | Estado de carga para StatCard |
-| `RevenueChartSection` | Gráfico de barras para ingresos |
-| `ActivityFeed` | Feed de actividad del sistema |
-| `TenantTable` | Tabla de sucursales recientes |
-| `Badge` | Estados (activo/inactivo/suspendido) y planes |
-| `BranchSelector` | Selector desplegable de sucursal con indicador |
-| `EmptyState` | Pantalla de estado vacío con icono y acción |
-| `Skeleton` | Componente de carga shimmer |
-| `ThemeToggle` | Botón de alternancia dark/light |
-| `Icons` | 40+ iconos SVG inline (Lucide-style) |
+| Token | Color | Semántica |
+|:------|:------|:----------|
+| `maison-cream` | Crema cálido | Texto principal |
+| `maison-amber` | Ámbar | Acento, acciones primarias |
+| `maison-sage` | Verde salvia | Éxito, estado positivo |
+| `maison-ruby` | Rojo rubí | Error, peligro |
+| `maison-gold` | Dorado | Advertencia, rating |
+| `surface-0/1/2/3` | Grises oscuros | Capas de profundidad |
 
 ---
 
-## 🔧 Patrones de Diseño
+## 🔧 Patrones SOFEA
 
-### Capa de Servicios (API Client)
-
-```typescript
-// api-client.ts — Cliente HTTP genérico con tipado
-const data = await apiClient.get<ApiResponse<Branch[]>>('/admin/branches');
-```
-
-### Custom Hooks (Data Fetching)
-
-Cada módulo tiene su propio hook personalizado que maneja estados de carga, error y refresco:
+### Comunicación entre MFEs (Event Bus)
 
 ```typescript
-const { data, isLoading, error, refresh } = useDashboard();
-const { branches, stats, filters, setFilters } = useBranches();
-const { items, stats, isLoading } = useInventory(selectedBranchId);
+// Publicar (ej. en cashier-mf)
+import { emit } from '@maison/event-bus';
+emit('order:created', { order });
+
+// Suscribirse (ej. en kitchen-mf)
+import { on } from '@maison/event-bus';
+useEffect(() => {
+  const off = on('order:created', ({ order }) => addToQueue(order));
+  return off; // cleanup automático
+}, []);
 ```
 
-### Contextos Globales
+### Autenticación compartida
 
 ```typescript
-// Tema (oscuro/claro)
-const { theme, toggleTheme } = useTheme();
+// Todos los MFEs leen el token desde el mismo lugar
+import { AuthClient } from '@maison/auth-client';
 
-// Sidebar (colapsable / drawer móvil)
-const { isCollapsed, toggleCollapsed } = useSidebar();
-
-// Sucursal seleccionada (filtro global)
-const { selectedBranch, setBranch, isGlobal } = useBranch();
+const token = AuthClient.getToken();      // string | null
+const user  = AuthClient.getUser();       // AuthUser | null
+const ok    = AuthClient.isAuthenticated(); // verifica expiración
 ```
 
-### Formateo de Datos
+### Servicios REST (por dominio)
 
 ```typescript
-formatCurrency(150000)        // "$150,000"
-formatNumber(1250)            // "1,250"
-formatPercent(12.5)           // "+12.5%"
-formatRelativeTime(date)      // "hace 3h" / "hace 2d"
-getInitials("Café Roma")      // "CR"
+// Cada MFE tiene sus propios servicios — nunca comparte servicios entre MFEs
+import { ordersService } from '../services/orders.service';
+const { data } = await ordersService.getAll({ status: 'pending', branchId });
 ```
 
-### Estados de Carga y Vacío
+### Custom Hooks con estado local
 
-Todas las vistas implementan tres estados fundamentales:
-
-```
-┌─────────────┬────────────────────┬─────────────────────┐
-│   Cargando   │       Error        │     Datos Vacíos    │
-├─────────────┼────────────────────┼─────────────────────┤
-│  Skeleton    │  EmptyState con    │  EmptyState con     │
-│  shimmer     │  mensaje de error  │  mensaje informativo│
-└─────────────┴────────────────────┴─────────────────────┘
+```typescript
+// Estado encapsulado por MFE — sin stores globales compartidos
+const { tickets, isLoading, updateTicketStatus } = useKitchenQueue();
+const { cart, addToCart, submitOrder, processPayment } = usePOS();
 ```
 
 ---
 
 ## 🤝 Contribuir
 
-1. Haz un **Fork** del repositorio
-2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Realiza tus cambios siguiendo la estructura y patrones existentes
-4. Ejecuta los tests y asegúrate de que pasen
-5. Envía un **Pull Request**
+1. Crea una rama: `git checkout -b feature/nombre-del-feature`
+2. Sigue la estructura de capas de cada MFE: `types → services → hooks → pages → App.tsx`
+3. Importa tipos **siempre** de `@maison/types`, nunca tipos locales entre MFEs
+4. Comunicación entre MFEs **solo** via `@maison/event-bus`
+5. Verifica TypeScript: `pnpm --filter <nombre-app> exec npx tsc --noEmit`
+6. Abre un Pull Request hacia `main`
 
-### Convenciones de Código
+### Convenciones
 
-- **TypeScript** estricto con tipos explícitos
-- **Nombres**: camelCase para variables/funciones, PascalCase para componentes
-- **Estilos**: Tailwind CSS con clases utilitarias, diseño responsivo mobile-first
-- **Componentes**: Preferir componentes server-side de Next.js cuando sea posible
-- **Iconos**: Agregar nuevos iconos en `Icons.tsx` usando el helper `base()`
+- **Nombres de eventos:** `dominio:accion` en minúsculas (ej. `order:created`)
+- **Tipos compartidos:** solo en `@maison/types`, con tipado exhaustivo
+- **Sin estado global entre MFEs:** cada MFE es una isla de estado
+- **Puertos fijos:** no cambiar los puertos del mapa sin actualizar `federation.ts`
 
 ---
 
@@ -479,7 +569,7 @@ Este proyecto está bajo la licencia **ISC**.
 <div align="center">
   <br />
   <p>
-    <sub>Hecho con ❤️ para la industria restaurantera</sub>
+    <sub>Arquitectura SOFEA · Module Federation · pnpm Workspaces</sub>
   </p>
   <br />
 </div>
