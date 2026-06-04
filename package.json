@@ -30,7 +30,19 @@
     "build:reservations": "pnpm --filter reservations-mf build",
 
     "build:mfes": "pnpm build:auth && pnpm build:dashboard && pnpm build:menu && pnpm build:orders && pnpm build:kitchen && pnpm build:cashier && pnpm build:reports && pnpm build:reservations",
-    "build": "pnpm build:mfes && pnpm build:shell"
+    "build": "pnpm build:mfes && pnpm build:shell",
+
+    "preview:shell":   "npx serve apps/web-shell/out -p 3030 --single",
+    "preview:auth":    "pnpm --filter auth-mf preview",
+    "preview:dashboard": "pnpm --filter dashboard-mf preview",
+    "preview:menu":    "pnpm --filter menu-mf preview",
+    "preview:orders":  "pnpm --filter orders-mf preview",
+    "preview:kitchen": "pnpm --filter kitchen-mf preview",
+    "preview:cashier": "pnpm --filter cashier-mf preview",
+    "preview:reports": "pnpm --filter reports-mf preview",
+    "preview:reservations": "pnpm --filter reservations-mf preview",
+    "preview:mfes": "concurrently --names \"auth,dash,menu,orders,kitchen,cashier,reports,reserv\" --prefix-colors \"cyan,blue,magenta,yellow,red,green,white,gray\" \"pnpm preview:auth\" \"pnpm preview:dashboard\" \"pnpm preview:menu\" \"pnpm preview:orders\" \"pnpm preview:kitchen\" \"pnpm preview:cashier\" \"pnpm preview:reports\" \"pnpm preview:reservations\"",
+    "preview:all": "concurrently --names \"shell,auth,dash,menu,orders,kitchen,cashier,reports,reserv\" --prefix-colors \"bgBlue,cyan,blue,magenta,yellow,red,green,white,gray\" \"pnpm preview:shell\" \"pnpm preview:auth\" \"pnpm preview:dashboard\" \"pnpm preview:menu\" \"pnpm preview:orders\" \"pnpm preview:kitchen\" \"pnpm preview:cashier\" \"pnpm preview:reports\" \"pnpm preview:reservations\""
   },
   "keywords": [],
   "author": "",

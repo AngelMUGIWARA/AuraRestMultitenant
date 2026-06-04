@@ -2,7 +2,21 @@ import type { Config } from 'tailwindcss';
 
 const config: Config = {
   darkMode: 'class',
-  content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+  content: [
+    // Shell itself
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
+    // All MFE source files — so their Tailwind classes are included in the global CSS
+    '../auth-mf/src/**/*.{js,ts,jsx,tsx}',
+    '../dashboard-mf/src/**/*.{js,ts,jsx,tsx}',
+    '../menu-mf/src/**/*.{js,ts,jsx,tsx}',
+    '../orders-mf/src/**/*.{js,ts,jsx,tsx}',
+    '../kitchen-mf/src/**/*.{js,ts,jsx,tsx}',
+    '../cashier-mf/src/**/*.{js,ts,jsx,tsx}',
+    '../reports-mf/src/**/*.{js,ts,jsx,tsx}',
+    '../reservations-mf/src/**/*.{js,ts,jsx,tsx}',
+    // Shared packages
+    '../../packages/ui/src/**/*.{js,ts,jsx,tsx}',
+  ],
   theme: {
     extend: {
       colors: {

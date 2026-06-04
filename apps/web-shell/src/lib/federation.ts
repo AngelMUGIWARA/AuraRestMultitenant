@@ -16,6 +16,25 @@ function bridgeSharedModules() {
   if (!mfCache.share['react-dom']) mfCache.share['react-dom'] = ReactDOM;
 }
 
+// Fix for: "@vitejs/plugin-react can't detect preamble. Something is wrong."
+//
+// When a Vite MFE runs in dev mode, @vitejs/plugin-react injects React Refresh
+// (HMR) code that requires window.__vite_plugin_react_preamble_installed__ = true
+// and the $Refresh* globals. Normally Vite sets these in the MFE's own index.html,
+// but when the MFE is loaded as a remote by a different host (Next.js), that
+// index.html is never evaluated in the shell's window.
+//
+// Solution: set the preamble globals on the shell's window so the MFE's HMR code
+// finds them. Real React Refresh will still work per-MFE because each Vite dev
+// server maintains its own HMR websocket; these globals are just the handshake.
+function installViteReactPreamble() {
+  const w = window as any;
+  if (w.__vite_plugin_react_preamble_installed__) return;
+  w.__vite_plugin_react_preamble_installed__ = true;
+  w.$RefreshReg$ ??= () => {};
+  w.$RefreshSig$ ??= () => (type: unknown) => type;
+}
+
 export const MFE_URLS = {
   auth:         process.env.NEXT_PUBLIC_MFE_AUTH_URL         ?? 'http://localhost:5001/remoteEntry.js',
   dashboard:    process.env.NEXT_PUBLIC_MFE_DASHBOARD_URL    ?? 'http://localhost:5002/remoteEntry.js',
@@ -31,6 +50,7 @@ export function initFederation(): void {
   if (initialized || typeof window === 'undefined') return;
   initialized = true;
 
+  installViteReactPreamble();
   bridgeSharedModules();
 
   init({

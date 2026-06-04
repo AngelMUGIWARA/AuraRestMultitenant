@@ -101,7 +101,7 @@
 | Puerto | App | Rol |
 |:------:|:----|:----|
 | **4000** | `apps/backend` | API REST NestJS |
-| **3000** | `apps/web-shell` | Orquestador (Next.js) |
+| **3030** | `apps/web-shell` | Orquestador (Next.js) · *el 3000 suele estar ocupado* |
 | **5001** | `apps/auth-mf` | Autenticación y sesión |
 | **5002** | `apps/dashboard-mf` | Dashboard, sucursales, usuarios |
 | **5003** | `apps/menu-mf` | Carta, categorías, inventario |
@@ -283,19 +283,19 @@ echo "VITE_API_URL=http://localhost:4000/api/v1" > apps/dashboard-mf/.env.local
 
 ---
 
-### Modo Desarrollo — Todo en Paralelo
+### Modo A — Desarrollo con HMR (recomendado al codear)
 
-Esta es la forma recomendada para desarrollo local. Levanta todos los MFEs y el shell con un solo comando:
+Levanta los MFEs con Vite HMR y el shell Next.js con hot-reload. Los cambios en código se reflejan instantáneamente.
 
 ```bash
-# Levanta los 8 MFEs + el web-shell simultáneamente
+# Todo en paralelo (shell + 8 MFEs)
 pnpm dev:all
 ```
 
-Salida esperada (cada MFE en su color):
+Salida esperada (cada proceso en su color de terminal):
 
 ```
-[shell]   - Local: http://localhost:3000
+[shell]   - Local: http://localhost:3030   ← la app completa
 [auth]    - Local: http://localhost:5001
 [dash]    - Local: http://localhost:5002
 [menu]    - Local: http://localhost:5003
@@ -306,57 +306,60 @@ Salida esperada (cada MFE en su color):
 [reserv]  - Local: http://localhost:5008
 ```
 
-**La aplicación completa estará en** → `http://localhost:3000`
+**Abre el navegador en** → `http://localhost:3030`
 
-> **Primer arranque:** Todos los MFEs Vite compilan en modo dev (HMR). El shell Next.js tarda ~3-5 segundos adicionales. Espera a que todos los puertos estén listos antes de abrir el navegador.
+> El shell usa el puerto **3030** (no 3000) porque suele estar ocupado. Si también necesitas cambiar este puerto, edita `apps/web-shell/package.json` → `"dev": "next dev -p XXXX"`.
+
+> **Primer arranque:** Vite compila cada MFE en paralelo (~5-10s). Espera a ver todos los `Local:` antes de abrir el navegador.
 
 ---
 
-#### Solo los MFEs (sin el shell)
-
-Útil cuando desarrollas un MFE específico y ya tienes el shell corriendo:
+#### Solo MFEs (shell ya corriendo en otra terminal)
 
 ```bash
-# Levanta los 8 MFEs sin el shell
-pnpm dev:mfes
+pnpm dev:mfes     # los 8 MFEs en paralelo, sin el shell
 ```
 
 ---
 
-### Modo Desarrollo — MFEs Individuales
+### Modo B — Preview de build de producción
 
-Cuando trabajas en un único dominio y no necesitas todos los demás MFEs corriendo:
+Primero compila todo, luego sirve los bundles optimizados. Úsalo para verificar el comportamiento real antes de un deploy.
 
 ```bash
-# Shell orquestador (siempre debe estar levantado)
-pnpm dev:shell         # → :3000
+# Paso 1: compilar todo
+pnpm build        # MFEs (Vite) → dist/ + shell (Next.js) → out/
 
-# MFE de autenticación
+# Paso 2: levantar todo en preview
+pnpm preview:all  # shell via npx serve :3030, MFEs via vite preview
+```
+
+**Abre el navegador en** → `http://localhost:3030`
+
+> **Importante:** `next start` no funciona con `output: export`. El shell buildado se sirve como HTML estático con `npx serve`. Los MFEs Vite usan `vite preview`.
+
+---
+
+### MFEs individuales
+
+Cuando trabajas en un único dominio:
+
+```bash
+# Siempre necesitas el shell levantado
+pnpm dev:shell         # → :3030
+
+# Luego solo el MFE que estás desarrollando:
 pnpm dev:auth          # → :5001
-
-# MFE de dashboard y gestión
 pnpm dev:dashboard     # → :5002
-
-# MFE de carta (menús, categorías, inventario)
 pnpm dev:menu          # → :5003
-
-# MFE de pedidos
 pnpm dev:orders        # → :5004
-
-# MFE de cocina (KDS)
 pnpm dev:kitchen       # → :5005
-
-# MFE de caja (POS)
 pnpm dev:cashier       # → :5006
-
-# MFE de reportes y analíticas
 pnpm dev:reports       # → :5007
-
-# MFE de reservaciones
 pnpm dev:reservations  # → :5008
 ```
 
-> **Tip:** Si solo quieres trabajar en `dashboard-mf`, ejecuta `pnpm dev:shell` en una terminal y `pnpm dev:dashboard` en otra. El shell cargará únicamente el dashboard; el resto mostrará el error de "módulo remoto no disponible" hasta que levantes esos MFEs.
+> Los MFEs que no estén levantados mostrarán un banner de error en el shell ("módulo remoto no disponible"). Es comportamiento esperado: solo importa tener corriendo el MFE que estás editando.
 
 ---
 
@@ -404,23 +407,39 @@ pnpm build:reservations
 
 ### Desde la raíz del monorepo
 
+**Modo desarrollo (HMR)**
+
+| Script | Descripción | Puerto |
+|:-------|:------------|:------:|
+| `pnpm dev:all` | Shell + 8 MFEs en paralelo | todos |
+| `pnpm dev:mfes` | Solo los 8 MFEs en paralelo | 5001-5008 |
+| `pnpm dev:shell` | Solo el web-shell | **3030** |
+| `pnpm dev:auth` | Solo auth-mf | 5001 |
+| `pnpm dev:dashboard` | Solo dashboard-mf | 5002 |
+| `pnpm dev:menu` | Solo menu-mf | 5003 |
+| `pnpm dev:orders` | Solo orders-mf | 5004 |
+| `pnpm dev:kitchen` | Solo kitchen-mf | 5005 |
+| `pnpm dev:cashier` | Solo cashier-mf | 5006 |
+| `pnpm dev:reports` | Solo reports-mf | 5007 |
+| `pnpm dev:reservations` | Solo reservations-mf | 5008 |
+
+**Build de producción**
+
 | Script | Descripción |
 |:-------|:------------|
-| `pnpm dev:all` | Levanta shell + 8 MFEs en paralelo |
-| `pnpm dev:mfes` | Levanta solo los 8 MFEs en paralelo |
-| `pnpm dev:shell` | Solo el web-shell (:3000) |
-| `pnpm dev:auth` | Solo auth-mf (:5001) |
-| `pnpm dev:dashboard` | Solo dashboard-mf (:5002) |
-| `pnpm dev:menu` | Solo menu-mf (:5003) |
-| `pnpm dev:orders` | Solo orders-mf (:5004) |
-| `pnpm dev:kitchen` | Solo kitchen-mf (:5005) |
-| `pnpm dev:cashier` | Solo cashier-mf (:5006) |
-| `pnpm dev:reports` | Solo reports-mf (:5007) |
-| `pnpm dev:reservations` | Solo reservations-mf (:5008) |
-| `pnpm build` | Build completo (MFEs + shell) |
+| `pnpm build` | Build completo: MFEs → `dist/` + shell → `out/` |
 | `pnpm build:mfes` | Build secuencial de los 8 MFEs |
-| `pnpm build:shell` | Build del web-shell |
-| `pnpm build:<nombre>` | Build de un MFE específico |
+| `pnpm build:shell` | Build del Next.js shell (necesita MFEs ya compilados) |
+| `pnpm build:<nombre>` | Build de un MFE específico (ej. `build:dashboard`) |
+
+**Preview de producción (requiere build previo)**
+
+| Script | Descripción | Puerto |
+|:-------|:------------|:------:|
+| `pnpm preview:all` | Shell estático + 8 MFEs en preview | todos |
+| `pnpm preview:mfes` | Solo los 8 MFEs en modo preview | 5001-5008 |
+| `pnpm preview:shell` | Shell estático via `npx serve` | **3030** |
+| `pnpm preview:<nombre>` | Preview de un MFE específico | — |
 
 ### Desde la carpeta de cada app
 
