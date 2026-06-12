@@ -1,0 +1,29 @@
+{
+  "name": "cashier-mf",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@maison/api-client": "workspace:*",
+    "@maison/auth-client": "workspace:*",
+    "@maison/event-bus": "workspace:*",
+    "@maison/types": "workspace:*",
+    "@maison/ui": "workspace:*",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-router-dom": "^7.0.0"
+  },
+  "devDependencies": {
+    "@module-federation/vite": "^1.0.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.4.0",
+    "typescript": "^5",
+    "vite": "^6.3.0"
+  }
+}

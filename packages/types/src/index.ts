@@ -1,0 +1,565 @@
+// ─── Generic API wrappers ─────────────────────────────────────────────────────
+
+export interface ApiResponse<T> {
+  data: T;
+  message: string;
+  success: boolean;
+  timestamp: string;
+}
+
+export interface PaginatedResponse<T> extends ApiResponse<T[]> {
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface ApiError {
+  message: string;
+  statusCode: number;
+  errors?: Record<string, string[]>;
+}
+
+export type AsyncState<T> = {
+  data: T | null;
+  isLoading: boolean;
+  error: string | null;
+};
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+export type UserRole = 'super_admin' | 'admin' | 'manager' | 'staff';
+export type UserStatus = 'active' | 'inactive' | 'pending';
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  branchId?: string;
+  tenantId?: string;
+  avatarUrl?: string;
+}
+
+export interface AuthTokenPayload {
+  sub: string;
+  email: string;
+  role: UserRole;
+  branchId?: string;
+  tenantId?: string;
+  exp: number;
+  iat: number;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthUser;
+}
+
+// ─── Tenant ───────────────────────────────────────────────────────────────────
+
+export type TenantStatus = 'active' | 'inactive' | 'suspended' | 'trial';
+export type TenantPlan = 'starter' | 'professional' | 'enterprise';
+
+export interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  status: TenantStatus;
+  plan: TenantPlan;
+  logoUrl?: string;
+  ownerId: string;
+  ownerEmail: string;
+  restaurantCount: number;
+  activeMenus: number;
+  monthlyRevenue: number;
+  monthlyOrders: number;
+  avgRating: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TenantFilters {
+  status?: TenantStatus;
+  plan?: TenantPlan;
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: 'createdAt' | 'name' | 'monthlyRevenue';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface CreateTenantPayload {
+  name: string;
+  slug: string;
+  plan: TenantPlan;
+  ownerEmail: string;
+  ownerName: string;
+}
+
+export interface SuspendTenantPayload {
+  reason: string;
+  notifyOwner?: boolean;
+}
+
+// ─── Branch / Sucursal ────────────────────────────────────────────────────────
+
+export type BranchStatus = 'active' | 'inactive' | 'maintenance';
+
+export interface Branch {
+  id: string;
+  name: string;
+  slug?: string;
+  city: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  status?: BranchStatus;
+  isGlobal?: boolean;
+  isActive?: boolean;
+  openingHours?: string;
+  capacity?: number;
+  managerName?: string;
+  tenantId?: string;
+  avgRating?: number;
+  ordersToday?: number;
+  createdAt?: string;
+}
+
+export interface BranchStats {
+  totalBranches: number;
+  activeBranches: number;
+  inactiveBranches: number;
+  maintenanceBranches: number;
+  totalCapacity: number;
+  avgRating: number;
+}
+
+export interface BranchFilters {
+  status?: BranchStatus;
+  search?: string;
+  isActive?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface CreateBranchPayload {
+  name: string;
+  slug: string;
+  city: string;
+  address: string;
+  phone?: string;
+  email?: string;
+  capacity?: number;
+  managerName?: string;
+  openingHours?: string;
+}
+
+// ─── User ─────────────────────────────────────────────────────────────────────
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  branchId?: string;
+  branchName?: string;
+  tenantId?: string;
+  tenantName?: string;
+  avatarUrl?: string;
+  phone?: string;
+  lastLoginAt?: string;
+  createdAt: string;
+}
+
+export interface UserStats {
+  totalUsers: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  pendingUsers: number;
+  adminCount: number;
+  managerCount: number;
+  staffCount: number;
+  newThisMonth: number;
+}
+
+export interface UserFilters {
+  role?: UserRole;
+  status?: UserStatus;
+  branchId?: string;
+  tenantId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface UpdateUserRolePayload { role: UserRole; }
+export interface InviteUserPayload {
+  name: string;
+  email: string;
+  role: UserRole;
+  branchId?: string;
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
+export interface DashboardStats {
+  totalTenants: number;
+  activeTenants: number;
+  totalUsers: number;
+  activeUsers: number;
+  monthlyRevenue: number;
+  revenueGrowth: number;
+  avgRating: number;
+  newTenantsThisMonth: number;
+}
+
+export interface RevenueDataPoint { month: string; revenue: number; tenants: number; }
+
+export type ActivityEventType =
+  | 'tenant_created' | 'user_registered' | 'plan_upgraded'
+  | 'payment_received' | 'tenant_suspended' | 'menu_published';
+
+export interface ActivityItem {
+  id: string;
+  type: ActivityEventType;
+  title: string;
+  description: string;
+  timestamp: string;
+  actorId: string;
+  actorName: string;
+  metadata?: Record<string, string | number>;
+}
+
+// ─── Menu / Carta ─────────────────────────────────────────────────────────────
+
+export type MenuItemStatus = 'available' | 'unavailable' | 'out_of_stock';
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  categoryId: string;
+  categoryName: string;
+  price: number;
+  originalPrice?: number;
+  imageUrl?: string;
+  status: MenuItemStatus;
+  isPopular: boolean;
+  isFeatured: boolean;
+  preparationTime: number;
+  allergens?: string[];
+  branchId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MenuStats {
+  totalItems: number;
+  availableItems: number;
+  unavailableItems: number;
+  outOfStockItems: number;
+  totalCategories: number;
+  avgPrice: number;
+  popularItems: number;
+}
+
+export interface MenuFilters {
+  status?: MenuItemStatus;
+  categoryId?: string;
+  isPopular?: boolean;
+  branchId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: 'name' | 'price' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface CreateMenuItemPayload {
+  name: string;
+  description?: string;
+  categoryId: string;
+  price: number;
+  preparationTime: number;
+  branchId?: string;
+}
+
+export interface UpdateMenuItemPricePayload { price: number; reason?: string; }
+
+// ─── Category ─────────────────────────────────────────────────────────────────
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  color?: string;
+  parentId?: string;
+  parentName?: string;
+  productCount: number;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  branchId?: string;
+}
+
+export interface CategoryStats {
+  totalCategories: number;
+  activeCategories: number;
+  rootCategories: number;
+  subCategories: number;
+  avgProductsPerCategory: number;
+  mostPopularCategory: string;
+}
+
+export interface CategoryFilters {
+  isActive?: boolean;
+  parentId?: string | null;
+  search?: string;
+  branchId?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface CreateCategoryPayload {
+  name: string;
+  description?: string;
+  color?: string;
+  parentId?: string;
+  branchId?: string;
+}
+
+// ─── Inventory ────────────────────────────────────────────────────────────────
+
+export type StockStatus = 'ok' | 'low' | 'critical' | 'out_of_stock';
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  sku: string;
+  categoryId: string;
+  categoryName: string;
+  unit: string;
+  currentStock: number;
+  minStock: number;
+  maxStock: number;
+  unitCost: number;
+  totalValue: number;
+  status: StockStatus;
+  lastRestocked: string;
+  branchId: string;
+}
+
+export interface InventoryStats {
+  totalProducts: number;
+  totalActive: number;
+  lowStockItems: number;
+  criticalItems: number;
+  outOfStockItems: number;
+  totalInventoryValue: number;
+  categoriesCount: number;
+}
+
+export interface InventoryFilters {
+  status?: StockStatus;
+  categoryId?: string;
+  search?: string;
+  branchId?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: 'name' | 'currentStock' | 'totalValue' | 'lastRestocked';
+  sortOrder?: 'asc' | 'desc';
+}
+
+// ─── Order ────────────────────────────────────────────────────────────────────
+
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+export type PaymentStatus = 'pending' | 'paid' | 'refunded' | 'failed';
+export type OrderType = 'dine_in' | 'takeaway' | 'delivery';
+
+export interface OrderItem {
+  id: string;
+  menuItemId: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  notes?: string;
+}
+
+export interface Order {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  type: OrderType;
+  items: OrderItem[];
+  itemCount: number;
+  subtotal: number;
+  tax: number;
+  total: number;
+  customerName: string;
+  tableNumber?: string;
+  deliveryAddress?: string;
+  notes?: string;
+  branchId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderStats {
+  totalToday: number;
+  pendingOrders: number;
+  preparingOrders: number;
+  readyOrders: number;
+  completedToday: number;
+  cancelledToday: number;
+  revenueToday: number;
+  avgOrderValue: number;
+}
+
+export interface OrderFilters {
+  status?: OrderStatus;
+  type?: OrderType;
+  paymentStatus?: PaymentStatus;
+  branchId?: string;
+  search?: string;
+  date?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface UpdateOrderStatusPayload { status: OrderStatus; notes?: string; }
+
+export interface CreateOrderPayload {
+  type: OrderType;
+  items: Array<{ menuItemId: string; quantity: number; notes?: string; }>;
+  customerName: string;
+  tableNumber?: string;
+  deliveryAddress?: string;
+  notes?: string;
+  branchId: string;
+}
+
+// ─── Kitchen ──────────────────────────────────────────────────────────────────
+
+export type KitchenTicketStatus = 'new' | 'in_progress' | 'ready';
+
+export interface KitchenTicket {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  tableNumber?: string;
+  type: OrderType;
+  items: OrderItem[];
+  status: KitchenTicketStatus;
+  customerName: string;
+  notes?: string;
+  branchId: string;
+  createdAt: string;
+  updatedAt: string;
+  elapsedSeconds: number;
+}
+
+// ─── Payment ──────────────────────────────────────────────────────────────────
+
+export type PaymentMethod = 'cash' | 'card' | 'qr' | 'transfer';
+
+export interface Payment {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  amount: number;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  reference?: string;
+  branchId: string;
+  createdAt: string;
+}
+
+export interface ProcessPaymentPayload {
+  orderId: string;
+  method: PaymentMethod;
+  amount: number;
+  reference?: string;
+}
+
+// ─── Reservation ──────────────────────────────────────────────────────────────
+
+export type ReservationStatus = 'pending' | 'confirmed' | 'arrived' | 'completed' | 'cancelled' | 'no_show';
+
+export interface Reservation {
+  id: string;
+  confirmationCode: string;
+  guestName: string;
+  guestPhone: string;
+  guestEmail?: string;
+  partySize: number;
+  date: string;
+  time: string;
+  durationMinutes: number;
+  status: ReservationStatus;
+  tableId?: string;
+  tableName?: string;
+  notes?: string;
+  specialRequests?: string;
+  branchId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReservationStats {
+  totalToday: number;
+  confirmedToday: number;
+  pendingConfirmation: number;
+  arrivedToday: number;
+  completedToday: number;
+  cancelledToday: number;
+  noShowToday: number;
+  averagePartySize: number;
+  occupancyRate: number;
+}
+
+export interface ReservationFilters {
+  status?: ReservationStatus;
+  date?: string;
+  branchId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface CreateReservationPayload {
+  guestName: string;
+  guestPhone: string;
+  guestEmail?: string;
+  partySize: number;
+  date: string;
+  time: string;
+  notes?: string;
+  branchId: string;
+}
+
+// ─── Table ────────────────────────────────────────────────────────────────────
+
+export type TableStatus = 'free' | 'occupied' | 'reserved' | 'maintenance';
+
+export interface RestaurantTable {
+  id: string;
+  name: string;
+  capacity: number;
+  status: TableStatus;
+  currentOrderId?: string;
+  reservationId?: string;
+  branchId: string;
+}

@@ -1,1 +1,18 @@
- 
+packages:
+  # Backend excluido hasta que se migre al workspace (sus paquetes no están en la store de pnpm)
+  - 'apps/web-shell'
+  - 'apps/auth-mf'
+  - 'apps/dashboard-mf'
+  - 'apps/menu-mf'
+  - 'apps/orders-mf'
+  - 'apps/kitchen-mf'
+  - 'apps/cashier-mf'
+  - 'apps/reports-mf'
+  - 'apps/reservations-mf'
+  # Mantenemos mfe-admin durante la migración — se elimina al final (FASE 12)
+  - 'apps/mfe-admin'
+  - 'packages/*'
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true

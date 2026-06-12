@@ -1,0 +1,10 @@
+{
+  "latestErrorEvent": {
+    "code": "TYPE-001",
+    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project C:\\\\Proyectos\\\\noveno\\\\AuraRestMultitenant\\\\apps\\\\kitchen-mf\\\\node_modules\\\\.federation\\\\tsconfig.bbff51cf45f4d3d715b4d7005826a535.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
+    "args": {
+      "cmd": "npx tsc --project C:\\Proyectos\\noveno\\AuraRestMultitenant\\apps\\kitchen-mf\\node_modules\\.federation\\tsconfig.bbff51cf45f4d3d715b4d7005826a535.json"
+    },
+    "timestamp": 1780547231833
+  }
+}
