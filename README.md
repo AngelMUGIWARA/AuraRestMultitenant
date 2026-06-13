@@ -14,6 +14,8 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-06B6D4?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![pnpm](https://img.shields.io/badge/pnpm-11-F69220?style=flat-square&logo=pnpm&logoColor=white)](https://pnpm.io/)
+[![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?style=flat-square&logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![License](https://img.shields.io/badge/License-ISC-808080?style=flat-square)]()
 
 </div>
@@ -31,9 +33,10 @@
 - [Cómo Correr el Proyecto](#-cómo-correr-el-proyecto)
   - [Prerrequisitos](#prerrequisitos)
   - [Instalación](#instalación)
+  - [Base de Datos](#base-de-datos)
   - [Variables de Entorno](#variables-de-entorno)
-  - [Modo Desarrollo — Todo en Paralelo](#modo-desarrollo--todo-en-paralelo)
-  - [Modo Desarrollo — MFEs Individuales](#modo-desarrollo--mfes-individuales)
+  - [Modo Desarrollo — Frontend](#modo-desarrollo--frontend)
+  - [Modo Desarrollo — Backend](#modo-desarrollo--backend)
   - [Build de Producción](#build-de-producción)
 - [Scripts Disponibles](#-scripts-disponibles)
 - [Responsabilidades de Cada MFE](#-responsabilidades-de-cada-mfe)
@@ -148,7 +151,9 @@
 
 | Tecnología | Versión | Propósito |
 |:-----------|--------:|:----------|
-| [NestJS](https://nestjs.com/) | 11 | API REST |
+| [NestJS](https://nestjs.com/) | 11 | API REST (`/api/v1`) |
+| [Prisma](https://www.prisma.io/) | 6 | ORM — acceso a base de datos |
+| [PostgreSQL](https://www.postgresql.org/) | 16 | Base de datos relacional |
 | [TypeScript](https://www.typescriptlang.org/) | 5.7 | Tipado estático |
 
 ### Herramientas globales
@@ -166,7 +171,22 @@
 ```
 AuraRestMultitenant/
 ├── apps/
-│   ├── backend/              # API REST NestJS (:4000)
+│   ├── backend/                    # API REST NestJS (:4000)
+│   │   ├── prisma/
+│   │   │   ├── system/             # Schema del sistema (public.tenants)
+│   │   │   │   ├── schema.prisma
+│   │   │   │   └── migrations/
+│   │   │   └── tenant/             # Schema por restaurante (9 tablas)
+│   │   │       ├── schema.prisma
+│   │   │       └── migrations/
+│   │   └── src/
+│   │       ├── database/
+│   │       │   ├── prisma.service.ts        # Cliente del sistema
+│   │       │   ├── tenant-prisma.service.ts # Clientes dinámicos por tenant
+│   │       │   └── database.module.ts
+│   │       └── generated/
+│   │           ├── prisma-system/  # Cliente TS generado (sistema)
+│   │           └── prisma-tenant/  # Cliente TS generado (tenant)
 │   │
 │   ├── web-shell/            # Orquestador Next.js (:3000)
 │   │   └── src/
@@ -225,14 +245,20 @@ AuraRestMultitenant/
 
 ### Prerrequisitos
 
-```bash
-# Node.js >= 18
-node --version   # v18.x o superior
+| Herramienta | Versión mínima | Verificar |
+|:------------|:--------------|:----------|
+| Node.js | 18 | `node --version` |
+| pnpm | 11.4 | `pnpm --version` |
+| PostgreSQL | 14+ | `psql --version` |
 
-# pnpm >= 11.4
+```bash
+# Instalar pnpm si no lo tienes
 npm install -g pnpm
-pnpm --version   # 11.x
 ```
+
+> PostgreSQL debe estar corriendo en `localhost:5432` antes de levantar el backend.
+
+---
 
 ### Instalación
 
@@ -241,26 +267,105 @@ pnpm --version   # 11.x
 git clone <url-del-repositorio>
 cd AuraRestMultitenant
 
-# 2. Instalar TODAS las dependencias del monorepo de una sola vez
+# 2. Instalar TODAS las dependencias del monorepo (frontend + backend + packages)
 pnpm install
 ```
 
-> `pnpm install` instala las dependencias de todos los `apps/*` y `packages/*` automáticamente gracias al workspace.
+> `pnpm install` instala las dependencias de todos los `apps/*` y `packages/*` en un solo comando gracias al workspace.
+
+---
+
+### Base de Datos
+
+#### 1. Configurar variables de entorno del backend
+
+```bash
+cp apps/backend/.env.example apps/backend/.env
+```
+
+Edita `apps/backend/.env` y ajusta `DATABASE_URL` con tus credenciales de PostgreSQL:
+
+```env
+DATABASE_URL="postgresql://<usuario>:<contraseña>@localhost:5432/aura_rest"
+TENANT_DATABASE_URL="postgresql://<usuario>:<contraseña>@localhost:5432/aura_rest?schema=tenant_ejemplo"
+```
+
+> La base de datos `aura_rest` **se crea automáticamente** al correr la primera migración.
+
+#### 2. Generar los clientes Prisma
+
+```bash
+cd apps/backend
+
+npx prisma generate --schema=prisma/system/schema.prisma
+npx prisma generate --schema=prisma/tenant/schema.prisma
+```
+
+#### 3. Correr las migraciones
+
+```bash
+# Schema del sistema — crea la tabla `tenants` en el schema `public`
+npx prisma migrate deploy --schema=prisma/system/schema.prisma
+
+# Schema de tenant — crea las 9 tablas en el schema `tenant_ejemplo` (para desarrollo)
+npx prisma migrate deploy --schema=prisma/tenant/schema.prisma
+```
+
+> En producción, el schema de cada nuevo restaurante se crea automáticamente cuando se registra el tenant vía la API.
+
+#### Estructura de la base de datos
+
+```
+PostgreSQL — base de datos: aura_rest
+│
+├── public (schema del sistema)
+│   └── tenants                  ← registro de todos los restaurantes
+│
+└── tenant_{slug} (un schema por restaurante)
+    ├── users
+    ├── categories
+    ├── menu_items
+    ├── tables
+    ├── orders
+    ├── order_items
+    ├── payments
+    ├── kitchen_tickets
+    └── reservations
+```
+
+#### Comandos Prisma útiles durante el desarrollo
+
+```bash
+cd apps/backend
+
+# Ver estado actual de la BD
+npx prisma studio                                  # UI visual en :5555
+
+# Crear una nueva migración tras editar un schema
+npx prisma migrate dev --schema=prisma/system/schema.prisma --name <nombre>
+npx prisma migrate dev --schema=prisma/tenant/schema.prisma --name <nombre>
+
+# Regenerar los clientes TS tras editar un schema
+npx prisma generate --schema=prisma/system/schema.prisma
+npx prisma generate --schema=prisma/tenant/schema.prisma
+```
 
 ---
 
 ### Variables de Entorno
 
-Copia el archivo de ejemplo y ajusta los valores:
+#### Frontend (raíz del monorepo)
+
+Copia el archivo de ejemplo:
 
 ```bash
 cp .env.example .env.local
 ```
 
-**.env.example** (referencia completa):
+Contenido de `.env.example`:
 
 ```env
-# URL de la API para todos los MFEs (Vite)
+# URL de la API para todos los MFEs
 VITE_API_URL=http://localhost:4000/api/v1
 
 # URLs de los remoteEntry.js de cada MFE (usados por el web-shell)
@@ -274,28 +379,45 @@ NEXT_PUBLIC_MFE_REPORTS_URL=http://localhost:5007/remoteEntry.js
 NEXT_PUBLIC_MFE_RESERVATIONS_URL=http://localhost:5008/remoteEntry.js
 ```
 
-Cada MFE necesita su propio `.env.local` con `VITE_API_URL`. Crea uno en cada app:
+Cada MFE también necesita su propio `.env.local`:
 
 ```bash
-# Ejemplo para dashboard-mf (repetir para cada MFE)
-echo "VITE_API_URL=http://localhost:4000/api/v1" > apps/dashboard-mf/.env.local
+# Ejecuta esto una sola vez para todos los MFEs
+for app in auth-mf dashboard-mf menu-mf orders-mf kitchen-mf cashier-mf reports-mf reservations-mf; do
+  echo "VITE_API_URL=http://localhost:4000/api/v1" > apps/$app/.env.local
+done
 ```
+
+#### Backend (`apps/backend/.env`)
+
+| Variable | Descripción | Ejemplo |
+|:---------|:------------|:--------|
+| `DATABASE_URL` | Conexión PostgreSQL principal | `postgresql://postgres:root@localhost:5432/aura_rest` |
+| `TENANT_DATABASE_URL` | Igual pero con `?schema=tenant_ejemplo` (para migraciones dev) | `...aura_rest?schema=tenant_ejemplo` |
+| `JWT_SECRET` | Secreto para firmar tokens de acceso | cadena larga aleatoria |
+| `JWT_EXPIRES_IN` | Duración del token de acceso | `8h` |
+| `JWT_REFRESH_SECRET` | Secreto para tokens de refresco | cadena larga aleatoria |
+| `JWT_REFRESH_EXPIRES_IN` | Duración del refresh token | `7d` |
+| `PORT` | Puerto del backend | `4000` |
+| `BCRYPT_ROUNDS` | Rondas de hashing de contraseñas | `10` |
+
+> Consulta `apps/backend/.env.example` para la plantilla completa.
 
 ---
 
-### Modo A — Desarrollo con HMR (recomendado al codear)
+### Modo Desarrollo — Frontend
 
-Levanta los MFEs con Vite HMR y el shell Next.js con hot-reload. Los cambios en código se reflejan instantáneamente.
+Levanta el shell y los 8 MFEs con HMR en paralelo:
 
 ```bash
 # Todo en paralelo (shell + 8 MFEs)
 pnpm dev:all
 ```
 
-Salida esperada (cada proceso en su color de terminal):
+Salida esperada:
 
 ```
-[shell]   - Local: http://localhost:3030   ← la app completa
+[shell]   - Local: http://localhost:3030   ← abre este en el navegador
 [auth]    - Local: http://localhost:5001
 [dash]    - Local: http://localhost:5002
 [menu]    - Local: http://localhost:5003
@@ -306,13 +428,9 @@ Salida esperada (cada proceso en su color de terminal):
 [reserv]  - Local: http://localhost:5008
 ```
 
-**Abre el navegador en** → `http://localhost:3030`
-
-> El shell usa el puerto **3030** (no 3000) porque suele estar ocupado. Si también necesitas cambiar este puerto, edita `apps/web-shell/package.json` → `"dev": "next dev -p XXXX"`.
+**Abre** → `http://localhost:3030`
 
 > **Primer arranque:** Vite compila cada MFE en paralelo (~5-10s). Espera a ver todos los `Local:` antes de abrir el navegador.
-
----
 
 #### Solo MFEs (shell ya corriendo en otra terminal)
 
@@ -320,35 +438,11 @@ Salida esperada (cada proceso en su color de terminal):
 pnpm dev:mfes     # los 8 MFEs en paralelo, sin el shell
 ```
 
----
-
-### Modo B — Preview de build de producción
-
-Primero compila todo, luego sirve los bundles optimizados. Úsalo para verificar el comportamiento real antes de un deploy.
+#### MFE individual (cuando trabajas en un solo dominio)
 
 ```bash
-# Paso 1: compilar todo
-pnpm build        # MFEs (Vite) → dist/ + shell (Next.js) → out/
+pnpm dev:shell         # siempre necesitas el shell → :3030
 
-# Paso 2: levantar todo en preview
-pnpm preview:all  # shell via npx serve :3030, MFEs via vite preview
-```
-
-**Abre el navegador en** → `http://localhost:3030`
-
-> **Importante:** `next start` no funciona con `output: export`. El shell buildado se sirve como HTML estático con `npx serve`. Los MFEs Vite usan `vite preview`.
-
----
-
-### MFEs individuales
-
-Cuando trabajas en un único dominio:
-
-```bash
-# Siempre necesitas el shell levantado
-pnpm dev:shell         # → :3030
-
-# Luego solo el MFE que estás desarrollando:
 pnpm dev:auth          # → :5001
 pnpm dev:dashboard     # → :5002
 pnpm dev:menu          # → :5003
@@ -359,19 +453,36 @@ pnpm dev:reports       # → :5007
 pnpm dev:reservations  # → :5008
 ```
 
-> Los MFEs que no estén levantados mostrarán un banner de error en el shell ("módulo remoto no disponible"). Es comportamiento esperado: solo importa tener corriendo el MFE que estás editando.
+> Los MFEs que no estén levantados mostrarán un error en el shell. Es el comportamiento esperado: solo importa tener corriendo el MFE que estás editando.
 
 ---
 
-### Backend (NestJS)
-
-El backend **no está incluido en el workspace pnpm** todavía. Para levantarlo:
+### Modo Desarrollo — Backend
 
 ```bash
 cd apps/backend
-npm install          # usa npm, no pnpm
-npm run start:dev    # modo watch en :4000
+pnpm start:dev    # modo watch en :4000  — se reinicia automáticamente al guardar
 ```
+
+La API queda disponible en `http://localhost:4000/api/v1`.
+
+> Asegúrate de haber corrido las [migraciones](#base-de-datos) y de que PostgreSQL esté activo antes de levantar el backend.
+
+---
+
+### Modo Preview (build de producción local)
+
+```bash
+# Paso 1: compilar todo
+pnpm build        # MFEs → dist/ + shell → out/
+
+# Paso 2: levantar en preview
+pnpm preview:all  # shell via npx serve :3030, MFEs via vite preview
+```
+
+**Abre** → `http://localhost:3030`
+
+> `next start` no funciona con `output: export`. El shell se sirve como HTML estático con `npx serve`.
 
 ---
 
@@ -441,13 +552,29 @@ pnpm build:reservations
 | `pnpm preview:shell` | Shell estático via `npx serve` | **3030** |
 | `pnpm preview:<nombre>` | Preview de un MFE específico | — |
 
-### Desde la carpeta de cada app
+### Desde la carpeta de cada app (MFEs)
 
 ```bash
 cd apps/dashboard-mf
 pnpm dev        # servidor Vite con HMR
 pnpm build      # bundle para producción
 pnpm preview    # sirve el build de producción localmente
+```
+
+### Desde la carpeta del backend
+
+```bash
+cd apps/backend
+pnpm start:dev   # modo watch con hot-reload
+pnpm build       # compila TypeScript → dist/
+pnpm start:prod  # sirve el build compilado
+pnpm test        # ejecuta los tests unitarios
+pnpm test:e2e    # tests end-to-end
+
+# Prisma
+npx prisma generate --schema=prisma/system/schema.prisma   # regenera cliente sistema
+npx prisma generate --schema=prisma/tenant/schema.prisma   # regenera cliente tenant
+npx prisma studio                                           # UI de BD en :5555
 ```
 
 ---
