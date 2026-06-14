@@ -6,10 +6,10 @@ import { AuthClient } from '@maison/auth-client';
 
 const ROLE_ROUTES: Record<string, string> = {
   OWNER:         '/dashboard',
-  ADMIN:         '/dashboard',
-  MANAGER:       '/orders',
-  WAITER:        '/orders',
-  CASHIER:       '/orders',
+  ADMIN:         '/admin',
+  MANAGER:       '/waiter-orders',
+  WAITER:        '/waiter-orders',
+  CASHIER:       '/cashier',
   CHEF:          '/kitchen',
   KITCHEN_STAFF: '/kitchen',
 };

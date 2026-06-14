@@ -1,6 +1,6 @@
 import { useLocation } from 'react-router-dom';
 import { cn } from '../../utils';
-import { ADMIN_NAV } from '../../constants';
+import { useNav } from '../../context/NavContext';
 import { useSidebar } from '../../context/SidebarContext';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { BranchSelector } from '../ui/BranchSelector';
@@ -15,17 +15,16 @@ function IconMenu({ className }: { className?: string }) {
   );
 }
 
-type NavItem = { href: string; label: string };
-const NAV_LOOKUP: NavItem[] = ADMIN_NAV.flatMap((g) => g.items.map((i) => ({ href: i.href, label: i.label })));
-
 function useBreadcrumb() {
   const { pathname } = useLocation();
+  const nav = useNav();
+  const lookup = nav.flatMap((g) => g.items.map((i) => ({ href: i.href, label: i.label })));
   const segments = pathname.split('/').filter(Boolean);
   const crumbs: { label: string; href: string }[] = [];
   let path = '';
   for (const seg of segments) {
     path += `/${seg}`;
-    const match = NAV_LOOKUP.find((item) => item.href === path);
+    const match = lookup.find((item) => item.href === path);
     crumbs.push({ label: match?.label ?? (seg.charAt(0).toUpperCase() + seg.slice(1)), href: path });
   }
   return crumbs;

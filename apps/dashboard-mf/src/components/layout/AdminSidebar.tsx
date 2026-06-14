@@ -1,6 +1,6 @@
 import { useLocation } from 'react-router-dom';
 import { cn } from '../../utils';
-import { ADMIN_NAV } from '../../constants';
+import { useNav } from '../../context/NavContext';
 import { useSidebar } from '../../context/SidebarContext';
 import {
   IconDashboard, IconAnalytics, IconInventory, IconCategories, IconCalendar,
@@ -66,6 +66,7 @@ function NavItem({ href, label, icon, isActive, isCollapsed }: { href: string; l
 
 function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: { isCollapsed: boolean; isMobile?: boolean; onClose?: () => void; onToggle: () => void }) {
   const { pathname } = useLocation();
+  const nav = useNav();
   return (
     <>
       <div className={cn('flex flex-shrink-0 items-center border-b border-maison-border', isCollapsed ? 'justify-center px-3 py-4' : 'gap-2.5 px-4 py-4')}>
@@ -84,7 +85,7 @@ function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: { isCollap
       </div>
       <nav className="flex-1 overflow-y-auto py-3" aria-label="Secciones">
         <div className={cn('space-y-4', isCollapsed ? 'px-1.5' : 'px-2')}>
-          {ADMIN_NAV.map((group) => (
+          {nav.map((group) => (
             <div key={group.label}>
               {isCollapsed ? <div className="my-2 h-px bg-maison-border" /> : <p className="section-label">{group.label}</p>}
               <ul role="list" className="space-y-0.5">

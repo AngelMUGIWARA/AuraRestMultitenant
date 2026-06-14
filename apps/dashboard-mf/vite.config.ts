@@ -9,7 +9,8 @@ export default defineConfig({
       name: 'dashboard_mf',
       filename: 'remoteEntry.js',
       exposes: {
-        './App': './src/App.tsx',
+        './App':      './src/App.tsx',
+        './AdminApp': './src/AdminApp.tsx',
       },
       shared: {
         react: { singleton: true, requiredVersion: '^19' },

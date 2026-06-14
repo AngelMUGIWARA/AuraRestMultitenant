@@ -1,6 +1,16 @@
-// Navigation structure used by AdminSidebar and AdminTopbar breadcrumbs.
-// This nav reflects the FULL multi-MFE app — links point to the shell router.
-export const ADMIN_NAV = [
+export type NavItem = {
+  readonly href: string;
+  readonly label: string;
+  readonly icon: string;
+};
+export type NavGroup = {
+  readonly label: string;
+  readonly items: ReadonlyArray<NavItem>;
+};
+export type NavConfig = ReadonlyArray<NavGroup>;
+
+// Full admin navigation — used by ADMIN role
+export const ADMIN_NAV: NavConfig = [
   {
     label: 'Visión General',
     items: [
@@ -40,7 +50,25 @@ export const ADMIN_NAV = [
       { href: '/logs',          label: 'Registros',      icon: 'logs' },
     ],
   },
-] as const;
+];
+
+// Owner navigation — only revenue / branches / settings, no operational sections
+export const OWNER_NAV: NavConfig = [
+  {
+    label: 'General',
+    items: [
+      { href: '/dashboard',  label: 'Dashboard',     icon: 'dashboard' },
+      { href: '/reportes',   label: 'Reportes',      icon: 'analytics' },
+    ],
+  },
+  {
+    label: 'Gestión',
+    items: [
+      { href: '/sucursales', label: 'Sucursales',    icon: 'branches' },
+      { href: '/settings',   label: 'Configuración', icon: 'settings' },
+    ],
+  },
+];
 
 export const BRANCH_STATUS_LABELS = {
   active: 'Activa', inactive: 'Inactiva', maintenance: 'En mantenimiento',
