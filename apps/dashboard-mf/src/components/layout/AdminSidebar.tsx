@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { cn } from '../../utils';
 import { ADMIN_NAV } from '../../constants';
 import { useSidebar } from '../../context/SidebarContext';
@@ -55,11 +55,11 @@ function NavItem({ href, label, icon, isActive, isCollapsed }: { href: string; l
   const Icon = ICON_MAP[icon];
   return (
     <li>
-      <Link to={href} title={isCollapsed ? label : undefined} aria-current={isActive ? 'page' : undefined}
+      <a href={href} title={isCollapsed ? label : undefined} aria-current={isActive ? 'page' : undefined}
         className={cn('nav-item', isCollapsed && 'justify-center px-0 py-2.5', isActive && 'nav-item-active')}>
         {Icon && <Icon className="h-[15px] w-[15px] flex-shrink-0" />}
         {!isCollapsed && <span className="truncate">{label}</span>}
-      </Link>
+      </a>
     </li>
   );
 }

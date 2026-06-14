@@ -9,12 +9,12 @@ packages:
   - 'apps/cashier-mf'
   - 'apps/reports-mf'
   - 'apps/reservations-mf'
-  # Mantenemos mfe-admin durante la migración — se elimina al final (FASE 12)
-  - 'apps/mfe-admin'
   - 'packages/*'
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
+  '@scarf/scarf': false
+  bcrypt: true
   esbuild: true
   prisma: true
   sharp: true

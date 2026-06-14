@@ -2,8 +2,10 @@ import { apiClient } from '@maison/api-client';
 import type { LoginPayload, LoginResponse } from '@maison/types';
 
 export const authService = {
-  login: (payload: LoginPayload) =>
-    apiClient.post<LoginResponse>('/auth/login', payload),
+  login: (payload: LoginPayload, tenantSlug: string) =>
+    apiClient.post<LoginResponse>('/auth/login', payload, {
+      headers: { 'x-tenant-slug': tenantSlug },
+    }),
 
   logout: () =>
     apiClient.post<void>('/auth/logout', {}),

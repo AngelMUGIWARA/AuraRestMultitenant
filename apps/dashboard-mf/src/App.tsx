@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { BranchProvider } from './context/BranchContext';
 import { SidebarProvider } from './context/SidebarContext';
 import { AdminShell } from './components/layout/AdminShell';
@@ -8,8 +8,9 @@ import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
 
 export default function DashboardApp() {
+  const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/dashboard';
   return (
-    <BrowserRouter>
+    <MemoryRouter initialEntries={[initialPath]} initialIndex={0}>
       <BranchProvider>
         <SidebarProvider>
           <AdminShell>
@@ -23,6 +24,6 @@ export default function DashboardApp() {
           </AdminShell>
         </SidebarProvider>
       </BranchProvider>
-    </BrowserRouter>
+    </MemoryRouter>
   );
 }

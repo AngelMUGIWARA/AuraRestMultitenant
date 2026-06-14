@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { cn } from '../../utils';
 import { ADMIN_NAV } from '../../constants';
 import { useSidebar } from '../../context/SidebarContext';
@@ -45,7 +45,7 @@ export function AdminTopbar() {
             {i > 0 && <IconChevronRight className="h-3 w-3 flex-shrink-0 text-maison-cream-dim" />}
             {i === crumbs.length - 1
               ? <span className="text-sm font-medium text-maison-cream" aria-current="page">{crumb.label}</span>
-              : <Link to={crumb.href} className="text-sm text-maison-cream-muted transition-colors hover:text-maison-cream">{crumb.label}</Link>}
+              : <a href={crumb.href} className="text-sm text-maison-cream-muted transition-colors hover:text-maison-cream">{crumb.label}</a>}
           </span>
         ))}
       </nav>

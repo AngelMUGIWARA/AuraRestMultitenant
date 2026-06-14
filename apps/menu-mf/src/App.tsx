@@ -1,24 +1,24 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { BranchProvider } from './context/BranchContext';
 import MenusPage from './pages/MenusPage';
 import CategoriasPage from './pages/CategoriasPage';
 import InventarioPage from './pages/InventarioPage';
 import { emit } from '@maison/event-bus';
 
-// Publish menu:updated whenever a menu item changes
 export { emit };
 
 export default function MenuApp() {
+  const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/menus';
   return (
     <BranchProvider>
-      <BrowserRouter>
+      <MemoryRouter initialEntries={[initialPath]} initialIndex={0}>
         <Routes>
           <Route path="/menus"      element={<MenusPage />} />
           <Route path="/categorias" element={<CategoriasPage />} />
           <Route path="/inventario" element={<InventarioPage />} />
-          <Route path="*"           element={<Navigate to="/menus" replace />} />
+          <Route path="*"           element={<MenusPage />} />
         </Routes>
-      </BrowserRouter>
+      </MemoryRouter>
     </BranchProvider>
   );
 }
