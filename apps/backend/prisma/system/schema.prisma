@@ -1,0 +1,45 @@
+// ============================================================
+// SCHEMA DEL SISTEMA — esquema "public"
+// Registra todos los tenants (restaurantes) de la plataforma.
+// Migraciones: prisma/system/migrations/
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../src/generated/prisma-system"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum TenantPlan {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+model Tenant {
+  id         String       @id @default(cuid())
+  name       String
+  slug       String       @unique
+  schemaName String       @unique @map("schema_name")
+  email      String       @unique
+  phone      String?
+  address    String?
+  logoUrl    String?      @map("logo_url")
+  status     TenantStatus @default(ACTIVE)
+  plan       TenantPlan   @default(FREE)
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt      @map("updated_at")
+
+  @@map("tenants")
+}

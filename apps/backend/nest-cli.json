@@ -3,6 +3,10 @@
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
   "compilerOptions": {
-    "deleteOutDir": true
+    "assets": [
+      { "include": "generated/**/*.js",   "watchAssets": true },
+      { "include": "generated/**/*.d.ts", "watchAssets": true },
+      { "include": "generated/**/*.json", "watchAssets": true }
+    ]
   }
 }

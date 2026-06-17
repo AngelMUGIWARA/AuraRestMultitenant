@@ -65,14 +65,24 @@ export const AuthClient = {
       id: payload.sub,
       name: '',
       email: payload.email,
-      role: payload.role,
+      role: payload.role as AuthUser['role'],
       branchId: payload.branchId,
       tenantId: payload.tenantId,
     };
   },
 
-  getRole() {
-    return this.getUser()?.role ?? null;
+  getRole(): string | null {
+    const token = this.getToken();
+    if (!token) return null;
+    const payload = parseJwt(token);
+    return payload?.role ?? null;
+  },
+
+  getTenantSlug(): string | null {
+    const token = this.getToken();
+    if (!token) return null;
+    const payload = parseJwt(token);
+    return (payload?.tenantSlug as string | undefined) ?? null;
   },
 
   /** Returns Authorization header value or null if not authenticated. */

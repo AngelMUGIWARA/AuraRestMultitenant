@@ -2,6 +2,7 @@ import { ApiClientError } from './errors';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const API_BASE_URL: string = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:4000/api/v1';
+const TOKEN_KEY = 'maison_access_token';
 
 type RequestOptions = Omit<RequestInit, 'body'> & {
   params?: Record<string, string | number | boolean | undefined>;
@@ -22,6 +23,20 @@ function buildUrl(
   return url.toString();
 }
 
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) return {};
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1])) as Record<string, unknown>;
+    if (typeof payload.tenantSlug === 'string' && payload.tenantSlug) {
+      headers['x-tenant-slug'] = payload.tenantSlug;
+    }
+  } catch { /* ignore */ }
+  return headers;
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit & { params?: Record<string, string | number | boolean | undefined> } = {},
@@ -33,6 +48,7 @@ async function request<T>(
     ...fetchOptions,
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeaders(),
       ...fetchOptions.headers,
     },
   });

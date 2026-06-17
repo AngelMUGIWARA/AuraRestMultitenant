@@ -46,7 +46,9 @@ export interface AuthUser {
 export interface AuthTokenPayload {
   sub: string;
   email: string;
-  role: UserRole;
+  role: string;
+  tenantSlug: string;
+  tenantSchemaName: string;
   branchId?: string;
   tenantId?: string;
   exp: number;

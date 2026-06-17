@@ -1,13 +1,13 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import KitchenQueuePage from './pages/KitchenQueuePage';
 
 export default function KitchenApp() {
   return (
-    <BrowserRouter>
+    <MemoryRouter initialEntries={['/kitchen']} initialIndex={0}>
       <Routes>
         <Route path="/kitchen" element={<KitchenQueuePage />} />
-        <Route path="*"        element={<Navigate to="/kitchen" replace />} />
+        <Route path="*"        element={<KitchenQueuePage />} />
       </Routes>
-    </BrowserRouter>
+    </MemoryRouter>
   );
 }

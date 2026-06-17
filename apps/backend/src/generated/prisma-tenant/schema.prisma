@@ -1,0 +1,253 @@
+// ============================================================
+// SCHEMA POR TENANT — aplicado a cada schema de restaurante.
+// Migraciones: prisma/tenant/migrations/
+// Uso dev: npx prisma migrate dev --schema=prisma/tenant/schema.prisma
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../src/generated/prisma-tenant"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("TENANT_DATABASE_URL")
+}
+
+// ── Enumeraciones ────────────────────────────────────────────
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MANAGER
+  WAITER
+  CASHIER
+  CHEF
+  KITCHEN_STAFF
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum MenuItemStatus {
+  AVAILABLE
+  UNAVAILABLE
+  OUT_OF_STOCK
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  MAINTENANCE
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  READY
+  DELIVERED
+  PAID
+  CANCELLED
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEOUT
+  DELIVERY
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+  FAILED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  OTHER
+}
+
+enum KitchenTicketStatus {
+  PENDING
+  IN_PROGRESS
+  READY
+  DELIVERED
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  PENDING
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+// ── Modelos ──────────────────────────────────────────────────
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  role         UserRole   @default(WAITER)
+  status       UserStatus @default(ACTIVE)
+  phone        String?
+  avatarUrl    String?    @map("avatar_url")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  orders       Order[]
+  reservations Reservation[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  imageUrl    String?  @map("image_url")
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  menuItems MenuItem[]
+
+  @@map("categories")
+}
+
+model MenuItem {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  price       Decimal        @db.Decimal(10, 2)
+  imageUrl    String?        @map("image_url")
+  status      MenuItemStatus @default(AVAILABLE)
+  isAvailable Boolean        @default(true) @map("is_available")
+  categoryId  String         @map("category_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  category   Category    @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
+
+  @@unique([name, categoryId])
+  @@map("menu_items")
+}
+
+model RestaurantTable {
+  id           String      @id @default(cuid())
+  number       Int         @unique
+  name         String?
+  capacity     Int
+  status       TableStatus @default(AVAILABLE)
+  locationZone String?     @map("location_zone")
+  isActive     Boolean     @default(true) @map("is_active")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  orders       Order[]
+  reservations Reservation[]
+
+  @@map("tables")
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  folio     String      @unique
+  tableId   String?     @map("table_id")
+  userId    String      @map("user_id")
+  type      OrderType   @default(DINE_IN)
+  status    OrderStatus @default(PENDING)
+  notes     String?
+  subtotal  Decimal     @db.Decimal(10, 2)
+  tax       Decimal     @db.Decimal(10, 2)
+  total     Decimal     @db.Decimal(10, 2)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  table         RestaurantTable? @relation(fields: [tableId], references: [id])
+  user          User             @relation(fields: [userId], references: [id])
+  orderItems    OrderItem[]
+  payment       Payment?
+  kitchenTicket KitchenTicket?
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String   @map("order_id")
+  menuItemId String   @map("menu_item_id")
+  quantity   Int
+  unitPrice  Decimal  @map("unit_price") @db.Decimal(10, 2)
+  subtotal   Decimal  @db.Decimal(10, 2)
+  notes      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  order    Order    @relation(fields: [orderId], references: [id])
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
+
+  @@map("order_items")
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  orderId      String        @unique @map("order_id")
+  amount       Decimal       @db.Decimal(10, 2)
+  method       PaymentMethod @default(CASH)
+  status       PaymentStatus @default(PENDING)
+  reference    String?
+  ticketPdfUrl String?       @map("ticket_pdf_url")
+  processedAt  DateTime?     @map("processed_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
+
+model KitchenTicket {
+  id          String              @id @default(cuid())
+  orderId     String              @unique @map("order_id")
+  status      KitchenTicketStatus @default(PENDING)
+  priority    Int                 @default(0)
+  startedAt   DateTime?           @map("started_at")
+  completedAt DateTime?           @map("completed_at")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("kitchen_tickets")
+}
+
+model Reservation {
+  id          String            @id @default(cuid())
+  tableId     String            @map("table_id")
+  userId      String?           @map("user_id")
+  guestName   String            @map("guest_name")
+  guestPhone  String?           @map("guest_phone")
+  guestEmail  String?           @map("guest_email")
+  partySize   Int               @map("party_size")
+  scheduledAt DateTime          @map("scheduled_at")
+  status      ReservationStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  table RestaurantTable @relation(fields: [tableId], references: [id])
+  user  User?           @relation(fields: [userId], references: [id])
+
+  @@map("reservations")
+}

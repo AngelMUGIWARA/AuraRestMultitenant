@@ -1,6 +1,6 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { cn } from '../../utils';
-import { ADMIN_NAV } from '../../constants';
+import { useNav } from '../../context/NavContext';
 import { useSidebar } from '../../context/SidebarContext';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { BranchSelector } from '../ui/BranchSelector';
@@ -15,17 +15,16 @@ function IconMenu({ className }: { className?: string }) {
   );
 }
 
-type NavItem = { href: string; label: string };
-const NAV_LOOKUP: NavItem[] = ADMIN_NAV.flatMap((g) => g.items.map((i) => ({ href: i.href, label: i.label })));
-
 function useBreadcrumb() {
   const { pathname } = useLocation();
+  const nav = useNav();
+  const lookup = nav.flatMap((g) => g.items.map((i) => ({ href: i.href, label: i.label })));
   const segments = pathname.split('/').filter(Boolean);
   const crumbs: { label: string; href: string }[] = [];
   let path = '';
   for (const seg of segments) {
     path += `/${seg}`;
-    const match = NAV_LOOKUP.find((item) => item.href === path);
+    const match = lookup.find((item) => item.href === path);
     crumbs.push({ label: match?.label ?? (seg.charAt(0).toUpperCase() + seg.slice(1)), href: path });
   }
   return crumbs;
@@ -45,7 +44,7 @@ export function AdminTopbar() {
             {i > 0 && <IconChevronRight className="h-3 w-3 flex-shrink-0 text-maison-cream-dim" />}
             {i === crumbs.length - 1
               ? <span className="text-sm font-medium text-maison-cream" aria-current="page">{crumb.label}</span>
-              : <Link to={crumb.href} className="text-sm text-maison-cream-muted transition-colors hover:text-maison-cream">{crumb.label}</Link>}
+              : <a href={crumb.href} className="text-sm text-maison-cream-muted transition-colors hover:text-maison-cream">{crumb.label}</a>}
           </span>
         ))}
       </nav>

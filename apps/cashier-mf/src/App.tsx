@@ -1,13 +1,13 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import POSPage from './pages/POSPage';
 
 export default function CashierApp() {
   return (
-    <BrowserRouter>
+    <MemoryRouter initialEntries={['/cashier']} initialIndex={0}>
       <Routes>
         <Route path="/cashier" element={<POSPage />} />
-        <Route path="*"        element={<Navigate to="/cashier" replace />} />
+        <Route path="*"        element={<POSPage />} />
       </Routes>
-    </BrowserRouter>
+    </MemoryRouter>
   );
 }

@@ -1,10 +1,10 @@
 {
   "latestErrorEvent": {
     "code": "TYPE-001",
-    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project C:\\\\Proyectos\\\\noveno\\\\AuraRestMultitenant\\\\apps\\\\cashier-mf\\\\node_modules\\\\.federation\\\\tsconfig.26ce2a6475bfaf03d70a10c2888b8656.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
+    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project C:\\\\Proyectos\\\\noveno\\\\AuraRestMultitenant\\\\apps\\\\cashier-mf\\\\node_modules\\\\.federation\\\\tsconfig.80479adbd575079555b57379d2121e60.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
     "args": {
-      "cmd": "npx tsc --project C:\\Proyectos\\noveno\\AuraRestMultitenant\\apps\\cashier-mf\\node_modules\\.federation\\tsconfig.26ce2a6475bfaf03d70a10c2888b8656.json"
+      "cmd": "npx tsc --project C:\\Proyectos\\noveno\\AuraRestMultitenant\\apps\\cashier-mf\\node_modules\\.federation\\tsconfig.80479adbd575079555b57379d2121e60.json"
     },
-    "timestamp": 1780547232138
+    "timestamp": 1781402164628
   }
 }
