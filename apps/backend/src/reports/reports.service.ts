@@ -6,6 +6,10 @@ import {
   SalesSummaryDto,
   DailySalesDto,
 } from './dto/sales-report-response.dto';
+import {
+  ProductsReportResponseDto,
+  TopProductDto,
+} from './dto/products-report-response.dto';
 
 @Injectable()
 export class ReportsService {
@@ -63,6 +67,45 @@ export class ReportsService {
       endDate: endDate.toISOString().slice(0, 10),
       summary,
       dailySales,
+    };
+  }
+
+  async getProductsReport(
+    schemaName: string,
+    query: SalesReportQueryDto,
+  ): Promise<ProductsReportResponseDto> {
+    const { grouped, menuItems, startDate, endDate } =
+      await this.repo.getProductsReport(schemaName, query);
+
+    interface MenuItemWithCategory {
+      id: string;
+      name: string;
+      category: { name: string };
+    }
+
+    const menuItemMap = new Map<string, MenuItemWithCategory>(
+      menuItems.map((item) => [item.id, item as MenuItemWithCategory]),
+    );
+
+    const topProducts: TopProductDto[] = grouped
+      .map((g) => {
+        const menuItem = menuItemMap.get(g.menuItemId);
+        if (!menuItem) return null;
+
+        return {
+          menuItemId: g.menuItemId,
+          name: menuItem.name,
+          category: menuItem.category.name,
+          totalQuantity: g._sum.quantity ?? 0,
+          totalRevenue: +Number(g._sum.subtotal ?? 0).toFixed(2),
+        };
+      })
+      .filter((item): item is TopProductDto => item !== null);
+
+    return {
+      startDate: startDate.toISOString().slice(0, 10),
+      endDate: endDate.toISOString().slice(0, 10),
+      topProducts,
     };
   }
 }
