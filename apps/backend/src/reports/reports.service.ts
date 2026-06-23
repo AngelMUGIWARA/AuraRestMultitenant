@@ -10,6 +10,10 @@ import {
   ProductsReportResponseDto,
   TopProductDto,
 } from './dto/products-report-response.dto';
+import {
+  PaymentsReportResponseDto,
+  PaymentByMethodDto,
+} from './dto/payments-report-response.dto';
 
 @Injectable()
 export class ReportsService {
@@ -106,6 +110,44 @@ export class ReportsService {
       startDate: startDate.toISOString().slice(0, 10),
       endDate: endDate.toISOString().slice(0, 10),
       topProducts,
+    };
+  }
+
+  async getPaymentsReport(
+    schemaName: string,
+    query: SalesReportQueryDto,
+  ): Promise<PaymentsReportResponseDto> {
+    const { grouped, startDate, endDate } = await this.repo.getPaymentsReport(
+      schemaName,
+      query,
+    );
+
+    const totalPayments = grouped.reduce(
+      (sum: number, g) => sum + (g._count.id ?? 0),
+      0,
+    );
+
+    const totalRevenue = grouped.reduce(
+      (sum: number, g) => sum + Number(g._sum.amount ?? 0),
+      0,
+    );
+
+    const byMethod: PaymentByMethodDto[] = grouped.map((g) => ({
+      method: g.method,
+      count: g._count.id ?? 0,
+      amount: +Number(g._sum.amount ?? 0).toFixed(2),
+      percentage:
+        totalRevenue > 0
+          ? +((Number(g._sum.amount ?? 0) / totalRevenue) * 100).toFixed(2)
+          : 0,
+    }));
+
+    return {
+      startDate: startDate.toISOString().slice(0, 10),
+      endDate: endDate.toISOString().slice(0, 10),
+      totalPayments,
+      totalRevenue: +totalRevenue.toFixed(2),
+      byMethod,
     };
   }
 }

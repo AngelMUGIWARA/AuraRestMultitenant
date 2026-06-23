@@ -18,6 +18,7 @@ import {
   TenantContext,
 } from '../common/decorators/current-tenant.decorator';
 import { ProductsReportResponseDto } from './dto/products-report-response.dto';
+import { PaymentsReportResponseDto } from './dto/payments-report-response.dto';
 
 @ApiTags('Reports')
 @ApiBearerAuth('JWT')
@@ -49,5 +50,16 @@ export class ReportsController {
     @Query() query: SalesReportQueryDto,
   ): Promise<ProductsReportResponseDto> {
     return this.service.getProductsReport(tenant.schemaName, query);
+  }
+
+  @Get('payments')
+  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @ApiOperation({ summary: 'Reporte de métodos de pago por período' })
+  @ApiResponse({ status: 200, type: PaymentsReportResponseDto })
+  getPaymentsReport(
+    @CurrentTenant() tenant: TenantContext,
+    @Query() query: SalesReportQueryDto,
+  ): Promise<PaymentsReportResponseDto> {
+    return this.service.getPaymentsReport(tenant.schemaName, query);
   }
 }

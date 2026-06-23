@@ -79,4 +79,33 @@ export class ReportsRepository {
 
     return { grouped, menuItems, startDate, endDate };
   }
+
+  async getPaymentsReport(schemaName: string, query: SalesReportQueryDto) {
+    const db = this.db(schemaName);
+
+    const startDate = query.startDate
+      ? new Date(query.startDate)
+      : new Date(new Date().getFullYear(), 0, 1);
+
+    const endDate = query.endDate ? new Date(query.endDate) : new Date();
+
+    const grouped = await db.payment.groupBy({
+      by: ['method'],
+      where: {
+        status: 'COMPLETED',
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    return { grouped, startDate, endDate };
+  }
 }
