@@ -17,6 +17,7 @@ import {
   CurrentTenant,
   TenantContext,
 } from '../common/decorators/current-tenant.decorator';
+import { ProductsReportResponseDto } from './dto/products-report-response.dto';
 
 @ApiTags('Reports')
 @ApiBearerAuth('JWT')
@@ -37,5 +38,16 @@ export class ReportsController {
     @Query() query: SalesReportQueryDto,
   ): Promise<SalesReportResponseDto> {
     return this.service.getSalesReport(tenant.schemaName, query);
+  }
+
+  @Get('products')
+  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @ApiOperation({ summary: 'Productos más vendidos por período' })
+  @ApiResponse({ status: 200, type: ProductsReportResponseDto })
+  getProductsReport(
+    @CurrentTenant() tenant: TenantContext,
+    @Query() query: SalesReportQueryDto,
+  ): Promise<ProductsReportResponseDto> {
+    return this.service.getProductsReport(tenant.schemaName, query);
   }
 }

@@ -36,4 +36,47 @@ export class ReportsRepository {
 
     return { orders, startDate, endDate };
   }
+
+  async getProductsReport(schemaName: string, query: SalesReportQueryDto) {
+    const db = this.db(schemaName);
+
+    const startDate = query.startDate
+      ? new Date(query.startDate)
+      : new Date(new Date().getFullYear(), 0, 1);
+
+    const endDate = query.endDate ? new Date(query.endDate) : new Date();
+
+    //Agrupa OrderItem por menuItemId sumando cantidades y subtotales,
+    //pero solo de órdenes que estén en estado PAID
+    const grouped = await db.orderItem.groupBy({
+      by: ['menuItemId'],
+      where: {
+        order: {
+          status: 'PAID',
+          createdAt: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+      },
+      _sum: {
+        quantity: true,
+        subtotal: true,
+      },
+      orderBy: {
+        _sum: {
+          quantity: 'desc',
+        },
+      },
+    });
+
+    //Trae los detalles de cada MenuItem (nombre y categoría)
+    const menuItemsIds = grouped.map((g) => g.menuItemId);
+    const menuItems = await db.menuItem.findMany({
+      where: { id: { in: menuItemsIds } },
+      include: { category: true },
+    });
+
+    return { grouped, menuItems, startDate, endDate };
+  }
 }

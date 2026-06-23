@@ -141,9 +141,3 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
-
-# Prisma generated client (regenerado con prisma generate)
-src/generated/
-
-# package-lock.json — el proyecto usa pnpm
-package-lock.json
