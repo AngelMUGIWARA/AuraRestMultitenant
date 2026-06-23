@@ -19,6 +19,7 @@ import {
 } from '../common/decorators/current-tenant.decorator';
 import { ProductsReportResponseDto } from './dto/products-report-response.dto';
 import { PaymentsReportResponseDto } from './dto/payments-report-response.dto';
+import { PeakHoursReportResponseDto } from './dto/peak-hours-report-response.dto';
 
 @ApiTags('Reports')
 @ApiBearerAuth('JWT')
@@ -61,5 +62,16 @@ export class ReportsController {
     @Query() query: SalesReportQueryDto,
   ): Promise<PaymentsReportResponseDto> {
     return this.service.getPaymentsReport(tenant.schemaName, query);
+  }
+
+  @Get('peak-hours')
+  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @ApiOperation({ summary: 'Horarios de mayor actividad por período' })
+  @ApiResponse({ status: 200, type: PeakHoursReportResponseDto })
+  getPeakHoursReport(
+    @CurrentTenant() tenant: TenantContext,
+    @Query() query: SalesReportQueryDto,
+  ): Promise<PeakHoursReportResponseDto> {
+    return this.service.getPeakHoursReport(tenant.schemaName, query);
   }
 }
