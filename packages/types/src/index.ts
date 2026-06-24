@@ -30,8 +30,8 @@ export type AsyncState<T> = {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-export type UserRole = 'super_admin' | 'admin' | 'manager' | 'staff';
-export type UserStatus = 'active' | 'inactive' | 'pending';
+export type UserRole = "super_admin" | "admin" | "manager" | "staff";
+export type UserStatus = "active" | "inactive" | "pending";
 
 export interface AuthUser {
   id: string;
@@ -68,8 +68,8 @@ export interface LoginResponse {
 
 // ─── Tenant ───────────────────────────────────────────────────────────────────
 
-export type TenantStatus = 'active' | 'inactive' | 'suspended' | 'trial';
-export type TenantPlan = 'starter' | 'professional' | 'enterprise';
+export type TenantStatus = "active" | "inactive" | "suspended" | "trial";
+export type TenantPlan = "starter" | "professional" | "enterprise";
 
 export interface Tenant {
   id: string;
@@ -95,8 +95,8 @@ export interface TenantFilters {
   search?: string;
   page?: number;
   limit?: number;
-  sortBy?: 'createdAt' | 'name' | 'monthlyRevenue';
-  sortOrder?: 'asc' | 'desc';
+  sortBy?: "createdAt" | "name" | "monthlyRevenue";
+  sortOrder?: "asc" | "desc";
 }
 
 export interface CreateTenantPayload {
@@ -114,7 +114,7 @@ export interface SuspendTenantPayload {
 
 // ─── Branch / Sucursal ────────────────────────────────────────────────────────
 
-export type BranchStatus = 'active' | 'inactive' | 'maintenance';
+export type BranchStatus = "active" | "inactive" | "maintenance";
 
 export interface Branch {
   id: string;
@@ -204,7 +204,9 @@ export interface UserFilters {
   limit?: number;
 }
 
-export interface UpdateUserRolePayload { role: UserRole; }
+export interface UpdateUserRolePayload {
+  role: UserRole;
+}
 export interface InviteUserPayload {
   name: string;
   email: string;
@@ -225,11 +227,19 @@ export interface DashboardStats {
   newTenantsThisMonth: number;
 }
 
-export interface RevenueDataPoint { month: string; revenue: number; tenants: number; }
+export interface RevenueDataPoint {
+  month: string;
+  revenue: number;
+  tenants: number;
+}
 
 export type ActivityEventType =
-  | 'tenant_created' | 'user_registered' | 'plan_upgraded'
-  | 'payment_received' | 'tenant_suspended' | 'menu_published';
+  | "tenant_created"
+  | "user_registered"
+  | "plan_upgraded"
+  | "payment_received"
+  | "tenant_suspended"
+  | "menu_published";
 
 export interface ActivityItem {
   id: string;
@@ -244,7 +254,7 @@ export interface ActivityItem {
 
 // ─── Menu / Carta ─────────────────────────────────────────────────────────────
 
-export type MenuItemStatus = 'available' | 'unavailable' | 'out_of_stock';
+export type MenuItemStatus = "available" | "unavailable" | "out_of_stock";
 
 export interface MenuItem {
   id: string;
@@ -283,8 +293,8 @@ export interface MenuFilters {
   search?: string;
   page?: number;
   limit?: number;
-  sortBy?: 'name' | 'price' | 'createdAt';
-  sortOrder?: 'asc' | 'desc';
+  sortBy?: "name" | "price" | "createdAt";
+  sortOrder?: "asc" | "desc";
 }
 
 export interface CreateMenuItemPayload {
@@ -296,7 +306,10 @@ export interface CreateMenuItemPayload {
   branchId?: string;
 }
 
-export interface UpdateMenuItemPricePayload { price: number; reason?: string; }
+export interface UpdateMenuItemPricePayload {
+  price: number;
+  reason?: string;
+}
 
 // ─── Category ─────────────────────────────────────────────────────────────────
 
@@ -343,7 +356,7 @@ export interface CreateCategoryPayload {
 
 // ─── Inventory ────────────────────────────────────────────────────────────────
 
-export type StockStatus = 'ok' | 'low' | 'critical' | 'out_of_stock';
+export type StockStatus = "ok" | "low" | "critical" | "out_of_stock";
 
 export interface InventoryItem {
   id: string;
@@ -379,15 +392,21 @@ export interface InventoryFilters {
   branchId?: string;
   page?: number;
   limit?: number;
-  sortBy?: 'name' | 'currentStock' | 'totalValue' | 'lastRestocked';
-  sortOrder?: 'asc' | 'desc';
+  sortBy?: "name" | "currentStock" | "totalValue" | "lastRestocked";
+  sortOrder?: "asc" | "desc";
 }
 
 // ─── Order ────────────────────────────────────────────────────────────────────
 
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
-export type PaymentStatus = 'pending' | 'paid' | 'refunded' | 'failed';
-export type OrderType = 'dine_in' | 'takeaway' | 'delivery';
+export type OrderStatus =
+  | "pending"
+  | "confirmed"
+  | "preparing"
+  | "ready"
+  | "delivered"
+  | "cancelled";
+export type PaymentStatus = "pending" | "paid" | "refunded" | "failed";
+export type OrderType = "dine_in" | "takeaway" | "delivery";
 
 export interface OrderItem {
   id: string;
@@ -441,11 +460,14 @@ export interface OrderFilters {
   limit?: number;
 }
 
-export interface UpdateOrderStatusPayload { status: OrderStatus; notes?: string; }
+export interface UpdateOrderStatusPayload {
+  status: OrderStatus;
+  notes?: string;
+}
 
 export interface CreateOrderPayload {
   type: OrderType;
-  items: Array<{ menuItemId: string; quantity: number; notes?: string; }>;
+  items: Array<{ menuItemId: string; quantity: number; notes?: string }>;
   customerName: string;
   tableNumber?: string;
   deliveryAddress?: string;
@@ -455,7 +477,7 @@ export interface CreateOrderPayload {
 
 // ─── Kitchen ──────────────────────────────────────────────────────────────────
 
-export type KitchenTicketStatus = 'new' | 'in_progress' | 'ready';
+export type KitchenTicketStatus = "new" | "in_progress" | "ready";
 
 export interface KitchenTicket {
   id: string;
@@ -475,7 +497,7 @@ export interface KitchenTicket {
 
 // ─── Payment ──────────────────────────────────────────────────────────────────
 
-export type PaymentMethod = 'cash' | 'card' | 'qr' | 'transfer';
+export type PaymentMethod = "cash" | "card" | "qr" | "transfer";
 
 export interface Payment {
   id: string;
@@ -498,7 +520,13 @@ export interface ProcessPaymentPayload {
 
 // ─── Reservation ──────────────────────────────────────────────────────────────
 
-export type ReservationStatus = 'pending' | 'confirmed' | 'arrived' | 'completed' | 'cancelled' | 'no_show';
+export type ReservationStatus =
+  | "pending"
+  | "confirmed"
+  | "arrived"
+  | "completed"
+  | "cancelled"
+  | "no_show";
 
 export interface Reservation {
   id: string;
@@ -554,7 +582,7 @@ export interface CreateReservationPayload {
 
 // ─── Table ────────────────────────────────────────────────────────────────────
 
-export type TableStatus = 'free' | 'occupied' | 'reserved' | 'maintenance';
+export type TableStatus = "free" | "occupied" | "reserved" | "maintenance";
 
 export interface RestaurantTable {
   id: string;
@@ -564,4 +592,70 @@ export interface RestaurantTable {
   currentOrderId?: string;
   reservationId?: string;
   branchId: string;
+}
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
+
+export interface SalesSummary {
+  totalOrders: number;
+  totalSubtotal: number;
+  totalTax: number;
+  totalRevenue: number;
+  averageOrderValue: number;
+}
+
+export interface DailySale {
+  date: string;
+  orders: number;
+  revenue: number;
+}
+
+export interface SalesReport {
+  startDate: string;
+  endDate: string;
+  summary: SalesSummary;
+  dailySales: DailySale[];
+}
+
+export interface TopProduct {
+  menuItemId: string;
+  name: string;
+  category: string;
+  totalQuantity: number;
+  totalRevenue: number;
+}
+
+export interface ProductsReport {
+  startDate: string;
+  endDate: string;
+  topProducts: TopProduct[];
+}
+
+export interface PaymentByMethod {
+  method: string;
+  count: number;
+  amount: number;
+  percentage: number;
+}
+
+export interface PaymentsReport {
+  startDate: string;
+  endDate: string;
+  totalPayments: number;
+  totalRevenue: number;
+  byMethod: PaymentByMethod[];
+}
+
+export interface PeakHour {
+  hour: number;
+  label: string;
+  orders: number;
+  revenue: number;
+}
+
+export interface PeakHoursReport {
+  startDate: string;
+  endDate: string;
+  totalOrders: number;
+  byHour: PeakHour[];
 }
