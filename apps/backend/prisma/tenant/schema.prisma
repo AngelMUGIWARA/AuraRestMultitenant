@@ -104,6 +104,10 @@ model User {
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt      @map("updated_at")
 
+  // Relaciones adicionales para gestión por sucursal y auditoría
+  userBranches UserBranch[]
+  activityLogs ActivityLog[]
+
   orders       Order[]
   reservations Reservation[]
 
@@ -165,6 +169,7 @@ model Order {
   id        String      @id @default(cuid())
   folio     String      @unique
   tableId   String?     @map("table_id")
+  branchId  String?     @map("branch_id")
   userId    String      @map("user_id")
   type      OrderType   @default(DINE_IN)
   status    OrderStatus @default(PENDING)
@@ -176,6 +181,7 @@ model Order {
   updatedAt DateTime    @updatedAt        @map("updated_at")
 
   table         RestaurantTable? @relation(fields: [tableId], references: [id])
+  branch        Branch?          @relation(fields: [branchId], references: [id])
   user          User             @relation(fields: [userId],  references: [id])
   orderItems    OrderItem[]
   payment       Payment?
@@ -250,4 +256,95 @@ model Reservation {
   user  User?           @relation(fields: [userId],  references: [id])
 
   @@map("reservations")
+}
+
+// =========================
+// Nuevos modelos del dominio
+// =========================
+
+model Branch {
+  id         String    @id @default(cuid())
+  name       String
+  slug       String    @unique
+  address    String?
+  phone      String?
+  email      String?
+  manager    String?
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt      @map("updated_at")
+
+  users      UserBranch[]
+  settings   Settings?
+  activities ActivityLog[]
+  orders     Order[]
+
+  @@map("branches")
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt      @map("updated_at")
+
+  permissions Permission[]
+  userBranches UserBranch[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id        String  @id @default(cuid())
+  name      String  @unique
+  roleId    String  @map("role_id")
+  role      Role    @relation(fields: [roleId], references: [id])
+
+  @@map("permissions")
+}
+
+model UserBranch {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  branchId  String   @map("branch_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id])
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  role      Role     @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, branchId])
+  @@map("user_branches")
+}
+
+model Settings {
+  id        String   @id @default(cuid())
+  branchId  String   @unique @map("branch_id")
+  key       String
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  branch    Branch   @relation(fields: [branchId], references: [id])
+
+  @@unique([branchId, key])
+  @@map("settings")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  branchId  String   @map("branch_id")
+  userId    String   @map("user_id")
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  changes   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("activity_logs")
 }
