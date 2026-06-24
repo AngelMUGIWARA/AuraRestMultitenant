@@ -141,3 +141,7 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Postman files
+Aura-Rest-API.postman_collection.json
+POSTMAN_COLLECTION_README.md

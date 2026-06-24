@@ -1,20 +1,22 @@
 import {
+  MiddlewareConsumer,
   Module,
   NestModule,
-  MiddlewareConsumer,
   RequestMethod,
 } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 
-import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
+import { BranchesModule } from './branches/branches.module';
+import { DatabaseModule } from './database/database.module';
 import { ReportsModule } from './reports/reports.module';
+import { TenantsModule } from './tenants/tenants.module';
+import { UsersModule } from './users/users.module';
 
-import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { TenantMiddleware } from './common/middleware/tenant.middleware';
 
 @Module({
   imports: [
@@ -26,7 +28,9 @@ import { RolesGuard } from './common/guards/roles.guard';
     DatabaseModule,
 
     AuthModule,
+    BranchesModule,
     UsersModule,
+    TenantsModule,
     ReportsModule,
     // ↑ Agrega aquí los demás módulos: MenuModule, OrdersModule, etc.
   ],
