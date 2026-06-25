@@ -14,9 +14,9 @@
  *   npx ts-node prisma/seed.ts
  */
 
+import * as bcrypt from 'bcrypt';
 import { PrismaClient as SystemClient } from '../src/generated/prisma-system';
 import { PrismaClient as TenantClient } from '../src/generated/prisma-tenant';
-import * as bcrypt from 'bcrypt';
 
 // ─── Configuración ────────────────────────────────────────────────────────────
 
@@ -125,6 +125,47 @@ async function main() {
     }),
   ]);
   console.log(`✅  Usuarios:  ${users.map((u) => u.role).join(', ')}`);
+
+  // ── 2.b Roles y Branch para pruebas ──────────────────────────────────────
+  const roles = await tenantDb.role.findMany();
+  if (roles.length === 0) {
+    await Promise.all([
+      tenantDb.role.create({ data: { name: 'OWNER' } }),
+      tenantDb.role.create({ data: { name: 'ADMIN' } }),
+      tenantDb.role.create({ data: { name: 'MANAGER' } }),
+      tenantDb.role.create({ data: { name: 'WAITER' } }),
+      tenantDb.role.create({ data: { name: 'CASHIER' } }),
+      tenantDb.role.create({ data: { name: 'CHEF' } }),
+    ]);
+    console.log('✅  Roles: OWNER, ADMIN, MANAGER, WAITER, CASHIER, CHEF');
+  }
+
+  const branch = await tenantDb.branch.upsert({
+    where: { slug: 'central' },
+    update: {},
+    create: { name: 'Sucursal Central', slug: 'central', address: 'Centro', phone: '+52 55 0000 0002' },
+  });
+
+  // Asignar algunos users a la branch con roles
+  const ownerRole = await tenantDb.role.findUnique({ where: { name: 'OWNER' } });
+  const adminRole = await tenantDb.role.findUnique({ where: { name: 'ADMIN' } });
+
+  if (ownerRole) {
+    await tenantDb.userBranch.upsert({
+      where: { userId_branchId: { userId: users[0].id, branchId: branch.id } },
+      update: {},
+      create: { userId: users[0].id, branchId: branch.id, roleId: ownerRole.id },
+    });
+  }
+
+  if (adminRole) {
+    await tenantDb.userBranch.upsert({
+      where: { userId_branchId: { userId: users[1].id, branchId: branch.id } },
+      update: {},
+      create: { userId: users[1].id, branchId: branch.id, roleId: adminRole.id },
+    });
+  }
+
 
   // ── 3. Categorías ──────────────────────────────────────────────────────────
   const [entradas, fuertes, bebidas, postres] = await Promise.all([

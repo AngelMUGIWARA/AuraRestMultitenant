@@ -14,6 +14,16 @@ import {
   PaymentsReportResponseDto,
   PaymentByMethodDto,
 } from './dto/payments-report-response.dto';
+import {
+  PeakHoursReportResponseDto,
+  PeakHourDto,
+} from './dto/peak-hours-report-response.dto';
+
+function formatHour(hour: number): string {
+  if (hour === 0) return '12:00 AM';
+  if (hour === 12) return '12:00 PM';
+  return hour < 12 ? `${hour}:00 AM` : `${hour - 12}:00 PM`;
+}
 
 @Injectable()
 export class ReportsService {
@@ -148,6 +158,43 @@ export class ReportsService {
       totalPayments,
       totalRevenue: +totalRevenue.toFixed(2),
       byMethod,
+    };
+  }
+
+  async getPeakHoursReport(
+    schemaName: string,
+    query: SalesReportQueryDto,
+  ): Promise<PeakHoursReportResponseDto> {
+    const { orders, startDate, endDate } = await this.repo.getPeakHoursReport(
+      schemaName,
+      query,
+    );
+
+    const hourMap = new Map<number, { orders: number; revenue: number }>();
+
+    for (const order of orders) {
+      const hour = order.createdAt.getHours();
+      const existing = hourMap.get(hour) ?? { orders: 0, revenue: 0 };
+      hourMap.set(hour, {
+        orders: existing.orders + 1,
+        revenue: existing.revenue + Number(order.total),
+      });
+    }
+
+    const byHour: PeakHourDto[] = Array.from(hourMap.entries())
+      .map(([hour, data]) => ({
+        hour,
+        label: formatHour(hour),
+        orders: data.orders,
+        revenue: +data.revenue.toFixed(2),
+      }))
+      .sort((a, b) => b.orders - a.orders);
+
+    return {
+      startDate: startDate.toISOString().slice(0, 10),
+      endDate: endDate.toISOString().slice(0, 10),
+      totalOrders: orders.length,
+      byHour,
     };
   }
 }

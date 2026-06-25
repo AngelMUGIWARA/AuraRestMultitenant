@@ -108,4 +108,30 @@ export class ReportsRepository {
 
     return { grouped, startDate, endDate };
   }
+
+  async getPeakHoursReport(schemaName: string, query: SalesReportQueryDto) {
+    const db = this.db(schemaName);
+
+    const startDate = query.startDate
+      ? new Date(query.startDate)
+      : new Date(new Date().getFullYear(), 0, 1);
+
+    const endDate = query.endDate ? new Date(query.endDate) : new Date();
+
+    const orders = await db.order.findMany({
+      where: {
+        status: 'PAID',
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        createdAt: true,
+        total: true,
+      },
+    });
+
+    return { orders, startDate, endDate };
+  }
 }

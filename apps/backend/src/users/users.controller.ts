@@ -1,40 +1,48 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
   Body,
-  Param,
-  Query,
+  Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
   ApiSecurity,
+  ApiTags,
 } from '@nestjs/swagger';
-import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { UserResponseDto, PaginatedUsersDto } from './dto/user-response.dto';
+import {
+  CurrentTenant,
+  TenantContext,
+} from '../common/decorators/current-tenant.decorator';
+import {
+  AuthenticatedUser,
+  CurrentUser,
+} from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser, AuthenticatedUser } from '../common/decorators/current-user.decorator';
-import { CurrentTenant, TenantContext } from '../common/decorators/current-tenant.decorator';
+import { ChangeUserStatusDto } from './dto/change-user-status.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { InviteUserDto } from './dto/invite-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { PaginatedUsersDto, UserResponseDto } from './dto/user-response.dto';
+import { UsersService } from './users.service';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT')
 @ApiSecurity('TenantSlug')
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
-@Controller('users')
+@Controller('admin/users')
 export class UsersController {
   constructor(private readonly service: UsersService) {}
 
@@ -73,6 +81,18 @@ export class UsersController {
     return this.service.create(tenant.schemaName, dto);
   }
 
+  @Post('invite')
+  @Roles('OWNER', 'ADMIN')
+  @ApiOperation({ summary: 'Invitar a un usuario (crea cuenta provisional)' })
+  @ApiResponse({ status: 201, type: UserResponseDto })
+  @ApiResponse({ status: 409, description: 'Email ya registrado' })
+  invite(
+    @CurrentTenant() tenant: TenantContext,
+    @Body() dto: InviteUserDto,
+  ): Promise<UserResponseDto> {
+    return this.service.invite(tenant.schemaName, dto);
+  }
+
   @Patch(':id')
   @Roles('OWNER', 'ADMIN')
   @ApiOperation({ summary: 'Actualizar un usuario' })
@@ -83,6 +103,18 @@ export class UsersController {
     @Body() dto: UpdateUserDto,
   ): Promise<UserResponseDto> {
     return this.service.update(tenant.schemaName, id, dto);
+  }
+
+  @Patch(':id/status')
+  @Roles('OWNER', 'ADMIN')
+  @ApiOperation({ summary: 'Cambiar el estado de un usuario' })
+  @ApiResponse({ status: 200, type: UserResponseDto })
+  changeStatus(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+    @Body() body: ChangeUserStatusDto,
+  ): Promise<UserResponseDto> {
+    return this.service.changeStatus(tenant.schemaName, id, body.status);
   }
 
   @Delete(':id')

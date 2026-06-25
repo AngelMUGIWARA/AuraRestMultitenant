@@ -1,13 +1,34 @@
-import { apiClient } from '@maison/api-client';
-import type { ApiResponse } from '@maison/types';
+import { apiClient } from "@maison/api-client";
+import type {
+  SalesReport,
+  ProductsReport,
+  PaymentsReport,
+  PeakHoursReport,
+} from "@maison/types";
+
+export interface ReportQueryParams {
+  startDate?: string;
+  endDate?: string;
+}
 
 export const reportsService = {
-  getSalesReport: (params: { branchId?: string; startDate?: string; endDate?: string; period?: string }) =>
-    apiClient.get<ApiResponse<unknown>>('/admin/reports/sales', { params: params as Record<string, string | undefined> }),
-  getAnalytics: (branchId?: string) =>
-    apiClient.get<ApiResponse<unknown>>('/admin/analytics', { params: { branchId } }),
-  getLogs: (page = 1, limit = 50) =>
-    apiClient.get<ApiResponse<unknown>>('/admin/logs', { params: { page, limit } }),
-  exportReport: (format: 'csv' | 'pdf', params: Record<string, string>) =>
-    apiClient.get<Blob>(`/admin/reports/export`, { params: { format, ...params } }),
+  getSalesReport: (params?: ReportQueryParams) =>
+    apiClient.get<SalesReport>("/admin/reports/sales", {
+      params: params as Record<string, string | undefined>,
+    }),
+
+  getProductsReport: (params?: ReportQueryParams) =>
+    apiClient.get<ProductsReport>("/admin/reports/products", {
+      params: params as Record<string, string | undefined>,
+    }),
+
+  getPaymentsReport: (params?: ReportQueryParams) =>
+    apiClient.get<PaymentsReport>("/admin/reports/payments", {
+      params: params as Record<string, string | undefined>,
+    }),
+
+  getPeakHoursReport: (params?: ReportQueryParams) =>
+    apiClient.get<PeakHoursReport>("/admin/reports/peak-hours", {
+      params: params as Record<string, string | undefined>,
+    }),
 };

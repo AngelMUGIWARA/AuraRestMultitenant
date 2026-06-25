@@ -120,7 +120,11 @@ model User {
   phone        String?
   avatarUrl    String?    @map("avatar_url")
   createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt      @map("updated_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  // Relaciones adicionales para gestión por sucursal y auditoría
+  userBranches UserBranch[]
+  activityLogs ActivityLog[]
 
   orders       Order[]
   reservations Reservation[]
@@ -136,7 +140,7 @@ model Category {
   sortOrder   Int      @default(0) @map("sort_order")
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt      @map("updated_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   menuItems MenuItem[]
 
@@ -150,10 +154,10 @@ model MenuItem {
   price       Decimal        @db.Decimal(10, 2)
   imageUrl    String?        @map("image_url")
   status      MenuItemStatus @default(AVAILABLE)
-  isAvailable Boolean        @default(true)  @map("is_available")
+  isAvailable Boolean        @default(true) @map("is_available")
   categoryId  String         @map("category_id")
   createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt      @map("updated_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
 
   category   Category    @relation(fields: [categoryId], references: [id])
   orderItems OrderItem[]
@@ -171,7 +175,7 @@ model RestaurantTable {
   locationZone String?     @map("location_zone")
   isActive     Boolean     @default(true) @map("is_active")
   createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt      @map("updated_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
 
   orders       Order[]
   reservations Reservation[]
@@ -183,6 +187,7 @@ model Order {
   id           String      @id @default(cuid())
   folio        String      @unique
   tableId      String?     @map("table_id")
+  branchId     String?     @map("branch_id")
   userId       String      @map("user_id")
   customerName String?     @map("customer_name")
   type         OrderType   @default(DINE_IN)
@@ -192,11 +197,12 @@ model Order {
   tax          Decimal     @db.Decimal(10, 2)
   total        Decimal     @db.Decimal(10, 2)
   discountId   String?     @map("discount_id")
-  createdAt    DateTime    @default(now())   @map("created_at")
-  updatedAt    DateTime    @updatedAt        @map("updated_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
 
   table         RestaurantTable? @relation(fields: [tableId], references: [id])
-  user          User             @relation(fields: [userId],  references: [id])
+  branch        Branch?          @relation(fields: [branchId], references: [id])
+  user          User             @relation(fields: [userId], references: [id])
   discount      Discount?        @relation(fields: [discountId], references: [id])
   orderItems    OrderItem[]
   payments      Payment[]
@@ -210,12 +216,12 @@ model OrderItem {
   orderId    String   @map("order_id")
   menuItemId String   @map("menu_item_id")
   quantity   Int
-  unitPrice  Decimal  @db.Decimal(10, 2) @map("unit_price")
+  unitPrice  Decimal  @map("unit_price") @db.Decimal(10, 2)
   subtotal   Decimal  @db.Decimal(10, 2)
   notes      String?
   createdAt  DateTime @default(now()) @map("created_at")
 
-  order    Order    @relation(fields: [orderId],    references: [id])
+  order    Order    @relation(fields: [orderId], references: [id])
   menuItem MenuItem @relation(fields: [menuItemId], references: [id])
 
   @@map("order_items")
@@ -228,11 +234,11 @@ model Payment {
   method       PaymentMethod @default(CASH)
   status       PaymentStatus @default(PENDING)
   reference    String?
-  tipAmount    Decimal?      @db.Decimal(10, 2) @map("tip_amount")
+  tipAmount    Decimal?      @map("tip_amount") @db.Decimal(10, 2)
   ticketPdfUrl String?       @map("ticket_pdf_url")
   processedAt  DateTime?     @map("processed_at")
   createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt      @map("updated_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
 
   order Order @relation(fields: [orderId], references: [id])
   tip   Tip?
@@ -248,7 +254,7 @@ model KitchenTicket {
   startedAt   DateTime?           @map("started_at")
   completedAt DateTime?           @map("completed_at")
   createdAt   DateTime            @default(now()) @map("created_at")
-  updatedAt   DateTime            @updatedAt      @map("updated_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
 
   order Order @relation(fields: [orderId], references: [id])
 
@@ -267,26 +273,26 @@ model Reservation {
   status      ReservationStatus @default(PENDING)
   notes       String?
   createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt      @map("updated_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
 
   table RestaurantTable @relation(fields: [tableId], references: [id])
-  user  User?           @relation(fields: [userId],  references: [id])
+  user  User?           @relation(fields: [userId], references: [id])
 
   @@map("reservations")
 }
 
 model Discount {
-  id        String       @id @default(cuid())
-  name      String
-  code      String?      @unique
-  type      DiscountType
-  value     Decimal      @db.Decimal(10, 2)
-  amount    Decimal      @db.Decimal(10, 2)
-  isActive  Boolean      @default(true) @map("is_active")
-  maxAmount Decimal?     @db.Decimal(10, 2) @map("max_amount")
-  minPurchase Decimal?   @db.Decimal(10, 2) @map("min_purchase")
-  createdAt DateTime     @default(now()) @map("created_at")
-  updatedAt DateTime     @updatedAt      @map("updated_at")
+  id          String       @id @default(cuid())
+  name        String
+  code        String?      @unique
+  type        DiscountType
+  value       Decimal      @db.Decimal(10, 2)
+  amount      Decimal      @db.Decimal(10, 2)
+  isActive    Boolean      @default(true) @map("is_active")
+  maxAmount   Decimal?     @map("max_amount") @db.Decimal(10, 2)
+  minPurchase Decimal?     @map("min_purchase") @db.Decimal(10, 2)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
 
   orders Order[]
 
@@ -299,24 +305,116 @@ model Promotion {
   description String?
   type        PromotionType
   value       Decimal       @db.Decimal(10, 2)
-  minPurchase Decimal?      @db.Decimal(10, 2) @map("min_purchase")
+  minPurchase Decimal?      @map("min_purchase") @db.Decimal(10, 2)
   startsAt    DateTime?     @map("starts_at")
   endsAt      DateTime?     @map("ends_at")
   isActive    Boolean       @default(true) @map("is_active")
   createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt      @map("updated_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
 
   @@map("promotions")
 }
 
 model Tip {
-  id        String   @id @default(cuid())
-  paymentId String   @unique @map("payment_id")
-  amount    Decimal  @db.Decimal(10, 2)
+  id        String    @id @default(cuid())
+  paymentId String    @unique @map("payment_id")
+  amount    Decimal   @db.Decimal(10, 2)
   method    TipMethod @default(FIXED)
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   payment Payment @relation(fields: [paymentId], references: [id])
 
   @@map("tips")
+}
+
+// =========================
+// Nuevos modelos del dominio
+// =========================
+
+model Branch {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  address   String?
+  phone     String?
+  email     String?
+  manager   String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users      UserBranch[]
+  settings   Settings?
+  activities ActivityLog[]
+  orders     Order[]
+
+  @@map("branches")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  permissions  Permission[]
+  userBranches UserBranch[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id     String @id @default(cuid())
+  name   String @unique
+  roleId String @map("role_id")
+
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@map("permissions")
+}
+
+model UserBranch {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  branchId  String   @map("branch_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  branch Branch @relation(fields: [branchId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, branchId])
+  @@map("user_branches")
+}
+
+model Settings {
+  id        String   @id @default(cuid())
+  branchId  String   @unique @map("branch_id")
+  key       String
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@unique([branchId, key])
+  @@map("settings")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  branchId  String   @map("branch_id")
+  userId    String   @map("user_id")
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  changes   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  branch Branch @relation(fields: [branchId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("activity_logs")
 }

@@ -1,13 +1,13 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
-  ConflictException,
 } from '@nestjs/common';
-import { UsersRepository } from './users.repository';
+import { PaginationDto } from '../common/dto/pagination.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedUsersDto, UserResponseDto } from './dto/user-response.dto';
+import { UsersRepository } from './users.repository';
 
 /**
  * Capa de lógica de negocio para Users.
@@ -53,6 +53,14 @@ export class UsersService {
     return this.repo.create(schemaName, dto);
   }
 
+  async invite(schemaName: string, dto: any): Promise<UserResponseDto> {
+    const existing = await this.repo.findByEmail(schemaName, dto.email);
+    if (existing) {
+      throw new ConflictException(`El email ${dto.email} ya está registrado`);
+    }
+    return this.repo.createInvite(schemaName, dto);
+  }
+
   async update(
     schemaName: string,
     id: string,
@@ -65,5 +73,10 @@ export class UsersService {
   async remove(schemaName: string, id: string): Promise<void> {
     await this.findOne(schemaName, id);
     await this.repo.remove(schemaName, id);
+  }
+
+  async changeStatus(schemaName: string, id: string, status: string) {
+    await this.findOne(schemaName, id);
+    return this.repo.updateStatus(schemaName, id, status);
   }
 }
