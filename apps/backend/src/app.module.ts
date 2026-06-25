@@ -11,6 +11,11 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ReportsModule } from './reports/reports.module';
+import { OrdersModule } from './orders/orders.module';
+import { TablesModule } from './tables/tables.module';
+import { PaymentsModule } from './payments/payments.module';
+import { DiscountsModule } from './discounts/discounts.module';
+import { PromotionsModule } from './promotions/promotions.module';
 
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -28,7 +33,11 @@ import { RolesGuard } from './common/guards/roles.guard';
     AuthModule,
     UsersModule,
     ReportsModule,
-    // ↑ Agrega aquí los demás módulos: MenuModule, OrdersModule, etc.
+    OrdersModule,
+    TablesModule,
+    PaymentsModule,
+    DiscountsModule,
+    PromotionsModule,
   ],
   providers: [
     // Guards globales: se aplican a TODOS los endpoints

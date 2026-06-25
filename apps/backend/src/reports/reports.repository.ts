@@ -29,7 +29,7 @@ export class ReportsRepository {
         },
       },
       include: {
-        payment: true,
+        payments: true,
       },
       orderBy: { createdAt: 'asc' },
     });
