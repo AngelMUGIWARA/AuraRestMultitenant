@@ -1,10 +1,10 @@
 {
   "latestErrorEvent": {
     "code": "TYPE-001",
-    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project C:\\\\Proyectos\\\\noveno\\\\AuraRestMultitenant\\\\apps\\\\kitchen-mf\\\\node_modules\\\\.federation\\\\tsconfig.fc14788f83ab264f2b537b0236eda04b.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
+    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project C:\\\\Users\\\\jnune\\\\OneDrive\\\\Escritorio\\\\9no\\\\MultitenantRestaurante\\\\AuraRestMultitenant\\\\apps\\\\kitchen-mf\\\\node_modules\\\\.federation\\\\tsconfig.5408ad7f1176a8a1a88c78036e7478e5.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
     "args": {
-      "cmd": "npx tsc --project C:\\Proyectos\\noveno\\AuraRestMultitenant\\apps\\kitchen-mf\\node_modules\\.federation\\tsconfig.fc14788f83ab264f2b537b0236eda04b.json"
+      "cmd": "npx tsc --project C:\\Users\\jnune\\OneDrive\\Escritorio\\9no\\MultitenantRestaurante\\AuraRestMultitenant\\apps\\kitchen-mf\\node_modules\\.federation\\tsconfig.5408ad7f1176a8a1a88c78036e7478e5.json"
     },
-    "timestamp": 1781402164487
+    "timestamp": 1782413439610
   }
 }

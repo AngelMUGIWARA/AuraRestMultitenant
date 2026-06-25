@@ -26,10 +26,10 @@ export function usePOS() {
     try {
       const [menuRes, tablesRes] = await Promise.all([
         cashierService.getMenuItems({ branchId: bId }),
-        cashierService.getTables(bId),
+        cashierService.getTables(),
       ]);
-      setMenuItems(menuRes.data.data);
-      setTables(tablesRes.data);
+      setMenuItems(menuRes);
+      setTables(tablesRes);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al cargar datos');
     } finally {
@@ -78,14 +78,12 @@ export function usePOS() {
     setIsSubmitting(true);
     setError(null);
     try {
-      const res = await cashierService.createOrder({
-        type: selectedTable ? 'dine_in' : 'takeaway',
+      const order = await cashierService.createOrder({
+        type: selectedTable ? 'DINE_IN' : 'TAKEOUT',
         items: cart.map((c) => ({ menuItemId: c.menuItem.id, quantity: c.quantity, notes: c.notes })),
         customerName,
-        tableNumber: selectedTable?.name,
-        branchId: branchId ?? '',
+        tableId: selectedTable?.id,
       });
-      const order = res.data;
       setCompletedOrder(order);
       emit('order:created', { order });
       setCart([]);
@@ -96,34 +94,45 @@ export function usePOS() {
     }
   }, [cart, selectedTable, branchId]);
 
-  const processPayment = useCallback(async (method: PaymentMethod, amountPaid: number) => {
+  const refreshTables = useCallback(() => {
+    loadData(branchId);
+  }, [loadData, branchId]);
+
+  const processPayment = useCallback(async (
+    payments: Array<{ method: PaymentMethod; amount: number; reference?: string }>,
+  ) => {
     if (!completedOrder) return;
     setIsSubmitting(true);
     setError(null);
     try {
       await cashierService.processPayment({
         orderId: completedOrder.id,
-        method,
-        amount: completedOrder.total,
+        payments: payments.map((p) => ({
+          method: p.method.toUpperCase() as 'CASH' | 'CARD' | 'TRANSFER' | 'QR' | 'OTHER',
+          amount: p.amount.toFixed(2),
+          reference: p.reference || undefined,
+        })),
       });
       emit('payment:completed', {
         orderId: completedOrder.id,
         orderNumber: completedOrder.orderNumber,
-        method,
+        method: payments.length === 1 ? payments[0].method : 'multiple',
         amount: completedOrder.total,
       });
       clearCart();
+      refreshTables();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al procesar el pago');
     } finally {
       setIsSubmitting(false);
     }
-  }, [completedOrder, clearCart]);
+  }, [completedOrder, clearCart, refreshTables]);
 
   return {
     menuItems, tables, cart, selectedTable, setSelectedTable,
     cartTotal, cartSubtotal, cartTax,
     isLoading, isSubmitting, error, completedOrder,
     addToCart, removeFromCart, clearCart, submitOrder, processPayment,
+    refreshTables,
   };
 }
