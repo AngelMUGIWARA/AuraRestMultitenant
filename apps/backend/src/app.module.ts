@@ -10,7 +10,12 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { BranchesModule } from './branches/branches.module';
 import { DatabaseModule } from './database/database.module';
+import { DiscountsModule } from './discounts/discounts.module';
+import { OrdersModule } from './orders/orders.module';
+import { PaymentsModule } from './payments/payments.module';
+import { PromotionsModule } from './promotions/promotions.module';
 import { ReportsModule } from './reports/reports.module';
+import { TablesModule } from './tables/tables.module';
 import { TenantsModule } from './tenants/tenants.module';
 import { UsersModule } from './users/users.module';
 
@@ -20,11 +25,8 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
 
 @Module({
   imports: [
-    // Carga variables de entorno desde .env globalmente
     ConfigModule.forRoot({ isGlobal: true }),
 
-    // DatabaseModule es @Global() — PrismaService y TenantPrismaService
-    // quedan disponibles en todos los módulos sin importarlos de nuevo
     DatabaseModule,
 
     AuthModule,
@@ -32,18 +34,19 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
     UsersModule,
     TenantsModule,
     ReportsModule,
-    // ↑ Agrega aquí los demás módulos: MenuModule, OrdersModule, etc.
+    OrdersModule,
+    TablesModule,
+    PaymentsModule,
+    DiscountsModule,
+    PromotionsModule,
   ],
   providers: [
-    // Guards globales: se aplican a TODOS los endpoints
-    // Los endpoints públicos usan @Public() para saltarlos
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    // TenantMiddleware corre en todas las rutas y resuelve request.tenant
     consumer
       .apply(TenantMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
