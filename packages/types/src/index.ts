@@ -7,13 +7,19 @@ export interface ApiResponse<T> {
   timestamp: string;
 }
 
-export interface PaginatedResponse<T> extends ApiResponse<T[]> {
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface ApiError {
@@ -404,6 +410,7 @@ export type OrderStatus =
   | "preparing"
   | "ready"
   | "delivered"
+  | "paid"
   | "cancelled";
 export type PaymentStatus = "pending" | "paid" | "refunded" | "failed";
 export type OrderType = "dine_in" | "takeaway" | "delivery";
@@ -466,13 +473,11 @@ export interface UpdateOrderStatusPayload {
 }
 
 export interface CreateOrderPayload {
-  type: OrderType;
+  type: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
   items: Array<{ menuItemId: string; quantity: number; notes?: string }>;
-  customerName: string;
-  tableNumber?: string;
-  deliveryAddress?: string;
+  customerName?: string;
+  tableId?: string;
   notes?: string;
-  branchId: string;
 }
 
 // ─── Kitchen ──────────────────────────────────────────────────────────────────
@@ -502,20 +507,25 @@ export type PaymentMethod = "cash" | "card" | "qr" | "transfer";
 export interface Payment {
   id: string;
   orderId: string;
-  orderNumber: string;
   amount: number;
-  method: PaymentMethod;
-  status: PaymentStatus;
-  reference?: string;
-  branchId: string;
+  method: string;
+  status: string;
+  reference?: string | null;
+  tipAmount?: number | null;
   createdAt: string;
 }
 
 export interface ProcessPaymentPayload {
   orderId: string;
-  method: PaymentMethod;
-  amount: number;
-  reference?: string;
+  payments: Array<{
+    method: 'CASH' | 'CARD' | 'TRANSFER' | 'QR' | 'OTHER';
+    amount: string;
+    reference?: string;
+  }>;
+  tip?: {
+    amount: string;
+    method: 'PERCENTAGE' | 'FIXED';
+  };
 }
 
 // ─── Reservation ──────────────────────────────────────────────────────────────

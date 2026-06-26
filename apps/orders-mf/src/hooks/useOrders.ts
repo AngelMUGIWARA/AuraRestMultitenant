@@ -10,6 +10,7 @@ export function useOrders(branchId: string) {
   const [error, setError] = useState<Error | null>(null);
   const [tick, setTick] = useState(0);
   const [filters, setFiltersState] = useState<OrderFilters>({ page: 1, limit: 30 });
+  const [isActing, setIsActing] = useState(false);
 
   const setFilters = useCallback(
     (patch: Partial<OrderFilters>) => setFiltersState((p) => ({ ...p, ...patch, page: 1 })),
@@ -30,8 +31,8 @@ export function useOrders(branchId: string) {
     ])
       .then(([s, o]) => {
         if (!cancelled) {
-          setStats(s.data);
-          setOrders(o.data);
+          setStats(s);
+          setOrders(o);
         }
       })
       .catch((e: unknown) => {
@@ -69,6 +70,32 @@ export function useOrders(branchId: string) {
     return () => clearInterval(interval);
   }, []);
 
+  const updateOrderStatus = useCallback(async (orderId: string, status: string) => {
+    setIsActing(true);
+    setError(null);
+    try {
+      await ordersService.updateStatus(orderId, { status: status as any, notes: undefined });
+      setTick((t) => t + 1);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e : new Error('Error al actualizar estado'));
+    } finally {
+      setIsActing(false);
+    }
+  }, []);
+
+  const cancelOrder = useCallback(async (orderId: string, reason?: string) => {
+    setIsActing(true);
+    setError(null);
+    try {
+      await ordersService.cancel(orderId, reason);
+      setTick((t) => t + 1);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e : new Error('Error al cancelar orden'));
+    } finally {
+      setIsActing(false);
+    }
+  }, []);
+
   return {
     stats,
     orders,
@@ -77,5 +104,8 @@ export function useOrders(branchId: string) {
     filters,
     setFilters,
     refresh: () => setTick((t) => t + 1),
+    updateOrderStatus,
+    cancelOrder,
+    isActing,
   };
 }
