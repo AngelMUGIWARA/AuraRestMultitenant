@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { DateRangeFilter } from '../components/DateRangeFilter';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 import { StatCard, StatCardSkeleton, EmptyState, IconAnalytics } from '@maison/ui';
 import { useReportsData } from '../hooks/useReportsData';
@@ -14,13 +16,32 @@ function formatCurrency(value: number): string {
 }
 
 export default function ReportesPage() {
-  const { data, isLoading, error } = useReportsData();
+  const currentYear = new Date().getFullYear();
+  const [filterParams, setFilterParams] = useState({ 
+    startDate: `${currentYear}-01-01`, 
+    endDate: new Date().toISOString().slice(0, 10),
+  });
+
+  const { data, isLoading, error, refetch } = useReportsData(filterParams);
+
+  function handleFilter(startDate: string, endDate: string) {
+    setFilterParams({ startDate, endDate });
+    refetch({ startDate, endDate });
+  }
 
   if (error) {
     return (
       <div className="flex flex-col gap-6 animate-fade-in">
         <header>
           <h1 className="font-display text-3xl font-medium text-maison-cream leading-none">Reportes</h1>
+          <p className="mt-1.5 text-sm text-maison-cream-muted">
+            {data.sales
+              ? `${data.sales.startDate} - ${data.sales.endDate}`
+              : 'Cargando período...'}
+          </p>
+          <div className="mt-4">
+            <DateRangeFilter onFilter={handleFilter} isLoading={isLoading} />
+          </div>
         </header>
         <div className="card">
           <EmptyState
@@ -43,6 +64,9 @@ export default function ReportesPage() {
             ? `${data.sales.startDate} — ${data.sales.endDate}`
             : 'Cargando período...'}
         </p>
+        <div className="mt-4">
+          <DateRangeFilter onFilter={handleFilter} isLoading={isLoading} />
+        </div>
       </header>
 
       {/* ── KPI Cards ── */}
