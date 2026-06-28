@@ -22,6 +22,7 @@ import { UsersModule } from './users/users.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
+import { MenusModule } from './menus/menus.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
     PaymentsModule,
     DiscountsModule,
     PromotionsModule,
+    MenusModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
