@@ -22,6 +22,7 @@ import { UsersModule } from './users/users.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
+import { MenusModule } from './menus/menus.module';
 
 import { CategoriesModule } from './categories/categories.module';
 
@@ -41,8 +42,8 @@ import { CategoriesModule } from './categories/categories.module';
     PaymentsModule,
     DiscountsModule,
     PromotionsModule,
-
     CategoriesModule,
+    MenusModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
