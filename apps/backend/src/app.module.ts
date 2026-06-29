@@ -23,6 +23,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 
+import { CategoriesModule } from './categories/categories.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -39,6 +41,8 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
     PaymentsModule,
     DiscountsModule,
     PromotionsModule,
+
+    CategoriesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
