@@ -15,6 +15,9 @@ export class CategoriesRepository {
 
   async findAll(schemaName: string) {
     return this.db(schemaName).category.findMany({
+      where: {
+        isActive: true,
+      },
       orderBy: {
         sortOrder: "asc",
       },
@@ -22,8 +25,11 @@ export class CategoriesRepository {
   }
 
   async findById(schemaName: string, id: string) {
-    return this.db(schemaName).category.findUnique({
-      where: { id },
+    return this.db(schemaName).category.findFirst({
+      where: {
+        id,
+        isActive: true,
+      },
     });
   }
 
@@ -65,8 +71,11 @@ export class CategoriesRepository {
   }
 
   async remove(schemaName: string, id: string) {
-    return this.db(schemaName).category.delete({
+    return this.db(schemaName).category.update({
       where: { id },
+      data: {
+        isActive: false,
+      },
     });
   }
 }

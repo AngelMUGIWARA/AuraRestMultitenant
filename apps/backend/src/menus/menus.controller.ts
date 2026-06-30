@@ -7,6 +7,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 
@@ -15,6 +16,7 @@ import {
   ApiOperation,
   ApiSecurity,
   ApiTags,
+  ApiQuery,
 } from "@nestjs/swagger";
 
 import { MenusService } from "./menus.service";
@@ -44,10 +46,19 @@ export class MenusController {
   constructor(private readonly service: MenusService) {}
 
   @Get()
+  @ApiQuery({
+    name: "categoryId",
+    required: false,
+    type: String,
+    description: "Filtrar productos por categoría",
+  })
   @Roles("OWNER", "ADMIN", "MANAGER")
   @ApiOperation({ summary: "Listar menú" })
-  findAll(@CurrentTenant() tenant: TenantContext) {
-    return this.service.findAll(tenant.schemaName);
+  findAll(
+    @CurrentTenant() tenant: TenantContext,
+    @Query("categoryId") categoryId?: string,
+  ) {
+    return this.service.findAll(tenant.schemaName, categoryId);
   }
 
   @Get("stats")
