@@ -20,6 +20,9 @@ import {
 import { ProductsReportResponseDto } from './dto/products-report-response.dto';
 import { PaymentsReportResponseDto } from './dto/payments-report-response.dto';
 import { PeakHoursReportResponseDto } from './dto/peak-hours-report-response.dto';
+import { Res } from '@nestjs/common';
+import type { Response } from 'express';
+import { ExportReportQueryDto } from './dto/export-report-query.dto';
 
 @ApiTags('Reports')
 @ApiBearerAuth('JWT')
@@ -73,5 +76,24 @@ export class ReportsController {
     @Query() query: SalesReportQueryDto,
   ): Promise<PeakHoursReportResponseDto> {
     return this.service.getPeakHoursReport(tenant.schemaName, query);
+  }
+
+  @Get('export')
+  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @ApiOperation({ summary: 'Exportar reporte como CSV' })
+  @ApiResponse({ status: 200, type: 'Archivo CSV' })
+  async exportReport(
+    @CurrentTenant() tenant: TenantContext,
+    @Query() query: ExportReportQueryDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { csv, filename } = await this.service.exportReport(
+      tenant.schemaName,
+      query,
+    );
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
   }
 }

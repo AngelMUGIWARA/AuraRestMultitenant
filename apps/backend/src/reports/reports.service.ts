@@ -18,6 +18,8 @@ import {
   PeakHoursReportResponseDto,
   PeakHourDto,
 } from './dto/peak-hours-report-response.dto';
+import { arrayToCsv } from './csv-export.util';
+import { ExportReportQueryDto } from './dto/export-report-query.dto';
 
 function formatHour(hour: number): string {
   if (hour === 0) return '12:00 AM';
@@ -196,5 +198,76 @@ export class ReportsService {
       totalOrders: orders.length,
       byHour,
     };
+  }
+
+  async exportReport(
+    schemaName: string,
+    query: ExportReportQueryDto,
+  ): Promise<{ csv: string; filename: string }> {
+    const dateParams = { startDate: query.startDate, endDate: query.endDate };
+
+    switch (query.type) {
+      case 'sales': {
+        const report = await this.getSalesReport(schemaName, dateParams);
+        const csv = arrayToCsv(
+          report.dailySales.map((d) => ({
+            fecha: d.date,
+            ordenes: d.orders,
+            ingresos: d.revenue,
+          })),
+        );
+        return {
+          csv,
+          filename: `ventas_${report.startDate}_${report.endDate}.csv`,
+        };
+      }
+
+      case 'products': {
+        const report = await this.getProductsReport(schemaName, dateParams);
+        const csv = arrayToCsv(
+          report.topProducts.map((p) => ({
+            producto: p.name,
+            categoria: p.category,
+            unidades_vendidas: p.totalQuantity,
+            ingresos: p.totalRevenue,
+          })),
+        );
+        return {
+          csv,
+          filename: `productos_${report.startDate}_${report.endDate}.csv`,
+        };
+      }
+
+      case 'payments': {
+        const report = await this.getPaymentsReport(schemaName, dateParams);
+        const csv = arrayToCsv(
+          report.byMethod.map((m) => ({
+            metodo: m.method,
+            transacciones: m.count,
+            monto: m.amount,
+            porcentaje: m.percentage,
+          })),
+        );
+        return {
+          csv,
+          filename: `pagos_${report.startDate}_${report.endDate}.csv`,
+        };
+      }
+
+      case 'peak-hours': {
+        const report = await this.getPeakHoursReport(schemaName, dateParams);
+        const csv = arrayToCsv(
+          report.byHour.map((h) => ({
+            hora: h.label,
+            ordenes: h.orders,
+            ingresos: h.revenue,
+          })),
+        );
+        return {
+          csv,
+          filename: `horarios_${report.startDate}_${report.endDate}.csv`,
+        };
+      }
+    }
   }
 }
