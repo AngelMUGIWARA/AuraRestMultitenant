@@ -1,4 +1,4 @@
-import type { AuthUser, Order, OrderStatus, PaymentMethod, Reservation } from '@maison/types';
+import type { AuthUser, Order, OrderStatus, PaymentMethod, Reservation, ReservationStatus } from '@maison/types';
 
 /**
  * Mapa de eventos del bus. Patrón de nombre: `dominio:accion`.
@@ -42,6 +42,11 @@ export interface MaisonEventMap {
   'reservation:created': { reservation: Reservation };
   /** reservations-mf canceló una reservación. */
   'reservation:cancelled': { reservationId: string; confirmationCode: string };
+
+ 'reservation:status-changed': { reservationId: string; status: ReservationStatus; };
+
+  // ── Tables ───────────────────────────────────────────────────────────
+  'table:status-changed': { tableId: string; status: string };
 
   // ── Shell / MFE lifecycle ─────────────────────────────────────────────────
   /** Un MFE remoto terminó de montar su árbol React. */

@@ -23,5 +23,5 @@
     "../../packages/ui/src",
     "../../packages/event-bus/src",
     "../../packages/auth-client/src"
-  ]
+, "../reservations-mf/pages/ReservacionesPage.tsx"  ]
 }

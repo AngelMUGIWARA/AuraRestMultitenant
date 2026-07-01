@@ -233,16 +233,32 @@ async function main() {
 
   for (const table of tables) {
     await tenantDb.restaurantTable.upsert({
-      where: { number: table.number },
+      where: {
+        number_branchId: { number: table.number,
+          branchId: branch.id // Asegúrate de tener el ID de la sucursal aquí
+        }
+      },
       update: {},
-      create: { ...table, status: 'AVAILABLE', isActive: true },
+      create: {
+        ...table,
+        status: 'AVAILABLE',
+        isActive: true,
+        branchId: branch.id // <--- ESTO ES LO QUE FALTA
+      }
     });
   }
   console.log(`✅  Mesas:    ${tables.length} mesas`);
 
   // ── 6. Orden de ejemplo ────────────────────────────────────────────────────
   const mesero = users.find((u) => u.role === 'WAITER')!;
-  const mesa3 = await tenantDb.restaurantTable.findUnique({ where: { number: 3 } });
+  const mesa3 = await tenantDb.restaurantTable.findUnique({ 
+    where: { 
+      number_branchId: { 
+        number: 3, 
+        branchId: branch.id
+      } 
+    } 
+  });
   const arrachera = await tenantDb.menuItem.findFirst({ where: { name: 'Arrachera a las Brasas' } });
   const horchata = await tenantDb.menuItem.findFirst({ where: { name: 'Agua de Horchata' } });
 

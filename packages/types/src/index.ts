@@ -531,12 +531,12 @@ export interface ProcessPaymentPayload {
 // ─── Reservation ──────────────────────────────────────────────────────────────
 
 export type ReservationStatus =
-  | "pending"
-  | "confirmed"
-  | "arrived"
-  | "completed"
-  | "cancelled"
-  | "no_show";
+  | 'pending'
+  | 'confirmed'
+  | 'arrived'
+  | 'completed'
+  | 'cancelled'
+  | 'no_show';
 
 export interface Reservation {
   id: string;
@@ -588,7 +588,9 @@ export interface CreateReservationPayload {
   time: string;
   notes?: string;
   branchId: string;
+  tableId?: string;
 }
+
 
 // ─── Table ────────────────────────────────────────────────────────────────────
 
@@ -596,12 +598,36 @@ export type TableStatus = "free" | "occupied" | "reserved" | "maintenance";
 
 export interface RestaurantTable {
   id: string;
-  name: string;
+  number: number;
+  name?: string | null;
   capacity: number;
   status: TableStatus;
-  currentOrderId?: string;
-  reservationId?: string;
+  locationZone?: string | null;
+  isActive: boolean;
   branchId: string;
+  createdAt: string; // ISO Date string
+  updatedAt: string; // ISO Date string
+}
+
+export interface CreateTablePayload {
+  number: number;
+  name?: string;
+  capacity: number;
+  locationZone?: string;
+  branchId: string;
+}
+
+export interface UpdateTableStatusPayload {
+  status: TableStatus;
+  notes?: string; // Opcional, por si quieres registrar por qué cambió
+}
+
+export interface TableFilters {
+  page?: number;
+  limit?: number;
+  branchId?: string;
+  status?: TableStatus;
+  search?: string;
 }
 
 // ─── Reports ──────────────────────────────────────────────────────────────────

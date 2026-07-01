@@ -104,6 +104,7 @@ enum ReservationStatus {
   CONFIRMED
   PENDING
   CANCELLED
+  ARRIVED
   COMPLETED
   NO_SHOW
 }
@@ -168,18 +169,21 @@ model MenuItem {
 
 model RestaurantTable {
   id           String      @id @default(cuid())
-  number       Int         @unique
+  number       Int
   name         String?
   capacity     Int
   status       TableStatus @default(AVAILABLE)
   locationZone String?     @map("location_zone")
   isActive     Boolean     @default(true) @map("is_active")
+  branchId     String      @map("branch_id")
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
   orders       Order[]
   reservations Reservation[]
 
+  @@unique([number, branchId])
+  @@index([branchId])          
   @@map("tables")
 }
 
@@ -263,6 +267,7 @@ model KitchenTicket {
 
 model Reservation {
   id          String            @id @default(cuid())
+  branchId    String            @map("branch_id")
   tableId     String            @map("table_id")
   userId      String?           @map("user_id")
   guestName   String            @map("guest_name")
@@ -273,10 +278,10 @@ model Reservation {
   status      ReservationStatus @default(PENDING)
   notes       String?
   createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
+  updatedAt   DateTime          @updatedAt      @map("updated_at")
 
   table RestaurantTable @relation(fields: [tableId], references: [id])
-  user  User?           @relation(fields: [userId], references: [id])
+  user  User?           @relation(fields: [userId],  references: [id])
 
   @@map("reservations")
 }
