@@ -9,6 +9,8 @@ packages:
   - 'apps/cashier-mf'
   - 'apps/reports-mf'
   - 'apps/reservations-mf'
+  - 'apps/tables-mf'
+
   - 'packages/*'
 allowBuilds:
   '@prisma/client': true

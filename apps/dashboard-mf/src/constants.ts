@@ -59,6 +59,7 @@ export const OWNER_NAV: NavConfig = [
     items: [
       { href: '/dashboard',  label: 'Dashboard',     icon: 'dashboard' },
       { href: '/reportes',   label: 'Reportes',      icon: 'analytics' },
+      { href: '/reservaciones', label: 'Reservaciones',  icon: 'reservations' },
     ],
   },
   {

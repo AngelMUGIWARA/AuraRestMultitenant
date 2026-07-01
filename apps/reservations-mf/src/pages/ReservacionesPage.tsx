@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { emit } from '@maison/event-bus';
+import { useBranch } from '../context/BranchContext'; // <-- Importado para solucionar el Error 400
 import { useReservations } from '../hooks/useReservations';
 import { formatNumber, cn } from '../utils';
 import { StatCard, StatCardSkeleton } from '@maison/ui';
@@ -15,36 +16,36 @@ import {
   IconSearch,
 } from '@maison/ui';
 import type { ReservationStatus } from '@maison/types';
+import { ReservationModal } from '../components/ReservationModal';
+import { reservationsService } from '../services/reservations.service';
 
 /* ─── Constants ─────────────────────────────────────────────────── */
 
-const RESERVATION_STATUS_LABELS: Record<ReservationStatus, string> = {
-  pending: 'Pendiente',
-  confirmed: 'Confirmada',
-  arrived: 'En mesa',
-  completed: 'Completada',
-  cancelled: 'Cancelada',
-  no_show: 'No se presentó',
+const RESERVATION_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Pendiente',
+  CONFIRMED: 'Confirmada',
+  ARRIVED: 'En mesa',
+  COMPLETED: 'Completada',
+  CANCELLED: 'Cancelada',
+  NO_SHOW: 'No se presentó',
 };
 
-/* ─── Config ────────────────────────────────────────────────────── */
-
-const STATUS_BADGE: Record<ReservationStatus, string> = {
-  pending: 'badge bg-maison-gold-bg text-maison-gold',
-  confirmed: 'badge-active',
-  arrived: 'badge bg-maison-amber-glow text-maison-amber',
-  completed: 'badge badge-inactive',
-  cancelled: 'badge-suspended',
-  no_show: 'badge-suspended',
+const STATUS_BADGE: Record<string, string> = {
+  PENDING: 'badge bg-maison-gold-bg text-maison-gold',
+  CONFIRMED: 'badge-active',
+  ARRIVED: 'badge bg-maison-amber-glow text-maison-amber',
+  COMPLETED: 'badge badge-inactive',
+  CANCELLED: 'badge-suspended',
+  NO_SHOW: 'badge-suspended',
 };
 
-const STATUS_DOT: Record<ReservationStatus, string> = {
-  pending: 'bg-maison-gold',
-  confirmed: 'bg-maison-sage',
-  arrived: 'bg-maison-amber',
-  completed: 'bg-maison-cream-dim',
-  cancelled: 'bg-maison-ruby',
-  no_show: 'bg-maison-ruby',
+const STATUS_DOT: Record<string, string> = {
+  PENDING: 'bg-maison-gold',
+  CONFIRMED: 'bg-maison-sage',
+  ARRIVED: 'bg-maison-amber',
+  COMPLETED: 'bg-maison-cream-dim',
+  CANCELLED: 'bg-maison-ruby',
+  NO_SHOW: 'bg-maison-ruby',
 };
 
 const STATUS_TABS: { value: ReservationStatus | 'all'; label: string }[] = [
@@ -101,6 +102,7 @@ function MiniCalendarSkeleton() {
 /* ─── Reservation row ───────────────────────────────────────────── */
 
 interface ReservationRowProps {
+  id: string; // <-- Necesitamos el ID para saber cuál actualizar
   confirmationCode: string;
   guestName: string;
   guestPhone: string;
@@ -110,9 +112,11 @@ interface ReservationRowProps {
   status: ReservationStatus;
   notes: string | undefined;
   onCancel: (confirmationCode: string) => void;
+  onStatusChange: (id: string, newStatus: ReservationStatus) => void; // <-- Nueva prop
 }
 
 function ReservationRow({
+  id,
   confirmationCode,
   guestName,
   guestPhone,
@@ -122,6 +126,7 @@ function ReservationRow({
   status,
   notes,
   onCancel,
+  onStatusChange,
 }: ReservationRowProps) {
   return (
     <div className="flex items-center gap-3 border-b border-maison-border px-5 py-3.5 last:border-b-0 hover:bg-surface-2 transition-colors">
@@ -154,11 +159,25 @@ function ReservationRow({
         {tableName ?? '—'}
       </span>
 
-      {/* Status */}
-      <span className={cn('badge', STATUS_BADGE[status])}>
-        <span className={cn('h-1 w-1 rounded-full', STATUS_DOT[status])} />
-        {RESERVATION_STATUS_LABELS[status]}
-      </span>
+      {/* Status Interactivo (Select en lugar de Span) */}
+      <div className="relative flex items-center">
+        <span className={cn('absolute left-3 h-1.5 w-1.5 rounded-full pointer-events-none', STATUS_DOT[status.toLowerCase() as ReservationStatus])} />
+
+        <select
+          value={status.toUpperCase()} // <-- Forzamos minúsculas para el valor seleccionado
+          onChange={(e) => onStatusChange(id, e.target.value as ReservationStatus)}
+          className={cn(
+            'badge pl-6 pr-2 py-1 appearance-none cursor-pointer border border-transparent hover:border-maison-cream-muted/30 focus:outline-none transition-all',
+            STATUS_BADGE[status.toUpperCase() as ReservationStatus]
+          )}
+        >
+          {Object.entries(RESERVATION_STATUS_LABELS).map(([key, label]) => (
+            <option key={key} value={key} className="bg-surface-1 text-maison-cream text-xs">
+              {label} {/* Al usar Object.entries mapeamos exactamente las 6 opciones únicas */}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {notes && (
         <div title={notes} className="hidden lg:block">
@@ -184,8 +203,13 @@ function ReservationRow({
 /* ─── Page ──────────────────────────────────────────────────────── */
 
 export default function ReservacionesPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { selectedBranch } = useBranch(); // <-- Extraemos la sucursal seleccionada del contexto global
+
+  // Enviamos el id de la sucursal activa al hook para que no devuelva un Bad Request (400)
   const { stats, reservations, isLoading, error, filters, setFilters, refresh } =
-    useReservations('global');
+    useReservations(selectedBranch.id);
+
   const [activeStatus, setActiveStatus] = useState<ReservationStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const hasError = !!error;
@@ -196,7 +220,12 @@ export default function ReservacionesPage() {
     month: 'long',
   });
 
-  const activeBranchId = filters.branchId;
+  // Estructura blindada para extraer el listado sin importar inconsistencias de la API
+  const listaReservas = Array.isArray(reservations)
+    ? reservations
+    : (reservations?.data || []);
+
+  const tieneReservas = listaReservas.length > 0;
 
   function handleStatusFilter(val: ReservationStatus | 'all') {
     setActiveStatus(val);
@@ -209,8 +238,28 @@ export default function ReservacionesPage() {
   }
 
   function handleCancelReservation(reservationId: string, confirmationCode: string) {
-    emit('reservation:cancelled', { reservationId, confirmationCode });
-    refresh();
+    if (window.confirm(`¿Seguro que deseas cancelar la reservación ${confirmationCode}?`)) {
+      emit('reservation:cancelled', { reservationId, confirmationCode });
+      refresh();
+    }
+  }
+
+  async function handleStatusChange(reservationId: string, newStatus: ReservationStatus) {
+    try {
+      // 1. LLAMADA REAL AL BACKEND: Cambia el estado en la base de datos
+      // Mandamos el ID de la reservación y el nuevo estado (ej: 'arrived')
+      await reservationsService.updateStatus(reservationId, newStatus);
+
+      // 2. COMUNICACIÓN FRONTEND: Notifica en tiempo real a los microfrontends remotos (KDS, Recepción, etc.)
+      emit('reservation:status-changed', { reservationId, status: newStatus });
+
+      // 3. ACTUALIZACIÓN LOCAL: Refresca el hook para traer la información limpia y recalcular las StatCards
+      refresh();
+
+    } catch (error) {
+      console.error('Error al actualizar el estado en la base de datos:', error);
+      // Aquí puedes agregar un toast o notificación de alerta para el usuario si falla la red
+    }
   }
 
   return (
@@ -222,9 +271,12 @@ export default function ReservacionesPage() {
           <h1 className="font-display text-3xl font-medium leading-none text-maison-cream">
             Reservaciones
           </h1>
-          <p className="mt-1.5 text-sm capitalize text-maison-cream-muted">
-            {today}
-            {activeBranchId && ` — sucursal activa`}
+          <p className="mt-1.5 text-sm text-maison-cream-muted">
+            <span className="capitalize">{today}</span>
+            {" · "}
+            {selectedBranch.isGlobal
+              ? `Todas las sucursales`
+              : `${selectedBranch.name}`}
           </p>
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -234,6 +286,7 @@ export default function ReservacionesPage() {
           <button
             type="button"
             className="btn-primary"
+            onClick={() => setIsModalOpen(true)}
           >
             <IconPlus className="h-4 w-4" />
             Nueva reservación
@@ -272,8 +325,8 @@ export default function ReservacionesPage() {
               />
               <StatCard
                 label="Ocupación"
-                value={stats ? `${stats.occupancyRate.toFixed(0)}%` : '—'}
-                delta={stats ? `${stats.averagePartySize.toFixed(1)} pers/mesa` : undefined}
+                value={stats ? `${stats.occupancyRate?.toFixed(0) || 0}%` : '—'}
+                delta={stats ? `${stats.averagePartySize?.toFixed(1) || '0.0'} pers/mesa` : undefined}
                 deltaPositive
                 deltaLabel=""
                 icon={<IconUsers className="h-3.5 w-3.5" />}
@@ -335,7 +388,7 @@ export default function ReservacionesPage() {
               </h2>
               {!isLoading && reservations && (
                 <p className="mt-0.5 text-2xs text-maison-cream-dim">
-                  {formatNumber(reservations.meta.total)} reservaciones
+                  {formatNumber(reservations.total || listaReservas.length)} reservaciones
                 </p>
               )}
             </div>
@@ -348,7 +401,8 @@ export default function ReservacionesPage() {
               </div>
             )}
 
-            {!isLoading && (hasError || !reservations?.data?.length) && (
+            {/* Renderizado condicional seguro y unificado para errores o listas vacías */}
+            {!isLoading && (hasError || !tieneReservas) && (
               <EmptyState
                 icon={
                   hasError
@@ -371,22 +425,25 @@ export default function ReservacionesPage() {
               />
             )}
 
-            {!isLoading && !hasError && reservations?.data && reservations.data.length > 0 && (
+            {/* Mapeo seguro utilizando la lista previamente procesada */}
+            {!isLoading && !hasError && tieneReservas && (
               <div>
-                {reservations.data.map((r) => (
+                {listaReservas.map((r: any) => (
                   <ReservationRow
                     key={r.id}
+                    id={r.id}
                     confirmationCode={r.confirmationCode}
                     guestName={r.guestName}
                     guestPhone={r.guestPhone}
                     time={r.time}
                     partySize={r.partySize}
-                    tableName={r.tableName}
+                    tableName={r.tableName || r.table?.number}
                     status={r.status}
                     notes={r.notes}
                     onCancel={(confirmationCode) =>
                       handleCancelReservation(r.id, confirmationCode)
                     }
+                    onStatusChange={handleStatusChange} // <-- Pasamos la nueva función
                   />
                 ))}
               </div>
@@ -463,6 +520,16 @@ export default function ReservacionesPage() {
           </section>
         </div>
       </div>
+
+      <ReservationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={() => {
+          refresh();
+          setIsModalOpen(false);
+        }}
+        branchId={selectedBranch.id} // <-- Pasamos de forma garantizada el id limpio de la sucursal seleccionada
+      />
     </div>
   );
 }

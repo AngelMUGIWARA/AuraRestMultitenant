@@ -25,15 +25,30 @@ function buildUrl(
 
 function getAuthHeaders(): Record<string, string> {
   if (typeof window === 'undefined') return {};
+  
+  const headers: Record<string, string> = {};
+
+  // 1. Token JWT (Autenticación)
   const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) return {};
-  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1])) as Record<string, unknown>;
-    if (typeof payload.tenantSlug === 'string' && payload.tenantSlug) {
-      headers['x-tenant-slug'] = payload.tenantSlug;
-    }
-  } catch { /* ignore */ }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+    
+    // 2. Intentar sacar el slug del token si existe
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1])) as Record<string, unknown>;
+      if (typeof payload.tenantSlug === 'string' && payload.tenantSlug) {
+        headers['x-tenant-slug'] = payload.tenantSlug;
+      }
+    } catch { /* ignore */ }
+  }
+
+  // 3. PRIORIDAD: Si hay algo en localStorage, sobreescribe lo del token
+  // Esto es útil si el usuario cambia de tenant o si el token no trae el slug
+  const manualTenant = localStorage.getItem('currentTenantSlug');
+  if (manualTenant) {
+    headers['x-tenant-slug'] = manualTenant;
+  }
+
   return headers;
 }
 

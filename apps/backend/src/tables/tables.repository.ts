@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { TenantPrismaService } from '../database/tenant-prisma.service';
 import { PrismaClient } from '../generated/prisma-tenant';
 import type { Prisma } from '../generated/prisma-tenant';
+import { TableStatus } from '../generated/prisma-tenant';
 
 @Injectable()
 export class TablesRepository {
@@ -22,10 +23,10 @@ export class TablesRepository {
     return this.db(schemaName).restaurantTable.findUnique({ where: { id } });
   }
 
-  async updateStatus(schemaName: string, id: string, status: string) {
+  async updateStatus(schemaName: string, id: string, status: TableStatus) {
     return this.db(schemaName).restaurantTable.update({
       where: { id },
-      data: { status: status as any },
+      data: { status },
     });
   }
 }
