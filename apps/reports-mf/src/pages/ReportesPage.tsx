@@ -3,6 +3,8 @@ import { DateRangeFilter } from '../components/DateRangeFilter';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 import { StatCard, StatCardSkeleton, EmptyState, IconAnalytics } from '@maison/ui';
 import { useReportsData } from '../hooks/useReportsData';
+import { exportReportsToPdf } from '../utils/pdfExport';
+import { reportsService } from '../services/reports.service';
 
 const PAYMENT_COLORS: Record<string, string> = {
   CASH:     '#c9a84c',
@@ -29,6 +31,23 @@ export default function ReportesPage() {
     refetch({ startDate, endDate });
   }
 
+  const [isExporting, setIsExporting] = useState<string | null>(null);
+
+  async function handleExportCsv(type: 'sales' | 'products' | 'payments' | 'peak-hours') {
+    setIsExporting(type);
+    try {
+      await reportsService.exportCsv(type, filterParams);
+    } catch (err) {
+      console.error('Error al exportar CSV:', err);
+    } finally {
+      setIsExporting(null);
+    }
+  }
+
+  function handleExportPdf() {
+    exportReportsToPdf(data);
+  }
+
   if (error) {
     return (
       <div className="flex flex-col gap-6 animate-fade-in">
@@ -39,8 +58,24 @@ export default function ReportesPage() {
               ? `${data.sales.startDate} - ${data.sales.endDate}`
               : 'Cargando período...'}
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <DateRangeFilter onFilter={handleFilter} isLoading={isLoading} />
+            <div className="flex gap-2 ml-auto">
+              <button
+                onClick={() => handleExportCsv('sales')}
+                disabled={isExporting !== null || isLoading}
+                className="h-8 px-3 rounded text-sm font-medium border border-surface-3 text-maison-cream-muted hover:text-maison-cream hover:border-maison-cream-muted disabled:opacity-50 transition-colors"
+              >
+                {isExporting === 'sales' ? 'Exportando...' : 'CSV Ventas'}
+              </button>
+              <button
+                onClick={handleExportPdf}
+                disabled={isLoading || !data.sales}
+                className="h-8 px-3 rounded text-sm font-medium bg-maison-gold text-maison-dark hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                Exportar PDF
+              </button>
+            </div>
           </div>
         </header>
         <div className="card">
@@ -64,8 +99,24 @@ export default function ReportesPage() {
             ? `${data.sales.startDate} — ${data.sales.endDate}`
             : 'Cargando período...'}
         </p>
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <DateRangeFilter onFilter={handleFilter} isLoading={isLoading} />
+          <div className="flex gap-2 ml-auto">
+            <button
+              onClick={() => handleExportCsv('sales')}
+              disabled={isExporting !== null || isLoading}
+              className="h-8 px-3 rounded text-sm font-medium border border-surface-3 text-maison-cream-muted hover:text-maison-cream hover:border-maison-cream-muted disabled:opacity-50 transition-colors"
+            >
+              {isExporting === 'sales' ? 'Exportando...' : 'CSV Ventas'}
+            </button>
+            <button
+              onClick={handleExportPdf}
+              disabled={isLoading || !data.sales}
+              className="h-8 px-3 rounded text-sm font-medium bg-maison-gold text-maison-dark hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              Exportar PDF
+            </button>
+          </div>
         </div>
       </header>
 
