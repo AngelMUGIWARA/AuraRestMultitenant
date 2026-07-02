@@ -24,6 +24,9 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { MenusModule } from './menus/menus.module';
 
+import { CategoriesModule } from './categories/categories.module';
+import { ReservationsModule } from './reservations/reservations.module'; // <--- AGREGAR ESTA LÍNEA
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -40,7 +43,9 @@ import { MenusModule } from './menus/menus.module';
     PaymentsModule,
     DiscountsModule,
     PromotionsModule,
+    CategoriesModule,
     MenusModule,
+    ReservationsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

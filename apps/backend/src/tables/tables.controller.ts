@@ -14,6 +14,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentTenant, TenantContext } from '../common/decorators/current-tenant.decorator';
 import { TablesService } from './tables.service';
+import { UpdateTableStatusDto } from './dto/update-table.dto';
 
 @ApiTags('Tables')
 @ApiBearerAuth('JWT')
@@ -21,7 +22,7 @@ import { TablesService } from './tables.service';
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
 @Controller('tables')
 export class TablesController {
-  constructor(private readonly tablesService: TablesService) {}
+  constructor(private readonly tablesService: TablesService) { }
 
   @Public()
   @Get()
@@ -43,8 +44,8 @@ export class TablesController {
   updateStatus(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,
-    @Body('status') status: string,
+    @Body() updateDto: UpdateTableStatusDto, // Usa este nuevo DTO
   ) {
-    return this.tablesService.updateStatus(tenant.schemaName, id, status);
+    return this.tablesService.updateStatus(tenant.schemaName, id, updateDto.status);
   }
 }

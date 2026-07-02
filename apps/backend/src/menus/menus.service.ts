@@ -11,8 +11,8 @@ import { UpdateStatusDto } from "./dto/update-status.dto";
 export class MenusService {
   constructor(private readonly repo: MenusRepository) {}
 
-  async findAll(schemaName: string) {
-    return this.repo.findAll(schemaName);
+  async findAll(schemaName: string, categoryId?: string) {
+    return this.repo.findAll(schemaName, categoryId);
   }
 
   async findOne(schemaName: string, id: string) {
@@ -46,7 +46,7 @@ export class MenusService {
 
     return this.repo.updateStatus(schemaName, id, dto.status);
   }
-  
+
   async getStats(schemaName: string) {
     return this.repo.getStats(schemaName);
   }
@@ -54,6 +54,6 @@ export class MenusService {
   async remove(schemaName: string, id: string) {
     await this.findOne(schemaName, id);
 
-    await this.repo.remove(schemaName, id);
+    return this.repo.remove(schemaName, id);
   }
 }

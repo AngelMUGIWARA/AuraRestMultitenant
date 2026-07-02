@@ -14,11 +14,18 @@ export class MenusRepository {
     return this.tenantPrisma.getClient(schemaName);
   }
 
-  async findAll(schemaName: string) {
+  async findAll(schemaName: string, categoryId?: string) {
     return this.db(schemaName).menuItem.findMany({
+      where: categoryId
+        ? {
+            categoryId,
+          }
+        : undefined,
+
       include: {
         category: true,
       },
+
       orderBy: {
         createdAt: "desc",
       },
@@ -100,8 +107,12 @@ export class MenusRepository {
   }
 
   async remove(schemaName: string, id: string) {
-    return this.db(schemaName).menuItem.delete({
+    return this.db(schemaName).menuItem.update({
       where: { id },
+      data: {
+        status: MenuItemStatus.UNAVAILABLE,
+        isAvailable: false,
+      },
     });
   }
 }
