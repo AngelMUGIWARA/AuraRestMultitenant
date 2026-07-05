@@ -1,18 +1,26 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { ReservationsService } from '../reservations/reservations.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { ReservationQueryDto } from './dto/reservation-query.dto';
 import { UpdateReservationStatusDto } from './dto/update-reservation-status.dto';
 import { CurrentTenant, TenantContext } from '../common/decorators/current-tenant.decorator';
-import { TenantGuard } from '../common/guards/tenant.guard'; // Asegúrate de proteger el controlador
+import { TenantGuard } from '../common/guards/tenant.guard';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 
+@ApiTags('Reservations')
+@ApiBearerAuth('JWT')
+@ApiSecurity('TenantSlug')
+@UseGuards(JwtAuthGuard, RolesGuard, TenantGuard)
 @Controller('admin/reservations')
-@UseGuards(TenantGuard)
 export class ReservationsController {
   constructor(private readonly reservationsService: ReservationsService) {}
 
-  // 1. LAS RUTAS FIJAS O ESTÁTICAS SIEMPRE VAN HASTA ARRIBA
   @Get('stats')
+  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER')
+  @ApiOperation({ summary: 'Obtener estadísticas de reservaciones' })
   getStats(
     @CurrentTenant() tenant: TenantContext,
     @Query('branchId') branchId?: string
@@ -20,8 +28,9 @@ export class ReservationsController {
     return this.reservationsService.getStats(tenant.schemaName, branchId);
   }
 
-  // 2. ENTRADAS DE ESCRITURA
   @Post()
+  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER')
+  @ApiOperation({ summary: 'Crear una nueva reservación' })
   create(
     @CurrentTenant() tenant: TenantContext,
     @Body() createDto: CreateReservationDto
@@ -29,8 +38,9 @@ export class ReservationsController {
     return this.reservationsService.create(createDto, tenant.schemaName);
   }
 
-  // 3. LISTADOS GLOBALES
   @Get()
+  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER')
+  @ApiOperation({ summary: 'Listar todas las reservaciones' })
   findAll(
     @CurrentTenant() tenant: TenantContext,
     @Query() query: ReservationQueryDto
@@ -38,8 +48,9 @@ export class ReservationsController {
     return this.reservationsService.findAll(tenant.schemaName, query);
   }
 
-  // 4. PARAMETRIZADOS DINÁMICOS AL FINAL (:id)
   @Get(':id')
+  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER')
+  @ApiOperation({ summary: 'Obtener una reservación por ID' })
   findOne(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string
@@ -48,6 +59,8 @@ export class ReservationsController {
   }
 
   @Patch(':id/status')
+  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER')
+  @ApiOperation({ summary: 'Actualizar el estado de una reservación' })
   updateStatus(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string, 

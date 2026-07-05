@@ -61,13 +61,13 @@ export class OrdersController {
     return this.ordersService.findAll(tenant.schemaName, query);
   }
 
-  @Public()
+  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER')
   @Get('stats')
   getStats(@CurrentTenant() tenant: TenantContext) {
     return this.ordersService.getStats(tenant.schemaName);
   }
 
-  @Public()
+  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Get(':id')
   findById(
     @CurrentTenant() tenant: TenantContext,
