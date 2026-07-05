@@ -24,13 +24,13 @@ import { UpdateTableStatusDto } from './dto/update-table.dto';
 export class TablesController {
   constructor(private readonly tablesService: TablesService) { }
 
-  @Public()
+  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Get()
   findAll(@CurrentTenant() tenant: TenantContext) {
     return this.tablesService.findAll(tenant.schemaName);
   }
 
-  @Public()
+  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Get(':id')
   findById(
     @CurrentTenant() tenant: TenantContext,

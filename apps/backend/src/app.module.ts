@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
 import { AuthModule } from './auth/auth.module';
 import { BranchesModule } from './branches/branches.module';
@@ -25,11 +26,16 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { MenusModule } from './menus/menus.module';
 
 import { CategoriesModule } from './categories/categories.module';
-import { ReservationsModule } from './reservations/reservations.module'; // <--- AGREGAR ESTA LÍNEA
+import { ReservationsModule } from './reservations/reservations.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 60,
+    }]),
 
     DatabaseModule,
 
@@ -48,6 +54,7 @@ import { ReservationsModule } from './reservations/reservations.module'; // <---
     ReservationsModule,
   ],
   providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
