@@ -1,49 +1,92 @@
 import { Injectable } from '@nestjs/common';
 import { TenantPrismaService } from '../database/tenant-prisma.service';
-import { PrismaClient } from '../generated/prisma-tenant';
 import type { Prisma } from '../generated/prisma-tenant';
 
 @Injectable()
 export class PaymentsRepository {
   constructor(private readonly tenantPrisma: TenantPrismaService) {}
 
-  private db(schemaName: string): PrismaClient {
-    return this.tenantPrisma.getClient(schemaName);
+  private db(schemaName: string, tx?: Prisma.TransactionClient) {
+    return tx ?? this.tenantPrisma.getClient(schemaName);
   }
 
-  async createPayment(schemaName: string, data: Prisma.PaymentCreateInput) {
-    return this.db(schemaName).payment.create({ data });
+  async createPayment(
+    schemaName: string,
+    data: Prisma.PaymentCreateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).payment.create({ data });
   }
 
-  async findByOrder(schemaName: string, orderId: string) {
-    return this.db(schemaName).payment.findMany({
+  async findByOrder(
+    schemaName: string,
+    orderId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).payment.findMany({
       where: { orderId },
       include: { tip: true },
     });
   }
 
-  async createTip(schemaName: string, data: Prisma.TipCreateInput) {
-    return this.db(schemaName).tip.create({ data });
+  async createTip(
+    schemaName: string,
+    data: Prisma.TipCreateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).tip.create({ data });
   }
 
-  async updateOrderStatus(schemaName: string, orderId: string, status: string) {
-    return this.db(schemaName).order.update({
+  async updateOrderStatus(
+    schemaName: string,
+    orderId: string,
+    status: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).order.update({
       where: { id: orderId },
       data: { status: status as any },
     });
   }
 
-  async findOrderById(schemaName: string, orderId: string) {
-    return this.db(schemaName).order.findUnique({
+  async findOrderById(
+    schemaName: string,
+    orderId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).order.findUnique({
       where: { id: orderId },
       include: { table: true },
     });
   }
 
-  async updateTableStatus(schemaName: string, tableId: string, status: string) {
-    return this.db(schemaName).restaurantTable.update({
+  async updateTableStatus(
+    schemaName: string,
+    tableId: string,
+    status: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).restaurantTable.update({
       where: { id: tableId },
       data: { status: status as any },
+    });
+  }
+
+  async runTransaction<T>(
+    schemaName: string,
+    fn: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    return this.tenantPrisma.getClient(schemaName).$transaction(fn);
+  }
+
+  async findPaymentByIdempotencyKey(
+    schemaName: string,
+    key: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).payment.findUnique({
+      where: { idempotencyKey: key },
+      include: { tip: true, order: true },
     });
   }
 }

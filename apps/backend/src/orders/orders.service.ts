@@ -1,13 +1,14 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { $Enums, Prisma } from '../generated/prisma-tenant';
+import type { Prisma as PrismaType } from '../generated/prisma-tenant';
 import { EventBusService } from '../event-bus/event-bus.service';
 import {
   mapOrderStatusFromDb,
-  mapTableStatusFromDb,
 } from '../common/utils/order-mapper';
 import { OrdersRepository } from './orders.repository';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -16,6 +17,7 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 @Injectable()
 export class OrdersService {
   private readonly TAX_RATE = new Prisma.Decimal(0.15);
+  private readonly MAX_FOLIO_RETRIES = 5;
 
   constructor(
     private readonly ordersRepo: OrdersRepository,
@@ -32,52 +34,75 @@ export class OrdersService {
     }
     const menuItemMap = new Map(menuItems.map((m) => [m.id, m.price]));
 
-    const folio = await this.generateFolio(schemaName);
+    return this.ordersRepo.runTransaction(
+      schemaName,
+      async (tx: PrismaType.TransactionClient) => {
+        const orderItemsData = dto.items.map((item) => {
+          const unitPrice = menuItemMap.get(item.menuItemId)!;
+          const subtotal = new Prisma.Decimal(unitPrice.toString()).mul(item.quantity);
+          return {
+            menuItemId: item.menuItemId,
+            quantity: item.quantity,
+            unitPrice,
+            subtotal: subtotal.toFixed(2),
+            notes: item.notes,
+          };
+        });
 
-    const orderItemsData = dto.items.map((item) => {
-      const unitPrice = menuItemMap.get(item.menuItemId)!;
-      const subtotal = new Prisma.Decimal(unitPrice.toString()).mul(item.quantity);
-      return {
-        menuItemId: item.menuItemId,
-        quantity: item.quantity,
-        unitPrice,
-        subtotal: subtotal.toFixed(2),
-        notes: item.notes,
-      };
-    });
+        const subtotal = orderItemsData.reduce(
+          (acc, item) => acc.plus(item.subtotal),
+          new Prisma.Decimal(0),
+        );
+        const tax = subtotal.mul(this.TAX_RATE);
+        const total = subtotal.plus(tax);
 
-    const subtotal = orderItemsData.reduce(
-      (acc, item) => acc.plus(item.subtotal),
-      new Prisma.Decimal(0),
+        let lastError: unknown = null;
+        for (let attempt = 0; attempt < this.MAX_FOLIO_RETRIES; attempt++) {
+          try {
+            const folio = await this.generateFolio(schemaName, tx);
+
+            const order = await this.ordersRepo.create(
+              schemaName,
+              {
+                folio,
+                type: dto.type as $Enums.OrderType,
+                status: $Enums.OrderStatus.PENDING,
+                customerName: dto.customerName,
+                notes: dto.notes,
+                subtotal: subtotal.toFixed(2),
+                tax: tax.toFixed(2),
+                total: total.toFixed(2),
+                table: dto.tableId ? { connect: { id: dto.tableId } } : undefined,
+                user: { connect: { id: userId } },
+                orderItems: { create: orderItemsData },
+              },
+              tx,
+            );
+
+            if (dto.tableId) {
+              await this.ordersRepo.updateTableStatus(
+                schemaName,
+                dto.tableId,
+                'OCCUPIED',
+                tx,
+              );
+            }
+
+            this.eventBus.emit('order:created', { orderId: order.id, folio });
+
+            return this.toResponse(order);
+          } catch (err: any) {
+            if (err?.code === 'P2002' && attempt < this.MAX_FOLIO_RETRIES - 1) {
+              lastError = err;
+              continue;
+            }
+            throw err;
+          }
+        }
+
+        throw lastError ?? new Error('No se pudo generar un folio único');
+      },
     );
-    const tax = subtotal.mul(this.TAX_RATE);
-    const total = subtotal.plus(tax);
-
-    const order = await this.ordersRepo.create(schemaName, {
-      folio,
-      type: dto.type as $Enums.OrderType,
-      status: $Enums.OrderStatus.PENDING,
-      customerName: dto.customerName,
-      notes: dto.notes,
-      subtotal: subtotal.toFixed(2),
-      tax: tax.toFixed(2),
-      total: total.toFixed(2),
-      table: dto.tableId ? { connect: { id: dto.tableId } } : undefined,
-      user: { connect: { id: userId } },
-      orderItems: { create: orderItemsData },
-    });
-
-    if (dto.tableId) {
-      await this.ordersRepo.updateTableStatus(
-        schemaName,
-        dto.tableId,
-        'OCCUPIED',
-      );
-    }
-
-    this.eventBus.emit('order:created', { orderId: order.id, folio });
-
-    return this.toResponse(order);
   }
 
   async findAll(
@@ -169,18 +194,48 @@ export class OrdersService {
       );
     }
 
+    if (dto.status === 'PAID') {
+      try {
+        return await this.ordersRepo.runTransaction(
+          schemaName,
+          async (tx: PrismaType.TransactionClient) => {
+            const updated = await this.ordersRepo.updateWithVersion(
+              schemaName,
+              id,
+              order.version,
+              {
+                status: $Enums.OrderStatus.PAID,
+                ...(dto.notes ? { notes: dto.notes } : {}),
+              },
+              tx,
+            );
+
+            if (updated.table) {
+              await this.ordersRepo.updateTableStatus(
+                schemaName,
+                updated.table.id,
+                'AVAILABLE',
+                tx,
+              );
+            }
+
+            return this.toResponse(updated);
+          },
+        );
+      } catch (err: any) {
+        if (err?.code === 'P2025') {
+          throw new ConflictException(
+            'La orden fue modificada por otro usuario. Recarga e intenta de nuevo.',
+          );
+        }
+        throw err;
+      }
+    }
+
     const data: any = { status: dto.status as $Enums.OrderStatus };
     if (dto.notes) data.notes = dto.notes;
 
     const updated = await this.ordersRepo.update(schemaName, id, data);
-
-    if (dto.status === 'PAID' && updated.table) {
-      await this.ordersRepo.updateTableStatus(
-        schemaName,
-        updated.table.id,
-        'AVAILABLE',
-      );
-    }
 
     return this.toResponse(updated);
   }
@@ -193,20 +248,41 @@ export class OrdersService {
       throw new BadRequestException('El pedido ya no se puede cancelar');
     }
 
-    const data: any = { status: $Enums.OrderStatus.CANCELLED };
-    if (reason) data.notes = reason;
-
-    const updated = await this.ordersRepo.update(schemaName, id, data);
-
-    if (updated.table) {
-      await this.ordersRepo.updateTableStatus(
+    try {
+      return await this.ordersRepo.runTransaction(
         schemaName,
-        updated.table.id,
-        'AVAILABLE',
-      );
-    }
+        async (tx: PrismaType.TransactionClient) => {
+          const data: any = { status: $Enums.OrderStatus.CANCELLED };
+          if (reason) data.notes = reason;
 
-    return this.toResponse(updated);
+          const updated = await this.ordersRepo.updateWithVersion(
+            schemaName,
+            id,
+            order.version,
+            data,
+            tx,
+          );
+
+          if (updated.table) {
+            await this.ordersRepo.updateTableStatus(
+              schemaName,
+              updated.table.id,
+              'AVAILABLE',
+              tx,
+            );
+          }
+
+          return this.toResponse(updated);
+        },
+      );
+    } catch (err: any) {
+      if (err?.code === 'P2025') {
+        throw new ConflictException(
+          'La orden fue modificada por otro usuario. Recarga e intenta de nuevo.',
+        );
+      }
+      throw err;
+    }
   }
 
   async getStats(schemaName: string) {
@@ -264,12 +340,17 @@ export class OrdersService {
     };
   }
 
-  private async generateFolio(schemaName: string): Promise<string> {
+  private async generateFolio(
+    schemaName: string,
+    tx?: PrismaType.TransactionClient,
+  ): Promise<string> {
     const date = new Date();
     const prefix = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
-    const count = await this.ordersRepo.count(schemaName, {
-      folio: { startsWith: prefix },
-    });
+    const count = await this.ordersRepo.count(
+      schemaName,
+      { folio: { startsWith: prefix } },
+      tx,
+    );
     return `${prefix}-${String(count + 1).padStart(4, '0')}`;
   }
 

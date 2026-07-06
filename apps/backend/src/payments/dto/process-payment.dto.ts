@@ -61,4 +61,9 @@ export class ProcessPaymentDto {
   @ValidateNested()
   @Type(() => TipDto)
   tip?: TipDto;
+
+  @ApiPropertyOptional({ description: 'Idempotency key to prevent duplicate charges' })
+  @IsOptional()
+  @IsString()
+  idempotencyKey?: string;
 }
