@@ -1,12 +1,17 @@
+import { AuthClient } from '@maison/auth-client';
+import { emit } from '@maison/event-bus';
 import { ApiClientError } from './errors';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const API_BASE_URL: string = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:4000/api/v1';
-const TOKEN_KEY = 'maison_access_token';
+
+const REFRESH_EXCLUDED = ['/auth/login', '/auth/refresh', '/auth/logout'];
 
 type RequestOptions = Omit<RequestInit, 'body'> & {
   params?: Record<string, string | number | boolean | undefined>;
 };
+
+let refreshPromise: Promise<boolean> | null = null;
 
 function buildUrl(
   endpoint: string,
@@ -25,31 +30,69 @@ function buildUrl(
 
 function getAuthHeaders(): Record<string, string> {
   if (typeof window === 'undefined') return {};
-  
+
   const headers: Record<string, string> = {};
 
-  // 1. Token JWT (Autenticación)
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-    
-    // 2. Intentar sacar el slug del token si existe
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1])) as Record<string, unknown>;
-      if (typeof payload.tenantSlug === 'string' && payload.tenantSlug) {
-        headers['x-tenant-slug'] = payload.tenantSlug;
-      }
-    } catch { /* ignore */ }
+  const authHeader = AuthClient.getAuthHeader();
+  if (authHeader) {
+    headers['Authorization'] = authHeader;
+    const slug = AuthClient.getTenantSlug();
+    if (slug) {
+      headers['x-tenant-slug'] = slug;
+    }
   }
 
-  // 3. PRIORIDAD: Si hay algo en localStorage, sobreescribe lo del token
-  // Esto es útil si el usuario cambia de tenant o si el token no trae el slug
+  // PRIORIDAD: Si el usuario cambió manualmente de tenant
   const manualTenant = localStorage.getItem('currentTenantSlug');
   if (manualTenant) {
     headers['x-tenant-slug'] = manualTenant;
   }
 
   return headers;
+}
+
+function shouldAttemptRefresh(endpoint: string): boolean {
+  return !REFRESH_EXCLUDED.some(p => endpoint.startsWith(p));
+}
+
+async function attemptRefresh(): Promise<boolean> {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const refreshToken = AuthClient.getRefreshToken();
+      if (!refreshToken) return false;
+
+      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!res.ok) {
+        AuthClient.clearTokens();
+        emit('auth:session-expired', undefined);
+        return false;
+      }
+
+      const data = await res.json();
+      AuthClient.setAccessToken(data.accessToken);
+      if (data.refreshToken) {
+        AuthClient.setRefreshToken(data.refreshToken);
+      }
+      return true;
+    } catch {
+      AuthClient.clearTokens();
+      emit('auth:session-expired', undefined);
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 async function request<T>(
@@ -70,11 +113,20 @@ async function request<T>(
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({ message: 'Error de red' }));
-    throw new ApiClientError(
+    const error = new ApiClientError(
       response.status,
       body.message ?? 'La solicitud falló',
       body.errors,
     );
+
+    if (response.status === 401 && shouldAttemptRefresh(endpoint)) {
+      const refreshed = await attemptRefresh();
+      if (refreshed) {
+        return request<T>(endpoint, options);
+      }
+    }
+
+    throw error;
   }
 
   return response.json() as Promise<T>;

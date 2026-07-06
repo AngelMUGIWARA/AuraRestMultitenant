@@ -35,6 +35,16 @@ export const AuthClient = {
     localStorage.setItem(REFRESH_KEY, token);
   },
 
+  /** Alias for getToken */
+  getAccessToken(): string | null {
+    return this.getToken();
+  },
+
+  /** Alias for setToken */
+  setAccessToken(token: string): void {
+    this.setToken(token);
+  },
+
   clearTokens(): void {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(TOKEN_KEY);

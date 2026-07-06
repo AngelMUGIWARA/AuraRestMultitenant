@@ -10,6 +10,7 @@ import { ApiTags, ApiOperation, ApiSecurity } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { RefreshDto } from './dto/refresh.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentTenant, TenantContext } from '../common/decorators/current-tenant.decorator';
@@ -35,5 +36,21 @@ export class AuthController {
       );
     }
     return this.authService.login(dto, tenant.schemaName);
+  }
+
+  @Public()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Renovar access token usando refresh token' })
+  refresh(@Body() dto: RefreshDto): Promise<AuthResponseDto> {
+    return this.authService.refreshToken(dto.refreshToken);
+  }
+
+  @Public()
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cerrar sesión (stateless — solo limpia tokens del cliente)' })
+  logout(): Promise<{ message: string }> {
+    return this.authService.logout();
   }
 }
