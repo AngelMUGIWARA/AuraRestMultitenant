@@ -1,22 +1,29 @@
 import { Injectable } from '@nestjs/common';
 import { TenantPrismaService } from '../database/tenant-prisma.service';
-import { PrismaClient } from '../generated/prisma-tenant';
 import type { Prisma } from '../generated/prisma-tenant';
 
 @Injectable()
 export class OrdersRepository {
   constructor(private readonly tenantPrisma: TenantPrismaService) {}
 
-  private db(schemaName: string): PrismaClient {
-    return this.tenantPrisma.getClient(schemaName);
+  private db(schemaName: string, tx?: Prisma.TransactionClient) {
+    return tx ?? this.tenantPrisma.getClient(schemaName);
   }
 
-  async create(schemaName: string, data: Prisma.OrderCreateInput) {
-    return this.db(schemaName).order.create({ data });
+  async create(
+    schemaName: string,
+    data: Prisma.OrderCreateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).order.create({ data });
   }
 
-  async findById(schemaName: string, id: string) {
-    return this.db(schemaName).order.findUnique({
+  async findById(
+    schemaName: string,
+    id: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).order.findUnique({
       where: { id },
       include: {
         orderItems: { include: { menuItem: true } },
@@ -35,8 +42,9 @@ export class OrdersRepository {
       skip?: number;
       take?: number;
     },
+    tx?: Prisma.TransactionClient,
   ) {
-    return this.db(schemaName).order.findMany({
+    return this.db(schemaName, tx).order.findMany({
       ...params,
       include: {
         orderItems: { include: { menuItem: true } },
@@ -47,12 +55,21 @@ export class OrdersRepository {
     });
   }
 
-  async count(schemaName: string, where: Prisma.OrderWhereInput) {
-    return this.db(schemaName).order.count({ where });
+  async count(
+    schemaName: string,
+    where: Prisma.OrderWhereInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).order.count({ where });
   }
 
-  async update(schemaName: string, id: string, data: Prisma.OrderUpdateInput) {
-    return this.db(schemaName).order.update({
+  async update(
+    schemaName: string,
+    id: string,
+    data: Prisma.OrderUpdateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).order.update({
       where: { id },
       data,
       include: {
@@ -64,14 +81,49 @@ export class OrdersRepository {
     });
   }
 
-  async updateTableStatus(schemaName: string, tableId: string, status: string) {
-    return this.db(schemaName).restaurantTable.update({
+  async updateWithVersion(
+    schemaName: string,
+    id: string,
+    version: number,
+    data: Prisma.OrderUpdateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).order.update({
+      where: { id, version },
+      data: { ...data, version: { increment: 1 } },
+      include: {
+        orderItems: { include: { menuItem: true } },
+        table: true,
+        user: true,
+        payments: true,
+      },
+    });
+  }
+
+  async updateTableStatus(
+    schemaName: string,
+    tableId: string,
+    status: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).restaurantTable.update({
       where: { id: tableId },
       data: { status: status as any },
     });
   }
 
-  async findMenuItemsByIds(schemaName: string, ids: string[]) {
-    return this.db(schemaName).menuItem.findMany({ where: { id: { in: ids } } });
+  async runTransaction<T>(
+    schemaName: string,
+    fn: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    return this.tenantPrisma.getClient(schemaName).$transaction(fn);
+  }
+
+  async findMenuItemsByIds(
+    schemaName: string,
+    ids: string[],
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).menuItem.findMany({ where: { id: { in: ids } } });
   }
 }
