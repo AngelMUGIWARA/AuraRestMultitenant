@@ -26,6 +26,7 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { MenusModule } from './menus/menus.module';
 
 import { CategoriesModule } from './categories/categories.module';
+import { HealthModule } from './health/health.module';
 import { ReservationsModule } from './reservations/reservations.module';
 
 @Module({
@@ -50,6 +51,7 @@ import { ReservationsModule } from './reservations/reservations.module';
     DiscountsModule,
     PromotionsModule,
     CategoriesModule,
+    HealthModule,
     MenusModule,
     ReservationsModule,
   ],
