@@ -1,9 +1,12 @@
-import type { Metadata } from 'next';
+'use client';
 
-export const metadata: Metadata = {
-  title: { default: 'Maison Admin', template: '%s · Maison' },
-};
+import { AuthGuard } from '@/components/shell/AuthGuard';
+import { AdminShell } from '@/components/admin/layout/AdminShell';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <AuthGuard>
+      <AdminShell>{children}</AdminShell>
+    </AuthGuard>
+  );
 }

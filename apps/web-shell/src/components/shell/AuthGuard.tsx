@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthClient } from '@maison/auth-client';
+import { apiClient } from '@maison/api-client';
 import { on } from '@maison/event-bus';
 import { Skeleton } from '@maison/ui';
 
@@ -16,24 +17,47 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
-    const check = () => {
+    let cancelled = false;
+
+    async function check() {
       if (AuthClient.isAuthenticated()) {
         setAuthenticated(true);
+        setChecking(false);
+        return;
+      }
+
+      const refreshToken = AuthClient.getRefreshToken();
+      if (refreshToken) {
+        try {
+          const data = await apiClient.post<{ accessToken: string; refreshToken?: string }>(
+            '/auth/refresh',
+            { refreshToken },
+          );
+          if (cancelled) return;
+          AuthClient.setAccessToken(data.accessToken);
+          if (data.refreshToken) {
+            AuthClient.setRefreshToken(data.refreshToken);
+          }
+          setAuthenticated(true);
+        } catch {
+          if (!cancelled) {
+            AuthClient.clearTokens();
+            router.replace('/auth/login');
+          }
+        }
       } else {
         router.replace('/auth/login');
       }
       setChecking(false);
-    };
+    }
 
     check();
 
-    // React to logout events from any MFE
     const offLogout = on('auth:logout', () => {
       setAuthenticated(false);
       router.replace('/auth/login');
     });
 
-    // React to login events (e.g. after session restore)
     const offLogin = on('auth:login', () => {
       setAuthenticated(true);
     });
@@ -44,6 +68,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     });
 
     return () => {
+      cancelled = true;
       offLogout();
       offLogin();
       offExpired();

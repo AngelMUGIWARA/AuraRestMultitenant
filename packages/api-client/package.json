@@ -8,6 +8,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@maison/types": "workspace:*"
+    "@maison/types": "workspace:*",
+    "@maison/auth-client": "workspace:*",
+    "@maison/event-bus": "workspace:*"
   }
 }

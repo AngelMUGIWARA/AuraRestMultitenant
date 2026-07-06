@@ -2,6 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AuthClient } from '@maison/auth-client';
+import { apiClient } from '@maison/api-client';
+import { emit } from '@maison/event-bus';
 import { cn } from '@/lib/utils';
 import { ADMIN_NAV } from '@/lib/constants';
 import { useSidebar } from '@/context/SidebarContext';
@@ -98,6 +101,12 @@ interface SidebarContentProps {
 function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: SidebarContentProps) {
   const pathname = usePathname();
 
+  function handleLogout() {
+    apiClient.post('/auth/logout', {}).catch(() => {});
+    AuthClient.clearTokens();
+    emit('auth:logout', undefined);
+  }
+
   return (
     <>
       {/* Brand */}
@@ -168,7 +177,7 @@ function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: SidebarCon
         {/* User card — hidden when collapsed */}
         {!isCollapsed && (
           <div className="px-2 pt-3">
-            <div className="flex cursor-pointer items-center gap-2.5 rounded px-2 py-2 transition-colors hover:bg-surface-2 group">
+            <div className="flex cursor-pointer items-center gap-2.5 rounded px-2 py-2 transition-colors hover:bg-surface-2 group" onClick={handleLogout}>
               <div
                 className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white"
                 style={{ background: 'linear-gradient(140deg, rgb(var(--color-border)) 0%, rgb(var(--color-muted)) 100%)' }}

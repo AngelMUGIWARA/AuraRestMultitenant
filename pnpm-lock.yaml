@@ -833,6 +833,12 @@ importers:
 
   packages/api-client:
     dependencies:
+      '@maison/auth-client':
+        specifier: workspace:*
+        version: link:../auth-client
+      '@maison/event-bus':
+        specifier: workspace:*
+        version: link:../event-bus
       '@maison/types':
         specifier: workspace:*
         version: link:../types

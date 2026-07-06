@@ -40,6 +40,58 @@ export class AuthService {
       tenantSchemaName,
     };
 
+    return this.buildAuthResponse(user, payload);
+  }
+
+  async refreshToken(refreshToken: string): Promise<AuthResponseDto> {
+    let payload: Record<string, unknown>;
+    try {
+      payload = this.jwt.verify(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      }) as Record<string, unknown>;
+    } catch {
+      throw new UnauthorizedException('Refresh token inválido o expirado');
+    }
+
+    const { sub, email, role, tenantSchemaName } = payload as {
+      sub: string;
+      email: string;
+      role: string;
+      tenantSchemaName: string;
+    };
+
+    if (!tenantSchemaName) {
+      throw new UnauthorizedException('Refresh token inválido');
+    }
+
+    const db = this.tenantPrisma.getClient(tenantSchemaName);
+    const user = await db.user.findUnique({ where: { id: sub } });
+    if (!user) throw new UnauthorizedException('Usuario no encontrado');
+    if (user.status !== 'ACTIVE') throw new UnauthorizedException('Usuario inactivo o suspendido');
+
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { schemaName: tenantSchemaName },
+    });
+
+    const newPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role as string,
+      tenantSlug: tenant?.slug ?? '',
+      tenantSchemaName,
+    };
+
+    return this.buildAuthResponse(user, newPayload);
+  }
+
+  async logout(): Promise<{ message: string }> {
+    return { message: 'Sesión cerrada exitosamente' };
+  }
+
+  private buildAuthResponse(
+    user: { id: string; name: string; email: string; role: string },
+    payload: Record<string, unknown>,
+  ): AuthResponseDto {
     return {
       accessToken: this.jwt.sign(payload),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
