@@ -1,6 +1,5 @@
 import { apiClient } from '@maison/api-client';
-import type { ApiResponse, PaginatedResponse } from '@maison/types';
-import type { Tenant, TenantFilters, CreateTenantPayload, SuspendTenantPayload } from '@/types/tenant.types';
+import type { ApiResponse, PaginatedResponse, Tenant, TenantFilters, CreateTenantPayload, SuspendTenantPayload } from '@maison/types';
 
 export const tenantsService = {
   getAll(filters: TenantFilters = {}): Promise<PaginatedResponse<Tenant>> {

@@ -5,7 +5,7 @@ import { Skeleton, SkeletonRow } from '@maison/ui';
 import { EmptyState } from '@maison/ui';
 import { StatusBadge, PlanBadge } from '@/components/ui/Badge';
 import { IconTenants, IconExternalLink } from '@maison/ui';
-import type { Tenant } from '@/types/tenant.types';
+import type { Tenant } from '@maison/types';
 
 interface TenantTableProps {
   tenants?: Tenant[];

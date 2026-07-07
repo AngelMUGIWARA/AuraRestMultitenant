@@ -1,6 +1,5 @@
 import { apiClient } from '@maison/api-client';
-import type { ApiResponse } from '@maison/types';
-import type { DashboardStats, RevenueDataPoint, ActivityItem } from '@/types/dashboard.types';
+import type { ApiResponse, DashboardStats, RevenueDataPoint, ActivityItem } from '@maison/types';
 
 export type RevenuePeriod = 'weekly' | 'monthly' | 'yearly';
 

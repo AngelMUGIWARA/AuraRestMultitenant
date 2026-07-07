@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { reservationsService } from '@/services/reservations.service';
-import type { Reservation, ReservationStats, ReservationFilters } from '@/types/reservation.types';
-import type { PaginatedResponse } from '@maison/types';
+import type { Reservation, ReservationStats, ReservationFilters, PaginatedResponse } from '@maison/types';
 
 interface UseReservationsReturn {
   stats: ReservationStats | null;

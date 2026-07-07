@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@maison/ui';
 import { EmptyState } from '@maison/ui';
 import { IconAnalytics } from '@maison/ui';
-import type { RevenueDataPoint } from '@/types/dashboard.types';
+import type { RevenueDataPoint } from '@maison/types';
 
 type Period = 'weekly' | 'monthly' | 'yearly';
 

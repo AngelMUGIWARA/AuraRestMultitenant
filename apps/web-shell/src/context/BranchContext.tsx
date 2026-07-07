@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback } from 'react';
-import type { Branch } from '@/types/branch.types';
+import type { Branch } from '@maison/types';
 import { emit } from '@maison/event-bus';
 
 export const GLOBAL_BRANCH: Branch = {

@@ -11,7 +11,7 @@ import {
   IconMenus,
   IconAlertCircle,
 } from '@maison/ui';
-import type { ActivityItem, ActivityEventType } from '@/types/dashboard.types';
+import type { ActivityItem, ActivityEventType } from '@maison/types';
 
 const EVENT_CONFIG: Record<
   ActivityEventType,

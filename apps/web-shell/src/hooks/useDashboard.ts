@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { dashboardService } from '@/services/dashboard.service';
-import type { DashboardStats, ActivityItem } from '@/types/dashboard.types';
+import type { DashboardStats, ActivityItem } from '@maison/types';
 
 interface DashboardData {
   stats: DashboardStats;
