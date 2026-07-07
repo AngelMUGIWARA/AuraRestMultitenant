@@ -21,6 +21,7 @@ import {
   CurrentTenant,
   TenantContext,
 } from '../common/decorators/current-tenant.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -74,8 +75,13 @@ export class BranchesController {
   @Roles('OWNER', 'ADMIN')
   @ApiOperation({ summary: 'Crear sucursal', operationId: 'branches_create' })
   @ApiResponse({ status: 201, type: BranchResponseDto })
-  create(@CurrentTenant() tenant: TenantContext, @Body() dto: CreateBranchDto) {
-    return this.service.create(tenant.schemaName, dto);
+  create(
+    @CurrentTenant() tenant: TenantContext,
+    @Body() dto: CreateBranchDto,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.id ?? user?.sub ?? user?.userId;
+    return this.service.create(tenant.schemaName, dto, userId);
   }
 
   @Put(':id')
@@ -95,8 +101,13 @@ export class BranchesController {
   @ApiOperation({ summary: 'Activar sucursal', operationId: 'branches_activate' })
   @ApiResponse({ status: 200, type: BranchResponseDto })
   @ApiResponse({ status: 404, description: 'Sucursal no encontrada' })
-  activate(@CurrentTenant() tenant: TenantContext, @Param('id') id: string) {
-    return this.service.activate(tenant.schemaName, id);
+  activate(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.id ?? user?.sub ?? user?.userId;
+    return this.service.activate(tenant.schemaName, id, userId);
   }
 
   @Patch(':id/deactivate')
@@ -104,8 +115,13 @@ export class BranchesController {
   @ApiOperation({ summary: 'Desactivar sucursal', operationId: 'branches_deactivate' })
   @ApiResponse({ status: 200, type: BranchResponseDto })
   @ApiResponse({ status: 404, description: 'Sucursal no encontrada' })
-  deactivate(@CurrentTenant() tenant: TenantContext, @Param('id') id: string) {
-    return this.service.deactivate(tenant.schemaName, id);
+  deactivate(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.id ?? user?.sub ?? user?.userId;
+    return this.service.deactivate(tenant.schemaName, id, userId);
   }
 
   @Delete(':id')

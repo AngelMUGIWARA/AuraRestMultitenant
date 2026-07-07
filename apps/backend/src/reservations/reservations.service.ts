@@ -1,18 +1,35 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ReservationRepository } from './reservations.repository';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { ReservationQueryDto } from './dto/reservation-query.dto';
 import { ReservationStatus } from '../generated/prisma-tenant';
 
 @Injectable()
 export class ReservationsService {
-  // Ahora inyectamos el repositorio, no la conexión directa a la base de datos
-  constructor(private readonly reservationRepo: ReservationRepository) {}
+  constructor(
+    private readonly reservationRepo: ReservationRepository,
+    private readonly activityLog: ActivityLogService,
+  ) {}
 
-  async create(data: CreateReservationDto, schema: string) {
-    // Aquí puedes agregar lógica de negocio antes de llamar al repo
-    // Por ejemplo: validar que la fecha no sea en el pasado
-    return await this.reservationRepo.create(data, schema);
+  async create(data: CreateReservationDto, schema: string, userId?: string) {
+    const reservation = await this.reservationRepo.create(data, schema);
+    if (data.branchId && userId) {
+      this.activityLog.log(schema, {
+        branchId: data.branchId,
+        userId,
+        action: 'RESERVATION_CREATED',
+        entity: 'RESERVATION',
+        entityId: reservation.id,
+        changes: JSON.stringify({
+          date: data.date,
+          time: data.time,
+          partySize: data.partySize,
+          guestName: data.guestName,
+        }),
+      });
+    }
+    return reservation;
   }
 
   async findAll(schema: string, query: ReservationQueryDto) {
@@ -31,10 +48,20 @@ export class ReservationsService {
     return reservation;
   }
 
-  async updateStatus(id: string, status: ReservationStatus, schema: string) {
-    // Validar existencia antes de actualizar
-    await this.findOne(id, schema);
-    return await this.reservationRepo.updateStatus(id, status, schema);
+  async updateStatus(id: string, status: ReservationStatus, schema: string, userId?: string) {
+    const reservation = await this.findOne(id, schema);
+    const updated = await this.reservationRepo.updateStatus(id, status, schema);
+    if (reservation.branchId && userId) {
+      this.activityLog.log(schema, {
+        branchId: reservation.branchId,
+        userId,
+        action: 'RESERVATION_STATUS_CHANGED',
+        entity: 'RESERVATION',
+        entityId: id,
+        changes: JSON.stringify({ from: reservation.status, to: status }),
+      });
+    }
+    return updated;
   }
 
   async getStats(schema: string, branchId?: string) {

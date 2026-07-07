@@ -6,6 +6,7 @@ import { ReservationQueryDto } from './dto/reservation-query.dto';
 import { UpdateReservationStatusDto } from './dto/update-reservation-status.dto';
 import { ReservationResponseDto } from './dto/reservation-response.dto';
 import { CurrentTenant, TenantContext } from '../common/decorators/current-tenant.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -36,9 +37,11 @@ export class ReservationsController {
   @ApiResponse({ status: 201, type: ReservationResponseDto })
   create(
     @CurrentTenant() tenant: TenantContext,
-    @Body() createDto: CreateReservationDto
+    @Body() createDto: CreateReservationDto,
+    @CurrentUser() user: any,
   ) {
-    return this.reservationsService.create(createDto, tenant.schemaName);
+    const userId = user?.id ?? user?.sub ?? user?.userId;
+    return this.reservationsService.create(createDto, tenant.schemaName, userId);
   }
 
   @Get()
@@ -72,8 +75,10 @@ export class ReservationsController {
   updateStatus(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string, 
-    @Body() statusDto: UpdateReservationStatusDto
+    @Body() statusDto: UpdateReservationStatusDto,
+    @CurrentUser() user: any,
   ) {
-    return this.reservationsService.updateStatus(id, statusDto.status, tenant.schemaName);
+    const userId = user?.id ?? user?.sub ?? user?.userId;
+    return this.reservationsService.updateStatus(id, statusDto.status, tenant.schemaName, userId);
   }
 }

@@ -5,6 +5,7 @@ import {
 import { $Enums } from '../generated/prisma-tenant';
 import type { Prisma } from '../generated/prisma-tenant';
 import { EventBusService } from '../event-bus/event-bus.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { PaymentsRepository } from './payments.repository';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
 import {
@@ -17,9 +18,10 @@ export class PaymentsService {
   constructor(
     private readonly paymentsRepo: PaymentsRepository,
     private readonly eventBus: EventBusService,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
-  async processPayment(schemaName: string, dto: ProcessPaymentDto) {
+  async processPayment(schemaName: string, dto: ProcessPaymentDto, userId?: string) {
     const idempotencyKey = dto.idempotencyKey;
 
     if (idempotencyKey) {
@@ -152,6 +154,22 @@ export class PaymentsService {
             amount: normalizedIncomingAmount,
             methods: dto.payments.map((p) => p.method),
           });
+
+          const branchId = order.table?.branchId;
+          if (branchId && userId) {
+            this.activityLog.log(schemaName, {
+              branchId,
+              userId,
+              action: 'PAYMENT_PROCESSED',
+              entity: 'ORDER',
+              entityId: dto.orderId,
+              changes: JSON.stringify({
+                amount: normalizedIncomingAmount,
+                methods: dto.payments.map((p) => p.method),
+                hasTip: !!dto.tip,
+              }),
+            }, tx);
+          }
 
           return paymentRecords.map((p: any) => ({
             id: p.id,

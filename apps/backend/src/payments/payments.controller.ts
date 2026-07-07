@@ -12,6 +12,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentTenant, TenantContext } from '../common/decorators/current-tenant.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PaymentsService } from './payments.service';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
 import { PaymentResponseDto } from './dto/payment-response.dto';
@@ -32,8 +33,10 @@ export class PaymentsController {
   processPayment(
     @CurrentTenant() tenant: TenantContext,
     @Body() dto: ProcessPaymentDto,
+    @CurrentUser() user: any,
   ) {
-    return this.paymentsService.processPayment(tenant.schemaName, dto);
+    const userId = user?.id ?? user?.sub ?? user?.userId;
+    return this.paymentsService.processPayment(tenant.schemaName, dto, userId);
   }
 
   @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER')
