@@ -23,6 +23,7 @@ import { UsersModule } from './users/users.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
+import { ActivityLogModule } from './activity-log/activity-log.module';
 import { MenusModule } from './menus/menus.module';
 
 import { CategoriesModule } from './categories/categories.module';
@@ -54,6 +55,7 @@ import { ReservationsModule } from './reservations/reservations.module';
     HealthModule,
     MenusModule,
     ReservationsModule,
+    ActivityLogModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

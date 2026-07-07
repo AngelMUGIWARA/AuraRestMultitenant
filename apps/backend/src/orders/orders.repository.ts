@@ -126,4 +126,12 @@ export class OrdersRepository {
   ) {
     return this.db(schemaName, tx).menuItem.findMany({ where: { id: { in: ids } } });
   }
+
+  async findTableById(
+    schemaName: string,
+    tableId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).restaurantTable.findUnique({ where: { id: tableId } });
+  }
 }

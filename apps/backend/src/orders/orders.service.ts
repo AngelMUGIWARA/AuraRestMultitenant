@@ -7,6 +7,7 @@ import {
 import { $Enums, Prisma } from '../generated/prisma-tenant';
 import type { Prisma as PrismaType } from '../generated/prisma-tenant';
 import { EventBusService } from '../event-bus/event-bus.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import {
   mapOrderStatusFromDb,
 } from '../common/utils/order-mapper';
@@ -22,6 +23,7 @@ export class OrdersService {
   constructor(
     private readonly ordersRepo: OrdersRepository,
     private readonly eventBus: EventBusService,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
   async create(schemaName: string, dto: CreateOrderDto, userId: string) {
@@ -89,6 +91,22 @@ export class OrdersService {
             }
 
             this.eventBus.emit('order:created', { orderId: order.id, folio });
+
+            let orderBranchId: string | undefined;
+            if (dto.tableId) {
+              const table = await this.ordersRepo.findTableById(schemaName, dto.tableId, tx);
+              orderBranchId = table?.branchId;
+            }
+            if (orderBranchId) {
+              this.activityLog.log(schemaName, {
+                branchId: orderBranchId,
+                userId,
+                action: 'ORDER_CREATED',
+                entity: 'ORDER',
+                entityId: order.id,
+                changes: JSON.stringify({ folio, total: total.toFixed(2), type: dto.type }),
+              }, tx);
+            }
 
             return this.toResponse(order);
           } catch (err: any) {
@@ -173,7 +191,7 @@ export class OrdersService {
     return this.toResponse(order);
   }
 
-  async updateStatus(schemaName: string, id: string, dto: UpdateOrderStatusDto) {
+  async updateStatus(schemaName: string, id: string, dto: UpdateOrderStatusDto, userId?: string) {
     const order = await this.ordersRepo.findById(schemaName, id);
     if (!order) throw new NotFoundException('Pedido no encontrado');
 
@@ -219,6 +237,18 @@ export class OrdersService {
               );
             }
 
+            const branchId = updated.table?.branchId || order.table?.branchId;
+            if (branchId && userId) {
+              this.activityLog.log(schemaName, {
+                branchId,
+                userId,
+                action: 'ORDER_STATUS_CHANGED',
+                entity: 'ORDER',
+                entityId: id,
+                changes: JSON.stringify({ from: order.status, to: dto.status }),
+              }, tx);
+            }
+
             return this.toResponse(updated);
           },
         );
@@ -237,10 +267,22 @@ export class OrdersService {
 
     const updated = await this.ordersRepo.update(schemaName, id, data);
 
+    const branchId = updated.table?.branchId || order.table?.branchId;
+    if (branchId && userId) {
+      this.activityLog.log(schemaName, {
+        branchId,
+        userId,
+        action: 'ORDER_STATUS_CHANGED',
+        entity: 'ORDER',
+        entityId: id,
+        changes: JSON.stringify({ from: order.status, to: dto.status }),
+      });
+    }
+
     return this.toResponse(updated);
   }
 
-  async cancel(schemaName: string, id: string, reason?: string) {
+  async cancel(schemaName: string, id: string, reason?: string, userId?: string) {
     const order = await this.ordersRepo.findById(schemaName, id);
     if (!order) throw new NotFoundException('Pedido no encontrado');
 
@@ -270,6 +312,18 @@ export class OrdersService {
               'AVAILABLE',
               tx,
             );
+          }
+
+          const branchId = updated.table?.branchId || order.table?.branchId;
+          if (branchId && userId) {
+            this.activityLog.log(schemaName, {
+              branchId,
+              userId,
+              action: 'ORDER_CANCELLED',
+              entity: 'ORDER',
+              entityId: id,
+              changes: JSON.stringify({ reason: reason || null }),
+            }, tx);
           }
 
           return this.toResponse(updated);

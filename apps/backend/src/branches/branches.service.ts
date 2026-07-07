@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { BranchesRepository } from './branches.repository';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { CreateBranchDto, UpdateBranchDto } from './dto/branch.dto';
 
 @Injectable()
 export class BranchesService {
-  constructor(private readonly repo: BranchesRepository) {}
+  constructor(
+    private readonly repo: BranchesRepository,
+    private readonly activityLog: ActivityLogService,
+  ) {}
 
   async getStats(schemaName: string) {
     return this.repo.getStats(schemaName);
@@ -23,8 +27,19 @@ export class BranchesService {
     return b;
   }
 
-  async create(schemaName: string, dto: CreateBranchDto) {
-    return this.repo.create(schemaName, dto);
+  async create(schemaName: string, dto: CreateBranchDto, userId?: string) {
+    const branch = await this.repo.create(schemaName, dto);
+    if (userId) {
+      this.activityLog.log(schemaName, {
+        branchId: branch.id,
+        userId,
+        action: 'BRANCH_CREATED',
+        entity: 'BRANCH',
+        entityId: branch.id,
+        changes: JSON.stringify({ name: dto.name, address: dto.address }),
+      });
+    }
+    return branch;
   }
 
   async update(schemaName: string, id: string, dto: UpdateBranchDto) {
@@ -32,14 +47,36 @@ export class BranchesService {
     return this.repo.update(schemaName, id, dto);
   }
 
-  async activate(schemaName: string, id: string) {
-    await this.getOne(schemaName, id);
-    return this.repo.setActive(schemaName, id, true);
+  async activate(schemaName: string, id: string, userId?: string) {
+    const branch = await this.getOne(schemaName, id);
+    const updated = await this.repo.setActive(schemaName, id, true);
+    if (userId) {
+      this.activityLog.log(schemaName, {
+        branchId: id,
+        userId,
+        action: 'BRANCH_ACTIVATED',
+        entity: 'BRANCH',
+        entityId: id,
+        changes: JSON.stringify({ wasActive: branch.isActive }),
+      });
+    }
+    return updated;
   }
 
-  async deactivate(schemaName: string, id: string) {
-    await this.getOne(schemaName, id);
-    return this.repo.setActive(schemaName, id, false);
+  async deactivate(schemaName: string, id: string, userId?: string) {
+    const branch = await this.getOne(schemaName, id);
+    const updated = await this.repo.setActive(schemaName, id, false);
+    if (userId) {
+      this.activityLog.log(schemaName, {
+        branchId: id,
+        userId,
+        action: 'BRANCH_DEACTIVATED',
+        entity: 'BRANCH',
+        entityId: id,
+        changes: JSON.stringify({ wasActive: branch.isActive }),
+      });
+    }
+    return updated;
   }
 
   async remove(schemaName: string, id: string) {

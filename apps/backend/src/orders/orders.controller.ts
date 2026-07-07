@@ -96,8 +96,10 @@ export class OrdersController {
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,
+    @CurrentUser() user: any,
   ) {
-    return this.ordersService.updateStatus(tenant.schemaName, id, dto);
+    const userId = user?.id ?? user?.sub ?? user?.userId;
+    return this.ordersService.updateStatus(tenant.schemaName, id, dto, userId);
   }
 
   @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
@@ -109,7 +111,9 @@ export class OrdersController {
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,
     @Body() dto: CancelOrderDto,
+    @CurrentUser() user: any,
   ) {
-    return this.ordersService.cancel(tenant.schemaName, id, dto?.reason);
+    const userId = user?.id ?? user?.sub ?? user?.userId;
+    return this.ordersService.cancel(tenant.schemaName, id, dto?.reason, userId);
   }
 }
