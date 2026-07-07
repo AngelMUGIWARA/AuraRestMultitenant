@@ -27,6 +27,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
         working-directory: .
 
+      - run: pnpm exec prisma generate --schema=prisma/system/schema.prisma
+      - run: pnpm exec prisma generate --schema=prisma/tenant/schema.prisma
       - run: pnpm --filter backend build
 
       - run: pnpm --filter backend test
