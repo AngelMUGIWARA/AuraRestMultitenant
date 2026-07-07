@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { ReservationsService } from '../reservations/reservations.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { ReservationQueryDto } from './dto/reservation-query.dto';
 import { UpdateReservationStatusDto } from './dto/update-reservation-status.dto';
+import { ReservationResponseDto } from './dto/reservation-response.dto';
 import { CurrentTenant, TenantContext } from '../common/decorators/current-tenant.decorator';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -20,7 +21,8 @@ export class ReservationsController {
 
   @Get('stats')
   @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER')
-  @ApiOperation({ summary: 'Obtener estadísticas de reservaciones' })
+  @ApiOperation({ summary: 'Obtener estadísticas de reservaciones', operationId: 'reservations_getStats' })
+  @ApiResponse({ status: 200, description: 'Estadísticas de reservaciones' })
   getStats(
     @CurrentTenant() tenant: TenantContext,
     @Query('branchId') branchId?: string
@@ -30,7 +32,8 @@ export class ReservationsController {
 
   @Post()
   @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER')
-  @ApiOperation({ summary: 'Crear una nueva reservación' })
+  @ApiOperation({ summary: 'Crear una nueva reservación', operationId: 'reservations_create' })
+  @ApiResponse({ status: 201, type: ReservationResponseDto })
   create(
     @CurrentTenant() tenant: TenantContext,
     @Body() createDto: CreateReservationDto
@@ -40,7 +43,8 @@ export class ReservationsController {
 
   @Get()
   @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER')
-  @ApiOperation({ summary: 'Listar todas las reservaciones' })
+  @ApiOperation({ summary: 'Listar todas las reservaciones', operationId: 'reservations_findAll' })
+  @ApiResponse({ status: 200, description: 'Lista de reservaciones' })
   findAll(
     @CurrentTenant() tenant: TenantContext,
     @Query() query: ReservationQueryDto
@@ -50,7 +54,9 @@ export class ReservationsController {
 
   @Get(':id')
   @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER')
-  @ApiOperation({ summary: 'Obtener una reservación por ID' })
+  @ApiOperation({ summary: 'Obtener una reservación por ID', operationId: 'reservations_findOne' })
+  @ApiResponse({ status: 200, type: ReservationResponseDto })
+  @ApiResponse({ status: 404, description: 'Reservación no encontrada' })
   findOne(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string
@@ -60,7 +66,9 @@ export class ReservationsController {
 
   @Patch(':id/status')
   @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER')
-  @ApiOperation({ summary: 'Actualizar el estado de una reservación' })
+  @ApiOperation({ summary: 'Actualizar el estado de una reservación', operationId: 'reservations_updateStatus' })
+  @ApiResponse({ status: 200, type: ReservationResponseDto })
+  @ApiResponse({ status: 404, description: 'Reservación no encontrada' })
   updateStatus(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string, 

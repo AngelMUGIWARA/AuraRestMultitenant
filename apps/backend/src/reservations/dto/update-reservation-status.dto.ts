@@ -1,8 +1,10 @@
-import { IsString, IsNotEmpty, IsIn, IsEnum } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsEnum } from 'class-validator';
 import { ReservationStatus } from '../../generated/prisma-tenant';
 
 export class UpdateReservationStatusDto {
-    @IsEnum(ReservationStatus) // Valida automáticamente contra los valores del Enum
+    @ApiProperty({ enum: ReservationStatus, description: 'Nuevo estado de la reservación' })
+    @IsEnum(ReservationStatus)
     @IsNotEmpty()
-    status: ReservationStatus; // Cambia string por el tipo del Enum
+    status: ReservationStatus;
 }

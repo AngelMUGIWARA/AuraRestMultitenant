@@ -44,7 +44,7 @@ export class BranchesController {
 
   @Get('stats')
   @Roles('OWNER', 'ADMIN', 'MANAGER')
-  @ApiOperation({ summary: 'Estadísticas de sucursales' })
+  @ApiOperation({ summary: 'Estadísticas de sucursales', operationId: 'branches_getStats' })
   @ApiResponse({ status: 200, type: BranchStatsResponseDto })
   getStats(@CurrentTenant() tenant: TenantContext) {
     return this.service.getStats(tenant.schemaName);
@@ -52,7 +52,7 @@ export class BranchesController {
 
   @Get()
   @Roles('OWNER', 'ADMIN', 'MANAGER')
-  @ApiOperation({ summary: 'Listar sucursales' })
+  @ApiOperation({ summary: 'Listar sucursales', operationId: 'branches_getAll' })
   @ApiResponse({ status: 200, type: BranchResponseDto, isArray: true })
   getAll(
     @CurrentTenant() tenant: TenantContext,
@@ -63,7 +63,7 @@ export class BranchesController {
 
   @Get(':id')
   @Roles('OWNER', 'ADMIN', 'MANAGER')
-  @ApiOperation({ summary: 'Obtener sucursal por ID' })
+  @ApiOperation({ summary: 'Obtener sucursal por ID', operationId: 'branches_getOne' })
   @ApiResponse({ status: 200, type: BranchResponseDto })
   @ApiResponse({ status: 404, description: 'Sucursal no encontrada' })
   getOne(@CurrentTenant() tenant: TenantContext, @Param('id') id: string) {
@@ -72,7 +72,7 @@ export class BranchesController {
 
   @Post()
   @Roles('OWNER', 'ADMIN')
-  @ApiOperation({ summary: 'Crear sucursal' })
+  @ApiOperation({ summary: 'Crear sucursal', operationId: 'branches_create' })
   @ApiResponse({ status: 201, type: BranchResponseDto })
   create(@CurrentTenant() tenant: TenantContext, @Body() dto: CreateBranchDto) {
     return this.service.create(tenant.schemaName, dto);
@@ -80,7 +80,7 @@ export class BranchesController {
 
   @Put(':id')
   @Roles('OWNER', 'ADMIN')
-  @ApiOperation({ summary: 'Actualizar sucursal' })
+  @ApiOperation({ summary: 'Actualizar sucursal', operationId: 'branches_update' })
   @ApiResponse({ status: 200, type: BranchResponseDto })
   update(
     @CurrentTenant() tenant: TenantContext,
@@ -92,21 +92,27 @@ export class BranchesController {
 
   @Patch(':id/activate')
   @Roles('OWNER', 'ADMIN')
-  @ApiOperation({ summary: 'Activar sucursal' })
+  @ApiOperation({ summary: 'Activar sucursal', operationId: 'branches_activate' })
+  @ApiResponse({ status: 200, type: BranchResponseDto })
+  @ApiResponse({ status: 404, description: 'Sucursal no encontrada' })
   activate(@CurrentTenant() tenant: TenantContext, @Param('id') id: string) {
     return this.service.activate(tenant.schemaName, id);
   }
 
   @Patch(':id/deactivate')
   @Roles('OWNER', 'ADMIN')
-  @ApiOperation({ summary: 'Desactivar sucursal' })
+  @ApiOperation({ summary: 'Desactivar sucursal', operationId: 'branches_deactivate' })
+  @ApiResponse({ status: 200, type: BranchResponseDto })
+  @ApiResponse({ status: 404, description: 'Sucursal no encontrada' })
   deactivate(@CurrentTenant() tenant: TenantContext, @Param('id') id: string) {
     return this.service.deactivate(tenant.schemaName, id);
   }
 
   @Delete(':id')
   @Roles('OWNER', 'ADMIN')
-  @ApiOperation({ summary: 'Eliminar sucursal' })
+  @ApiOperation({ summary: 'Eliminar sucursal', operationId: 'branches_remove' })
+  @ApiResponse({ status: 200, description: 'Sucursal eliminada' })
+  @ApiResponse({ status: 404, description: 'Sucursal no encontrada' })
   remove(@CurrentTenant() tenant: TenantContext, @Param('id') id: string) {
     return this.service.remove(tenant.schemaName, id);
   }

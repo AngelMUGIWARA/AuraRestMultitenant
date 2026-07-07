@@ -1,4 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CategoryResponseDto {
   @ApiProperty()
@@ -7,11 +7,11 @@ export class CategoryResponseDto {
   @ApiProperty()
   name: string;
 
-  @ApiProperty()
-  description?: string;
+  @ApiPropertyOptional()
+  description?: string | null;
 
-  @ApiProperty()
-  imageUrl?: string;
+  @ApiPropertyOptional()
+  imageUrl?: string | null;
 
   @ApiProperty()
   sortOrder: number;

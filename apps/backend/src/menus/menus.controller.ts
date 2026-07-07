@@ -14,6 +14,7 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiResponse,
   ApiSecurity,
   ApiTags,
   ApiQuery,
@@ -25,6 +26,8 @@ import { CreateMenuDto } from "./dto/create-menu.dto";
 import { UpdateMenuDto } from "./dto/update-menu.dto";
 import { UpdatePriceDto } from "./dto/update-price.dto";
 import { UpdateStatusDto } from "./dto/update-status.dto";
+import { MenuResponseDto, PaginatedMenusDto } from "./dto/menu-response.dto";
+import { MenuStatsDto } from "./dto/menu-stats.dto";
 
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
@@ -53,7 +56,8 @@ export class MenusController {
     description: "Filtrar productos por categoría",
   })
   @Roles("OWNER", "ADMIN", "MANAGER")
-  @ApiOperation({ summary: "Listar menú" })
+  @ApiOperation({ summary: "Listar menú", operationId: "menus_findAll" })
+  @ApiResponse({ status: 200, type: [MenuResponseDto] })
   findAll(
     @CurrentTenant() tenant: TenantContext,
     @Query("categoryId") categoryId?: string,
@@ -63,28 +67,33 @@ export class MenusController {
 
   @Get("stats")
   @Roles("OWNER", "ADMIN", "MANAGER")
-  @ApiOperation({ summary: "Estadísticas del menú" })
+  @ApiOperation({ summary: "Estadísticas del menú", operationId: "menus_getStats" })
+  @ApiResponse({ status: 200, type: MenuStatsDto })
   getStats(@CurrentTenant() tenant: TenantContext) {
     return this.service.getStats(tenant.schemaName);
   }
 
   @Get(":id")
   @Roles("OWNER", "ADMIN", "MANAGER")
-  @ApiOperation({ summary: "Obtener producto" })
+  @ApiOperation({ summary: "Obtener producto por ID", operationId: "menus_findOne" })
+  @ApiResponse({ status: 200, type: MenuResponseDto })
+  @ApiResponse({ status: 404, description: "Producto no encontrado" })
   findOne(@CurrentTenant() tenant: TenantContext, @Param("id") id: string) {
     return this.service.findOne(tenant.schemaName, id);
   }
 
   @Post()
   @Roles("OWNER", "ADMIN")
-  @ApiOperation({ summary: "Crear producto" })
+  @ApiOperation({ summary: "Crear producto", operationId: "menus_create" })
+  @ApiResponse({ status: 201, type: MenuResponseDto })
   create(@CurrentTenant() tenant: TenantContext, @Body() dto: CreateMenuDto) {
     return this.service.create(tenant.schemaName, dto);
   }
 
   @Put(":id")
   @Roles("OWNER", "ADMIN")
-  @ApiOperation({ summary: "Actualizar producto" })
+  @ApiOperation({ summary: "Actualizar producto", operationId: "menus_update" })
+  @ApiResponse({ status: 200, type: MenuResponseDto })
   update(
     @CurrentTenant() tenant: TenantContext,
     @Param("id") id: string,
@@ -95,7 +104,8 @@ export class MenusController {
 
   @Patch(":id/price")
   @Roles("OWNER", "ADMIN")
-  @ApiOperation({ summary: "Actualizar precio" })
+  @ApiOperation({ summary: "Actualizar precio", operationId: "menus_updatePrice" })
+  @ApiResponse({ status: 200, type: MenuResponseDto })
   updatePrice(
     @CurrentTenant() tenant: TenantContext,
     @Param("id") id: string,
@@ -106,7 +116,8 @@ export class MenusController {
 
   @Patch(":id/status")
   @Roles("OWNER", "ADMIN")
-  @ApiOperation({ summary: "Actualizar estado" })
+  @ApiOperation({ summary: "Actualizar estado", operationId: "menus_updateStatus" })
+  @ApiResponse({ status: 200, type: MenuResponseDto })
   updateStatus(
     @CurrentTenant() tenant: TenantContext,
     @Param("id") id: string,
@@ -117,7 +128,8 @@ export class MenusController {
 
   @Delete(":id")
   @Roles("OWNER", "ADMIN")
-  @ApiOperation({ summary: "Eliminar producto" })
+  @ApiOperation({ summary: "Eliminar producto", operationId: "menus_remove" })
+  @ApiResponse({ status: 200, description: "Producto eliminado" })
   remove(@CurrentTenant() tenant: TenantContext, @Param("id") id: string) {
     return this.service.remove(tenant.schemaName, id);
   }

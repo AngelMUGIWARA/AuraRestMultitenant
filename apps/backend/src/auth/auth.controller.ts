@@ -6,7 +6,7 @@ import {
   HttpStatus,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiSecurity } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiSecurity } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -25,7 +25,9 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Iniciar sesión (requiere header x-tenant-slug)' })
+  @ApiOperation({ summary: 'Iniciar sesión (requiere header x-tenant-slug)', operationId: 'auth_login' })
+  @ApiResponse({ status: 200, type: AuthResponseDto })
+  @ApiResponse({ status: 401, description: 'Credenciales inválidas o tenant no identificado' })
   login(
     @Body() dto: LoginDto,
     @CurrentTenant() tenant: TenantContext,
@@ -41,7 +43,9 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Renovar access token usando refresh token' })
+  @ApiOperation({ summary: 'Renovar access token usando refresh token', operationId: 'auth_refresh' })
+  @ApiResponse({ status: 200, type: AuthResponseDto })
+  @ApiResponse({ status: 401, description: 'Refresh token inválido o expirado' })
   refresh(@Body() dto: RefreshDto): Promise<AuthResponseDto> {
     return this.authService.refreshToken(dto.refreshToken);
   }
@@ -49,7 +53,8 @@ export class AuthController {
   @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cerrar sesión (stateless — solo limpia tokens del cliente)' })
+  @ApiOperation({ summary: 'Cerrar sesión (stateless — solo limpia tokens del cliente)', operationId: 'auth_logout' })
+  @ApiResponse({ status: 200, description: 'Sesión cerrada' })
   logout(): Promise<{ message: string }> {
     return this.authService.logout();
   }
