@@ -9,7 +9,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiSecurity, ApiTags } from '@nestjs/swagger';
 
 import { Public } from '../common/decorators/public.decorator';
 import {
@@ -26,6 +26,7 @@ import { CancelOrderDto } from './dto/cancel-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderQueryDto } from './dto/order-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { OrderResponseDto, OrderStatsResponseDto, PaginatedOrdersDto } from './dto/order-response.dto';
 import { OrdersService } from './orders.service';
 
 @ApiTags('Orders')
@@ -38,6 +39,9 @@ export class OrdersController {
 
   @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Post()
+  @ApiOperation({ summary: 'Crear una orden', operationId: 'orders_create' })
+  @ApiResponse({ status: 201, type: OrderResponseDto })
+  @ApiResponse({ status: 401, description: 'No autenticado' })
   async create(
     @Body() createOrderDto: CreateOrderDto,
     @CurrentTenant() tenant: TenantContext,
@@ -54,6 +58,8 @@ export class OrdersController {
 
   @Roles('ADMIN', 'MANAGER', 'OWNER')
   @Get()
+  @ApiOperation({ summary: 'Listar órdenes con filtros', operationId: 'orders_findAll' })
+  @ApiResponse({ status: 200, type: PaginatedOrdersDto })
   findAll(
     @CurrentTenant() tenant: TenantContext,
     @Query() query: OrderQueryDto,
@@ -63,12 +69,17 @@ export class OrdersController {
 
   @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER')
   @Get('stats')
+  @ApiOperation({ summary: 'Estadísticas de órdenes del día', operationId: 'orders_getStats' })
+  @ApiResponse({ status: 200, type: OrderStatsResponseDto })
   getStats(@CurrentTenant() tenant: TenantContext) {
     return this.ordersService.getStats(tenant.schemaName);
   }
 
   @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Get(':id')
+  @ApiOperation({ summary: 'Obtener orden por ID', operationId: 'orders_findById' })
+  @ApiResponse({ status: 200, type: OrderResponseDto })
+  @ApiResponse({ status: 404, description: 'Orden no encontrada' })
   findById(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,
@@ -78,6 +89,9 @@ export class OrdersController {
 
   @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Patch(':id/status')
+  @ApiOperation({ summary: 'Actualizar estado de orden', operationId: 'orders_updateStatus' })
+  @ApiResponse({ status: 200, type: OrderResponseDto })
+  @ApiResponse({ status: 404, description: 'Orden no encontrada' })
   updateStatus(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,
@@ -88,6 +102,9 @@ export class OrdersController {
 
   @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Post(':id/cancel')
+  @ApiOperation({ summary: 'Cancelar orden', operationId: 'orders_cancel' })
+  @ApiResponse({ status: 200, type: OrderResponseDto })
+  @ApiResponse({ status: 404, description: 'Orden no encontrada' })
   cancel(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,
