@@ -11,6 +11,10 @@
     "react": ">=18",
     "react-dom": ">=18"
   },
+  "dependencies": {
+    "@maison/event-bus": "workspace:*",
+    "@maison/types": "workspace:*"
+  },
   "devDependencies": {
     "@types/react": "^19",
     "@types/react-dom": "^19"

@@ -1,5 +1,5 @@
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { BranchProvider } from './context/BranchContext';
+import { BranchProvider } from '@maison/ui';
 import MenusPage from './pages/MenusPage';
 import CategoriasPage from './pages/CategoriasPage';
 import InventarioPage from './pages/InventarioPage';

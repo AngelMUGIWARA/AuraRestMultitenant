@@ -866,6 +866,12 @@ importers:
 
   packages/ui:
     dependencies:
+      '@maison/event-bus':
+        specifier: workspace:*
+        version: link:../event-bus
+      '@maison/types':
+        specifier: workspace:*
+        version: link:../types
       react:
         specifier: '>=18'
         version: 19.2.4

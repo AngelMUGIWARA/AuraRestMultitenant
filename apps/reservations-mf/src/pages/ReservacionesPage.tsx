@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { emit } from '@maison/event-bus';
-import { useBranch } from '../context/BranchContext'; // <-- Importado para solucionar el Error 400
+import { useBranch } from '@maison/ui';
 import { useReservations } from '../hooks/useReservations';
 import { formatNumber, cn } from '../utils';
 import { StatCard, StatCardSkeleton } from '@maison/ui';

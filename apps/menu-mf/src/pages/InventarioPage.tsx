@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useBranch } from '../context/BranchContext';
+import { useBranch } from '@maison/ui';
 import { useInventory } from '../hooks/useInventory';
 import { formatCurrency, formatNumber, cn } from '../utils';
 import { STOCK_STATUS_LABELS } from '../constants';

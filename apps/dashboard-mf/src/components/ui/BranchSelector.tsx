@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { useBranch, GLOBAL_BRANCH } from '../../context/BranchContext';
+import { useBranch, GLOBAL_BRANCH } from '@maison/ui';
 import { cn } from '../../utils';
 import type { Branch } from '@maison/types';
 

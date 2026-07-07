@@ -1,8 +1,8 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { emit, on } from '@maison/event-bus';
 import type { Branch } from '@maison/types';
-import { emit } from '@maison/event-bus';
 
 export const GLOBAL_BRANCH: Branch = {
   id: 'global',
@@ -34,6 +34,13 @@ interface BranchProviderProps {
 export function BranchProvider({ children, initialBranches = [] }: BranchProviderProps) {
   const [selectedBranch, setSelectedBranch] = useState<Branch>(GLOBAL_BRANCH);
   const [branches] = useState<Branch[]>(initialBranches);
+
+  useEffect(() => {
+    const off = on('branch:changed', ({ branchId, branchName, isGlobal }) => {
+      setSelectedBranch({ id: branchId, name: branchName, city: '', isGlobal, isActive: true });
+    });
+    return off;
+  }, []);
 
   const setBranch = useCallback((branch: Branch) => {
     setSelectedBranch(branch);
