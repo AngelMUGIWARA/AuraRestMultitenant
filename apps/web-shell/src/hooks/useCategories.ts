@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { categoriesService } from '@/services/categories.service';
-import type { Category, CategoryStats, CategoryFilters } from '@/types/category.types';
-import type { PaginatedResponse } from '@maison/types';
+import type { Category, CategoryStats, CategoryFilters, PaginatedResponse } from '@maison/types';
 
 interface UseCategoriesReturn {
   stats: CategoryStats | null;

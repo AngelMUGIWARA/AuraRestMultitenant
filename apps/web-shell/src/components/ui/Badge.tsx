@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import type { TenantStatus, TenantPlan } from '@/types/tenant.types';
+import type { TenantStatus, TenantPlan } from '@maison/types';
 import { TENANT_STATUS_LABELS, PLAN_LABELS } from '@/lib/constants';
 
 const STATUS_CLASSES: Record<TenantStatus, string> = {

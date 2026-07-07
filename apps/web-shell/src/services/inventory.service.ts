@@ -1,6 +1,5 @@
 import { apiClient } from '@maison/api-client';
-import type { ApiResponse, PaginatedResponse } from '@maison/types';
-import type { InventoryItem, InventoryStats, InventoryFilters } from '@/types/inventory.types';
+import type { ApiResponse, PaginatedResponse, InventoryItem, InventoryStats, InventoryFilters } from '@maison/types';
 
 export const inventoryService = {
   getStats(branchId?: string): Promise<ApiResponse<InventoryStats>> {

@@ -1,12 +1,5 @@
 import { apiClient } from '@maison/api-client';
-import type { ApiResponse, PaginatedResponse } from '@maison/types';
-import type {
-  MenuItem,
-  MenuStats,
-  MenuFilters,
-  CreateMenuItemPayload,
-  UpdateMenuItemPricePayload,
-} from '@/types/menu.types';
+import type { ApiResponse, PaginatedResponse, MenuItem, MenuStats, MenuFilters, CreateMenuItemPayload, UpdateMenuItemPricePayload } from '@maison/types';
 
 export const menusService = {
   getStats(branchId?: string): Promise<ApiResponse<MenuStats>> {

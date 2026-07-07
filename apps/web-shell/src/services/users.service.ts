@@ -1,12 +1,5 @@
 import { apiClient } from '@maison/api-client';
-import type { ApiResponse, PaginatedResponse } from '@maison/types';
-import type {
-  User,
-  UserStats,
-  UserFilters,
-  UpdateUserRolePayload,
-  InviteUserPayload,
-} from '@/types/user.types';
+import type { ApiResponse, PaginatedResponse, User, UserStats, UserFilters, UpdateUserRolePayload, InviteUserPayload } from '@maison/types';
 
 export const usersService = {
   getStats(branchId?: string): Promise<ApiResponse<UserStats>> {

@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usersService } from '@/services/users.service';
-import type { User, UserStats, UserFilters } from '@/types/user.types';
-import type { PaginatedResponse } from '@maison/types';
+import type { User, UserStats, UserFilters, PaginatedResponse } from '@maison/types';
 
 interface UseUsersReturn {
   stats: UserStats | null;

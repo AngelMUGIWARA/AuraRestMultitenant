@@ -1,12 +1,5 @@
 import { apiClient } from '@maison/api-client';
-import type { ApiResponse, PaginatedResponse } from '@maison/types';
-import type {
-  Reservation,
-  ReservationStats,
-  ReservationFilters,
-  CreateReservationPayload,
-  ReservationStatus,
-} from '@/types/reservation.types';
+import type { ApiResponse, PaginatedResponse, Reservation, ReservationStats, ReservationFilters, CreateReservationPayload, ReservationStatus } from '@maison/types';
 
 export const reservationsService = {
   getStats(branchId?: string, date?: string): Promise<ApiResponse<ReservationStats>> {

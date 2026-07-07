@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { useBranch, GLOBAL_BRANCH } from '@/context/BranchContext';
 import { cn } from '@/lib/utils';
-import type { Branch } from '@/types/branch.types';
+import type { Branch } from '@maison/types';
 
 function IconChevronDown({ className }: { className?: string }) {
   return (
