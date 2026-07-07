@@ -2,9 +2,10 @@ import { useKitchenQueue } from '../hooks/useKitchenQueue';
 import type { KitchenTicket, KitchenTicketStatus } from '@maison/types';
 
 const STATUS_CONFIG: Record<KitchenTicketStatus, { label: string; bg: string; border: string; text: string }> = {
-  new:         { label: 'Nuevo',          bg: 'bg-maison-ruby/10',  border: 'border-maison-ruby/40',  text: 'text-maison-ruby' },
-  in_progress: { label: 'En preparación', bg: 'bg-maison-amber/10', border: 'border-maison-amber/40', text: 'text-maison-amber' },
-  ready:       { label: 'Listo',          bg: 'bg-maison-sage/10',  border: 'border-maison-sage/40',  text: 'text-maison-sage' },
+  PENDING:     { label: 'Nuevo',          bg: 'bg-maison-ruby/10',  border: 'border-maison-ruby/40',  text: 'text-maison-ruby' },
+  IN_PROGRESS: { label: 'En preparación', bg: 'bg-maison-amber/10', border: 'border-maison-amber/40', text: 'text-maison-amber' },
+  READY:       { label: 'Listo',          bg: 'bg-maison-sage/10',  border: 'border-maison-sage/40',  text: 'text-maison-sage' },
+  DELIVERED:   { label: 'Entregado',      bg: 'bg-maison-sage/10',  border: 'border-maison-sage/40',  text: 'text-maison-sage' },
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -68,25 +69,25 @@ function KitchenTicketCard({ ticket, onUpdateStatus }: {
 
       {/* Actions */}
       <div className="flex gap-2 px-4 py-3 border-t border-white/10">
-        {ticket.status === 'new' && (
+        {ticket.status === 'PENDING' && (
           <button
             type="button"
-            onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber, 'in_progress')}
+            onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber, 'IN_PROGRESS')}
             className="flex-1 rounded-lg bg-maison-amber/20 border border-maison-amber/50 py-2 text-sm font-medium text-maison-amber hover:bg-maison-amber/30 transition"
           >
             Iniciar preparación
           </button>
         )}
-        {ticket.status === 'in_progress' && (
+        {ticket.status === 'IN_PROGRESS' && (
           <button
             type="button"
-            onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber, 'ready')}
+            onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber, 'READY')}
             className="flex-1 rounded-lg bg-maison-sage/20 border border-maison-sage/50 py-2 text-sm font-medium text-maison-sage hover:bg-maison-sage/30 transition"
           >
             Marcar como listo ✓
           </button>
         )}
-        {ticket.status === 'ready' && (
+        {ticket.status === 'READY' && (
           <span className="flex-1 text-center text-sm font-medium text-maison-sage py-2">
             ✓ Listo para servir
           </span>
@@ -99,9 +100,9 @@ function KitchenTicketCard({ ticket, onUpdateStatus }: {
 export default function KitchenQueuePage() {
   const { tickets, isLoading, error, wsConnected, updateTicketStatus } = useKitchenQueue();
 
-  const newTickets = tickets.filter((t) => t.status === 'new');
-  const inProgressTickets = tickets.filter((t) => t.status === 'in_progress');
-  const readyTickets = tickets.filter((t) => t.status === 'ready');
+  const newTickets = tickets.filter((t) => t.status === 'PENDING');
+  const inProgressTickets = tickets.filter((t) => t.status === 'IN_PROGRESS');
+  const readyTickets = tickets.filter((t) => t.status === 'READY');
 
   return (
     <div className="min-h-screen bg-surface-0 p-4 lg:p-6">

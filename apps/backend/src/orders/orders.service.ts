@@ -108,6 +108,21 @@ export class OrdersService {
               }, tx);
             }
 
+            const kitchenTypes = ['DINE_IN', 'TAKEOUT', 'DELIVERY'];
+            if (kitchenTypes.includes(dto.type)) {
+              await this.ordersRepo.createKitchenTicket(schemaName, order.id, tx);
+              if (orderBranchId) {
+                this.activityLog.log(schemaName, {
+                  branchId: orderBranchId,
+                  userId,
+                  action: 'KITCHEN_TICKET_CREATED',
+                  entity: 'KITCHEN_TICKET',
+                  entityId: order.id,
+                  changes: JSON.stringify({ orderFolio: folio, orderType: dto.type }),
+                }, tx);
+              }
+            }
+
             return this.toResponse(order);
           } catch (err: any) {
             if (err?.code === 'P2002' && attempt < this.MAX_FOLIO_RETRIES - 1) {

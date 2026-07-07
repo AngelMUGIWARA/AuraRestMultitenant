@@ -28,6 +28,7 @@ import { MenusModule } from './menus/menus.module';
 
 import { CategoriesModule } from './categories/categories.module';
 import { HealthModule } from './health/health.module';
+import { KitchenModule } from './kitchen/kitchen.module';
 import { ReservationsModule } from './reservations/reservations.module';
 
 @Module({
@@ -54,6 +55,7 @@ import { ReservationsModule } from './reservations/reservations.module';
     CategoriesModule,
     HealthModule,
     MenusModule,
+    KitchenModule,
     ReservationsModule,
     ActivityLogModule,
   ],

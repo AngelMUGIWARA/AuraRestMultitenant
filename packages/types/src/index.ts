@@ -482,7 +482,7 @@ export interface CreateOrderPayload {
 
 // ─── Kitchen ──────────────────────────────────────────────────────────────────
 
-export type KitchenTicketStatus = "new" | "in_progress" | "ready";
+export type KitchenTicketStatus = 'PENDING' | 'IN_PROGRESS' | 'READY' | 'DELIVERED';
 
 export interface KitchenTicket {
   id: string;
@@ -495,6 +495,9 @@ export interface KitchenTicket {
   customerName: string;
   notes?: string;
   branchId: string;
+  priority: number;
+  startedAt: string | null;
+  completedAt: string | null;
   createdAt: string;
   updatedAt: string;
   elapsedSeconds: number;

@@ -134,4 +134,14 @@ export class OrdersRepository {
   ) {
     return this.db(schemaName, tx).restaurantTable.findUnique({ where: { id: tableId } });
   }
+
+  async createKitchenTicket(
+    schemaName: string,
+    orderId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).kitchenTicket.create({
+      data: { orderId },
+    });
+  }
 }
