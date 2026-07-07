@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { on } from '@maison/event-bus';
 import type { RestaurantTable, TableFilters, PaginatedResponse } from '@maison/types';
 import { tablesService } from '../services/tables.service'; // Asegúrate de tener este servicio
-import { useBranch } from '../context/BranchContext'; // Tu nuevo hook de contexto
+import { useBranch } from '@maison/ui'; // Tu nuevo hook de contexto
 import { TableStatus } from '@maison/types';
 
 export function useTables() {

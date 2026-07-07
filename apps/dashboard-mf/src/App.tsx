@@ -1,5 +1,5 @@
 import { MemoryRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { BranchProvider } from './context/BranchContext';
+import { BranchProvider } from '@maison/ui';
 import { SidebarProvider } from './context/SidebarContext';
 import { NavProvider } from './context/NavContext';
 import { AdminShell } from './components/layout/AdminShell';

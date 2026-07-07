@@ -1,5 +1,5 @@
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { BranchProvider } from './context/BranchContext';
+import { BranchProvider } from '@maison/ui';
 import OrdersPage from './pages/OrdersPage';
 
 export default function OrdersApp() {

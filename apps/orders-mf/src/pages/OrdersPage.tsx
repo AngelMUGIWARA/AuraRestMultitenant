@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useBranch } from '../context/BranchContext';
+import { useBranch } from '@maison/ui';
 import { useOrders } from '../hooks/useOrders';
 import { formatCurrency, formatNumber, formatRelativeTime, cn } from '../utils';
 import { StatCard, StatCardSkeleton } from '@maison/ui';
