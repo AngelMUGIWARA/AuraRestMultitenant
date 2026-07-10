@@ -15,7 +15,7 @@ export function useKitchenQueue() {
   const fetchQueue = useCallback(async (bId?: string) => {
     try {
       const res = await kitchenService.getQueue(bId);
-      setTickets(res.data);
+      setTickets(Array.isArray(res) ? res : (res as any).data ?? []);
       setError(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al cargar la cola');
