@@ -1,0 +1,25 @@
+{
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "decorators": true,
+      "dynamicImport": true
+    },
+    "transform": {
+      "decoratorMetadata": true,
+      "legacyDecorator": true
+    },
+    "target": "es2023",
+    "baseUrl": ".",
+    "paths": {
+      "@maison/types": ["../../../packages/types/src"],
+      "@maison/auth-client": ["../../../packages/auth-client/src"],
+      "@maison/event-bus": ["../../../packages/event-bus/src"],
+      "@maison/api-client": ["../../../packages/api-client/src"],
+      "@maison/ui": ["../../../packages/ui/src"]
+    }
+  },
+  "module": {
+    "type": "commonjs"
+  }
+}
