@@ -1,36 +1,215 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaClient as TenantPrismaClient } from '../generated/prisma-tenant';
 
-/**
- * Crea y cachea un PrismaClient por cada schema de tenant.
- * Cada cliente apunta a  DATABASE_URL?schema=<schemaName>
- * lo que hace que PostgreSQL aplique  SET search_path = <schemaName>.
- */
+interface ClientEntry {
+  client: TenantPrismaClient;
+  lastUsed: number;
+  createdAt: number;
+}
+
 @Injectable()
 export class TenantPrismaService implements OnModuleDestroy {
-  private readonly clients = new Map<string, TenantPrismaClient>();
+  private readonly logger = new Logger(TenantPrismaService.name);
 
-  getClient(schemaName: string): TenantPrismaClient {
-    if (!this.clients.has(schemaName)) {
-      const base = process.env.DATABASE_URL!;
-      const url = base.includes('?')
-        ? `${base}&schema=${schemaName}`
-        : `${base}?schema=${schemaName}`;
+  private readonly clients = new Map<string, ClientEntry>();
 
-      const client = new TenantPrismaClient({
-        datasources: { db: { url } },
-      });
+  private readonly maxClients: number;
+  private readonly ttlMs: number;
+  private readonly cleanupIntervalMs: number;
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
-      this.clients.set(schemaName, client);
-    }
+  constructor(config?: ConfigService) {
+    const getEnv = (key: string, def: number): number => {
+      const raw = config?.get<string>(key) ?? process.env[key];
+      if (raw === undefined || raw === '') return def;
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n <= 0) {
+        this.logger.warn(
+          `${key}="${raw}" no es válido, usando default=${def}`,
+        );
+        return def;
+      }
+      return n;
+    };
 
-    return this.clients.get(schemaName)!;
+    this.maxClients = getEnv('TENANT_PRISMA_MAX_CLIENTS', 10);
+    this.ttlMs = getEnv('TENANT_PRISMA_CLIENT_TTL_MS', 300_000);
+    this.cleanupIntervalMs = getEnv(
+      'TENANT_PRISMA_CLEANUP_INTERVAL_MS',
+      60_000,
+    );
+
+    this.startCleanupTimer();
   }
 
-  async onModuleDestroy() {
-    for (const client of this.clients.values()) {
-      await client.$disconnect();
+  // ── Público ──────────────────────────────────────────────
+
+  getClient(schemaName: string): TenantPrismaClient {
+    this.assertValidSchemaName(schemaName);
+
+    const existing = this.clients.get(schemaName);
+    if (existing) {
+      existing.lastUsed = Date.now();
+      // Re-insert to update insertion order (LRU)
+      this.clients.delete(schemaName);
+      this.clients.set(schemaName, existing);
+      return existing.client;
     }
+
+    // Create new client
+    const client = this.createClient(schemaName);
+    const entry: ClientEntry = {
+      client,
+      lastUsed: Date.now(),
+      createdAt: Date.now(),
+    };
+
+    this.clients.set(schemaName, entry);
+
+    if (this.clients.size > this.maxClients) {
+      this.evictIdle();
+    }
+
+    this.logger.log(`Cliente Prisma creado para schema="${schemaName}"`);
+    return client;
+  }
+
+  // ── Ciclo de vida ────────────────────────────────────────
+
+  async onModuleDestroy() {
+    this.stopCleanupTimer();
+    const entries = Array.from(this.clients.entries());
     this.clients.clear();
+    const results = await Promise.allSettled(
+      entries.map(([schema, entry]) =>
+        entry.client
+          .$disconnect()
+          .catch((err) =>
+            this.logger.error(
+              `Error al desconectar schema="${schema}": ${err}`,
+            ),
+          ),
+      ),
+    );
+    const rejected = results.filter((r) => r.status === 'rejected').length;
+    this.logger.log(
+      `TenantPrismaService cerrado: ${entries.length} clientes, ${rejected} errores`,
+    );
+  }
+
+  // ── Privado: validación ──────────────────────────────────
+
+  private assertValidSchemaName(schemaName: string): void {
+    if (schemaName === undefined || schemaName === null) {
+      throw new Error('schemaName es requerido');
+    }
+    if (typeof schemaName !== 'string') {
+      throw new Error(`schemaName debe ser string, recibido ${typeof schemaName}`);
+    }
+    if (schemaName.trim().length === 0) {
+      throw new Error('schemaName no puede estar vacío');
+    }
+    if (/\s/.test(schemaName)) {
+      throw new Error('schemaName no puede contener espacios');
+    }
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schemaName)) {
+      throw new Error(
+        `schemaName="${schemaName}" contiene caracteres no válidos para un esquema PostgreSQL`,
+      );
+    }
+  }
+
+  // ── Privado: creación ────────────────────────────────────
+
+  private createClient(schemaName: string): TenantPrismaClient {
+    const base = process.env.DATABASE_URL;
+    if (!base) {
+      throw new Error('DATABASE_URL no está configurada');
+    }
+    const url = base.includes('?')
+      ? `${base}&schema=${schemaName}`
+      : `${base}?schema=${schemaName}`;
+
+    return new TenantPrismaClient({
+      datasources: { db: { url } },
+    });
+  }
+
+  // ── Privado: evicción LRU suave ──────────────────────────
+
+  private evictIdle(): void {
+    const now = Date.now();
+    let oldestEntry: [string, ClientEntry] | null = null;
+
+    for (const entry of this.clients) {
+      const idleTime = now - entry[1].lastUsed;
+      if (idleTime >= this.ttlMs) {
+        if (
+          oldestEntry === null ||
+          entry[1].lastUsed < oldestEntry[1].lastUsed
+        ) {
+          oldestEntry = entry;
+        }
+      }
+    }
+
+    if (oldestEntry) {
+      const [schema, entry] = oldestEntry;
+      this.clients.delete(schema);
+      this.disconnectSafely(schema, entry);
+      this.logger.log(
+        `Cliente evictado: schema="${schema}" (límite ${this.maxClients})`,
+      );
+    } else {
+      this.logger.warn(
+        `Pool de clientes (${this.clients.size}) supera máximo (${this.maxClients}) ` +
+          `pero todos los clientes están activos. Se permite exceder temporalmente.`,
+      );
+    }
+  }
+
+  // ── Privado: limpieza por TTL ────────────────────────────
+
+  private cleanupExpired(): void {
+    const now = Date.now();
+    for (const [schema, entry] of this.clients) {
+      if (now - entry.lastUsed >= this.ttlMs) {
+        this.clients.delete(schema);
+        this.disconnectSafely(schema, entry);
+        this.logger.log(
+          `Cliente expirado por TTL: schema="${schema}" ` +
+            `(inactivo ${((now - entry.lastUsed) / 1000).toFixed(0)}s)`,
+        );
+      }
+    }
+  }
+
+  // ── Privado: desconexión segura ──────────────────────────
+
+  private disconnectSafely(schema: string, entry: ClientEntry): void {
+    entry.client.$disconnect().catch((err) => {
+      this.logger.error(
+        `Error al desconectar schema="${schema}": ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
+  }
+
+  // ── Privado: timer ───────────────────────────────────────
+
+  private startCleanupTimer(): void {
+    this.cleanupTimer = setInterval(() => {
+      this.cleanupExpired();
+    }, this.cleanupIntervalMs);
+    if (typeof this.cleanupTimer?.unref === 'function') {
+      this.cleanupTimer.unref();
+    }
+  }
+
+  private stopCleanupTimer(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
   }
 }
