@@ -1,29 +1,30 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import request from 'supertest';
-import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+const request = require('supertest');
+import { INestApplication, JwtService } from '@nestjs/common';
+import { createIntegrationTestApp } from './helpers/test-app.helper';
 
-describe('AppController (e2e)', () => {
-  let app: INestApplication<App>;
+describe('App (e2e)', () => {
+  let app: INestApplication;
+  let jwtService: JwtService;
+  let tenantDb: Record<string, any>;
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+  beforeAll(async () => {
+    const result = await createIntegrationTestApp();
+    app = result.app;
+    jwtService = result.jwtService;
+    tenantDb = result.tenantDb;
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+  afterAll(async () => {
+    await app?.close();
   });
 
-  afterEach(async () => {
-    await app.close();
+  beforeEach(() => {
+    jest.clearAllMocks();
+    tenantDb.user = { findUnique: jest.fn() };
+  });
+
+  it('/api/v1/health (GET) debe retornar 200', async () => {
+    const res = await request(app.getHttpServer()).get('/api/v1/health');
+    expect(res.status).toBe(200);
   });
 });
