@@ -6,7 +6,7 @@ const ROLE_ROUTES: Record<string, string> = {
   OWNER:         '/dashboard',
   ADMIN:         '/admin',
   MANAGER:       '/waiter-orders',
-  WAITER:        '/waiter-orders',
+  WAITER:        '/waiter/tables',
   CASHIER:       '/cashier',
   CHEF:          '/kitchen',
   KITCHEN_STAFF: '/kitchen',
