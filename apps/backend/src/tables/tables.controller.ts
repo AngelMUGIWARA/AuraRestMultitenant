@@ -45,7 +45,7 @@ export class TablesController {
     return this.tablesService.findById(tenant.schemaName, id);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER')
+  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Patch(':id/status')
   @ApiOperation({ summary: 'Actualizar estado de mesa', operationId: 'tables_updateStatus' })
   @ApiResponse({ status: 200, type: TableResponseDto })

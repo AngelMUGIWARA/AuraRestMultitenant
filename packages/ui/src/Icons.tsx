@@ -226,6 +226,13 @@ export const IconPlus = base(
   </>,
 );
 
+export const IconTable = base(
+  <>
+    <rect x="3" y="7" width="18" height="3" rx="1" />
+    <path d="M6 10v7M18 10v7M9 17h6" />
+  </>,
+);
+
 export const IconLogOut = base(
   <>
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

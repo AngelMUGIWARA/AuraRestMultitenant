@@ -44,6 +44,7 @@ export const MFE_URLS = {
   cashier:      process.env.NEXT_PUBLIC_MFE_CASHIER_URL      ?? 'http://localhost:5006/remoteEntry.js',
   reports:      process.env.NEXT_PUBLIC_MFE_REPORTS_URL      ?? 'http://localhost:5007/remoteEntry.js',
   reservations: process.env.NEXT_PUBLIC_MFE_RESERVATIONS_URL ?? 'http://localhost:5008/remoteEntry.js',
+  tables:       process.env.NEXT_PUBLIC_MFE_TABLES_URL       ?? 'http://localhost:5014/remoteEntry.js',
 } as const;
 
 export function initFederation(): void {
@@ -64,6 +65,7 @@ export function initFederation(): void {
       { name: 'cashier_mf',      entry: MFE_URLS.cashier,      type: 'module' },
       { name: 'reports_mf',      entry: MFE_URLS.reports,      type: 'module' },
       { name: 'reservations_mf', entry: MFE_URLS.reservations, type: 'module' },
+      { name: 'tables_mf',       entry: MFE_URLS.tables,       type: 'module' },
     ],
     shared: {
       react: {

@@ -1,54 +1,13 @@
 import { useState, useCallback, useRef } from 'react';
 import { usePOS } from '../hooks/usePOS';
 import type { MenuItem, RestaurantTable, PaymentMethod } from '@maison/types';
+import { TableCard, TABLE_STATUS_CONFIG, IconTable } from '@maison/ui';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(value);
 }
 
-/* ── Status visual config ───────────────────────────────────────── */
-
-const TABLE_STATUS_CONFIG: Record<string, { bg: string; border: string; dot: string; label: string; textColor: string }> = {
-  free: {
-    bg: 'bg-maison-sage/10',
-    border: 'border-maison-sage/40',
-    dot: 'bg-maison-sage',
-    label: 'Libre',
-    textColor: 'text-maison-sage',
-  },
-  occupied: {
-    bg: 'bg-maison-ruby/10',
-    border: 'border-maison-ruby/40',
-    dot: 'bg-maison-ruby',
-    label: 'Ocupada',
-    textColor: 'text-maison-ruby',
-  },
-  reserved: {
-    bg: 'bg-maison-amber/10',
-    border: 'border-maison-amber/40',
-    dot: 'bg-maison-amber animate-pulse',
-    label: 'Reservada',
-    textColor: 'text-maison-amber',
-  },
-  maintenance: {
-    bg: 'bg-surface-2',
-    border: 'border-white/10',
-    dot: 'bg-maison-cream-dim',
-    label: 'Mantenim.',
-    textColor: 'text-maison-cream-dim',
-  },
-};
-
 /* ── Icons ──────────────────────────────────────────────────────── */
-
-function IconTable({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className={className} aria-hidden="true">
-      <rect x="3" y="7" width="18" height="3" rx="1" />
-      <path d="M6 10v7M18 10v7M9 17h6" />
-    </svg>
-  );
-}
 
 function IconMenu({ className }: { className?: string }) {
   return (
@@ -121,32 +80,6 @@ function MenuItemCard({ item, onAdd }: { item: MenuItem; onAdd: (item: MenuItem)
         <span className="flex items-center justify-center h-6 w-6 rounded-full bg-maison-amber/10 text-maison-amber group-hover:bg-maison-amber group-hover:text-surface-0 transition-colors">
           <IconPlus className="h-3.5 w-3.5" />
         </span>
-      </div>
-    </button>
-  );
-}
-
-/* ── TableCard ───────────────────────────────────────────────────── */
-
-function TableCard({ table, isSelected, onSelect }: { table: RestaurantTable; isSelected: boolean; onSelect: () => void }) {
-  const cfg = TABLE_STATUS_CONFIG[table.status] ?? TABLE_STATUS_CONFIG.maintenance;
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`relative rounded-xl border-2 p-4 text-center transition-all hover:scale-[1.03] active:scale-[0.97] ${cfg.bg} ${cfg.border} ${isSelected ? 'ring-2 ring-maison-amber ring-offset-2 ring-offset-surface-0 shadow-lg shadow-maison-amber/20' : 'hover:shadow-md'}`}
-    >
-      {isSelected && (
-        <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-maison-amber flex items-center justify-center shadow">
-          <IconCheck className="h-3 w-3 text-surface-0" />
-        </span>
-      )}
-      <IconTable className="h-6 w-6 mx-auto mb-1.5 text-maison-cream-dim" />
-      <p className="text-sm font-bold text-maison-cream">{table.name}</p>
-      <p className="text-[10px] text-maison-cream-muted">{table.capacity} pers.</p>
-      <div className="flex items-center justify-center gap-1 mt-1.5">
-        <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-        <span className={`text-[10px] font-semibold ${cfg.textColor}`}>{cfg.label}</span>
       </div>
     </button>
   );
@@ -370,7 +303,9 @@ export default function POSPage() {
                   {tables.map((t) => (
                     <TableCard
                       key={t.id}
-                      table={t}
+                      name={t.name}
+                      capacity={t.capacity}
+                      status={t.status}
                       isSelected={selectedTable?.id === t.id}
                       onSelect={() => { setSelectedTable(selectedTable?.id === t.id ? null : t); }}
                     />

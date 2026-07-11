@@ -26,12 +26,12 @@ export default defineConfig({
   ],
   build: { target: 'esnext' },
   server: {
-    port: 5004,
+    port: 5014,
     cors: true,
     headers: { 'Access-Control-Allow-Origin': '*' },
   },
   preview: {
-    port: 5004,
+    port: 5014,
     cors: true,
     headers: { 'Access-Control-Allow-Origin': '*' },
   },

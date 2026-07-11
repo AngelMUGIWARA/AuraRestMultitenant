@@ -1,10 +1,10 @@
 {
   "latestErrorEvent": {
     "code": "TYPE-001",
-    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project C:\\\\Users\\\\jnune\\\\OneDrive\\\\Escritorio\\\\9no\\\\MultitenantRestaurante\\\\AuraRestMultitenant\\\\apps\\\\reservations-mf\\\\node_modules\\\\.federation\\\\tsconfig.d314dbc569355ccac7618c3f803312b7.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
+    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project C:\\\\Users\\\\jnune\\\\OneDrive\\\\Escritorio\\\\9no\\\\MultitenantRestaurante\\\\AuraRestMultitenant\\\\apps\\\\reservations-mf\\\\node_modules\\\\.federation\\\\tsconfig.debf6068409d357787cb9ca546f92f7f.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
     "args": {
-      "cmd": "npx tsc --project C:\\Users\\jnune\\OneDrive\\Escritorio\\9no\\MultitenantRestaurante\\AuraRestMultitenant\\apps\\reservations-mf\\node_modules\\.federation\\tsconfig.d314dbc569355ccac7618c3f803312b7.json"
+      "cmd": "npx tsc --project C:\\Users\\jnune\\OneDrive\\Escritorio\\9no\\MultitenantRestaurante\\AuraRestMultitenant\\apps\\reservations-mf\\node_modules\\.federation\\tsconfig.debf6068409d357787cb9ca546f92f7f.json"
     },
-    "timestamp": 1783407234114
+    "timestamp": 1783749367761
   }
 }

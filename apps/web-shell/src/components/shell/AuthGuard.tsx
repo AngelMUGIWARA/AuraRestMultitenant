@@ -9,19 +9,24 @@ import { Skeleton } from '@maison/ui';
 
 interface AuthGuardProps {
   children: React.ReactNode;
+  allowedRoles?: string[];
 }
 
-export function AuthGuard({ children }: AuthGuardProps) {
+export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
+    function hasAllowedRole(): boolean {
+      if (!allowedRoles || allowedRoles.length === 0) return true;
+      const role = AuthClient.getRole();
+      return role !== null && allowedRoles.includes(role);
+    }
+
     async function check() {
-      if (AuthClient.isAuthenticated()) {
-        setAuthenticated(true);
+      if (AuthClient.isAuthenticated() && hasAllowedRole()) {
         setChecking(false);
         return;
       }
@@ -38,32 +43,33 @@ export function AuthGuard({ children }: AuthGuardProps) {
           if (data.refreshToken) {
             AuthClient.setRefreshToken(data.refreshToken);
           }
-          setAuthenticated(true);
+          if (hasAllowedRole()) {
+            setChecking(false);
+            return;
+          }
         } catch {
           if (!cancelled) {
             AuthClient.clearTokens();
-            router.replace('/auth/login');
           }
         }
-      } else {
-        router.replace('/auth/login');
       }
+      if (!cancelled) router.replace('/auth/login');
       setChecking(false);
     }
 
     check();
 
     const offLogout = on('auth:logout', () => {
-      setAuthenticated(false);
+      setChecking(true);
       router.replace('/auth/login');
     });
 
     const offLogin = on('auth:login', () => {
-      setAuthenticated(true);
+      setChecking(true);
     });
 
     const offExpired = on('auth:session-expired', () => {
-      setAuthenticated(false);
+      setChecking(true);
       router.replace('/auth/login');
     });
 
@@ -73,7 +79,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
       offLogin();
       offExpired();
     };
-  }, [router]);
+  }, [router, allowedRoles]);
 
   if (checking) {
     return (
@@ -88,8 +94,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
       </div>
     );
   }
-
-  if (!authenticated) return null;
 
   return <>{children}</>;
 }

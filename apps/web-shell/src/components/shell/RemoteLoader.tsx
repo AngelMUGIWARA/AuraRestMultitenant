@@ -15,6 +15,7 @@ const REMOTE_PORT_MAP: Record<string, string> = {
   cashier_mf:      MFE_URLS.cashier,
   reports_mf:      MFE_URLS.reports,
   reservations_mf: MFE_URLS.reservations,
+  tables_mf:       MFE_URLS.tables,
 };
 
 interface RemoteLoaderProps {

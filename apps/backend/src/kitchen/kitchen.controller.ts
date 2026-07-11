@@ -34,7 +34,7 @@ export class KitchenController {
   constructor(private readonly kitchenService: KitchenService) {}
 
   @Get('queue')
-  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CHEF', 'KITCHEN_STAFF')
+  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CHEF', 'KITCHEN_STAFF', 'WAITER')
   @ApiOperation({ summary: 'Obtener cola de cocina', operationId: 'kitchen_getQueue' })
   @ApiResponse({ status: 200, type: [KitchenTicketResponseDto] })
   getQueue(

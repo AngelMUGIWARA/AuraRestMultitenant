@@ -1,10 +1,10 @@
 {
   "latestErrorEvent": {
     "code": "TYPE-001",
-    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project \\\"C:\\\\\\\\Users\\\\\\\\DELL\\\\\\\\Desktop\\\\\\\\9BXimenaPulidoGutierrez\\\\\\\\Desarrollo Web Integral\\\\\\\\integradora9b\\\\\\\\AuraRestMultitenant\\\\\\\\apps\\\\\\\\cashier-mf\\\\\\\\node_modules\\\\\\\\.federation\\\\\\\\tsconfig.f5fe1692512987c8d6ac67c2a3870ce4.json\\\"\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
+    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project C:\\\\Users\\\\jnune\\\\OneDrive\\\\Escritorio\\\\9no\\\\MultitenantRestaurante\\\\AuraRestMultitenant\\\\apps\\\\cashier-mf\\\\node_modules\\\\.federation\\\\tsconfig.6abb8f7c54f936b05beb3fd497496619.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
     "args": {
-      "cmd": "npx tsc --project \"C:\\\\Users\\\\DELL\\\\Desktop\\\\9BXimenaPulidoGutierrez\\\\Desarrollo Web Integral\\\\integradora9b\\\\AuraRestMultitenant\\\\apps\\\\cashier-mf\\\\node_modules\\\\.federation\\\\tsconfig.f5fe1692512987c8d6ac67c2a3870ce4.json\""
+      "cmd": "npx tsc --project C:\\Users\\jnune\\OneDrive\\Escritorio\\9no\\MultitenantRestaurante\\AuraRestMultitenant\\apps\\cashier-mf\\node_modules\\.federation\\tsconfig.6abb8f7c54f936b05beb3fd497496619.json"
     },
-    "timestamp": 1782845001746
+    "timestamp": 1783749366904
   }
 }

@@ -260,25 +260,28 @@ export interface ActivityItem {
 
 // ─── Menu / Carta ─────────────────────────────────────────────────────────────
 
-export type MenuItemStatus = "available" | "unavailable" | "out_of_stock";
+export type MenuItemStatus = "AVAILABLE" | "UNAVAILABLE" | "OUT_OF_STOCK";
 
 export interface MenuItem {
   id: string;
   name: string;
-  description?: string;
-  categoryId: string;
-  categoryName: string;
+  description: string | null;
   price: number;
-  originalPrice?: number;
-  imageUrl?: string;
+  imageUrl: string | null;
   status: MenuItemStatus;
-  isPopular: boolean;
-  isFeatured: boolean;
-  preparationTime: number;
-  allergens?: string[];
-  branchId?: string;
+  isAvailable: boolean;
+  categoryId: string;
+  category: { id: string; name: string };
   createdAt: string;
   updatedAt: string;
+  /** Flattened convenience — set by transform layer if needed */
+  categoryName?: string;
+  originalPrice?: number;
+  isPopular?: boolean;
+  isFeatured?: boolean;
+  preparationTime?: number;
+  allergens?: string[];
+  branchId?: string;
 }
 
 export interface MenuStats {
