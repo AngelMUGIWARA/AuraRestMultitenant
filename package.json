@@ -32,7 +32,7 @@
     "build:reservations": "pnpm --filter reservations-mf build",
     "build:tables":       "pnpm --filter tables-mf build",
 
-    "build:mfes": "pnpm build:auth && pnpm build:dashboard && pnpm build:menu && pnpm build:orders && pnpm build:kitchen && pnpm build:cashier && pnpm build:reports && pnpm build:reservations",
+    "build:mfes": "pnpm build:auth && pnpm build:dashboard && pnpm build:menu && pnpm build:orders && pnpm build:kitchen && pnpm build:cashier && pnpm build:reports && pnpm build:reservations && pnpm build:tables",
     "build": "pnpm build:mfes && pnpm build:shell",
 
     "preview:shell":   "npx serve apps/web-shell/out -p 3030 --single",

@@ -56,7 +56,7 @@ export class OrdersController {
     return this.ordersService.create(tenant.schemaName, createOrderDto, userId);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER')
+  @Roles('ADMIN', 'MANAGER', 'OWNER', 'WAITER')
   @Get()
   @ApiOperation({ summary: 'Listar órdenes con filtros', operationId: 'orders_findAll' })
   @ApiResponse({ status: 200, type: PaginatedOrdersDto })
@@ -67,7 +67,7 @@ export class OrdersController {
     return this.ordersService.findAll(tenant.schemaName, query);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER')
+  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Get('stats')
   @ApiOperation({ summary: 'Estadísticas de órdenes del día', operationId: 'orders_getStats' })
   @ApiResponse({ status: 200, type: OrderStatsResponseDto })

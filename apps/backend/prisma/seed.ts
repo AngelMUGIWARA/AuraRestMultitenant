@@ -166,6 +166,15 @@ async function main() {
     });
   }
 
+  const waiterRole = await tenantDb.role.findUnique({ where: { name: 'WAITER' } });
+  if (waiterRole) {
+    await tenantDb.userBranch.upsert({
+      where: { userId_branchId: { userId: users[2].id, branchId: branch.id } },
+      update: {},
+      create: { userId: users[2].id, branchId: branch.id, roleId: waiterRole.id },
+    });
+  }
+
 
   // ── 3. Categorías ──────────────────────────────────────────────────────────
   const [entradas, fuertes, bebidas, postres] = await Promise.all([

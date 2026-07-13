@@ -6,6 +6,7 @@ import {
 } from './helpers/test-app.helper';
 import {
   mockAdminUser,
+  mockChefUser,
   mockCreatedOrder,
   mockWaiterUser,
   TENANT_SCHEMA,
@@ -53,11 +54,34 @@ describe('Security (Integration HTTP)', () => {
   });
 
   describe('Roles', () => {
-    it('debe retornar 403 cuando el rol no tiene permisos (WAITER en lista de órdenes)', async () => {
+    it('debe permitir acceso con rol WAITER en lista de órdenes (solo lectura)', async () => {
+      tenantDb.order.findMany.mockResolvedValue([mockCreatedOrder]);
+      tenantDb.order.count.mockResolvedValue(1);
+
       const token = generateAccessToken(jwtService, {
         id: mockWaiterUser.id,
         email: mockWaiterUser.email,
         role: mockWaiterUser.role,
+      });
+
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/orders')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('data');
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.data.length).toBe(1);
+      expect(res.body.data[0]).toHaveProperty('id');
+      expect(res.body.data[0]).toHaveProperty('status');
+      expect(mockTenantPrisma.getClient).toHaveBeenCalledWith(TENANT_SCHEMA);
+    });
+
+    it('debe retornar 403 cuando el rol no tiene permisos (CHEF en lista de órdenes)', async () => {
+      const token = generateAccessToken(jwtService, {
+        id: mockChefUser.id,
+        email: mockChefUser.email,
+        role: mockChefUser.role,
       });
 
       const res = await request(app.getHttpServer())
