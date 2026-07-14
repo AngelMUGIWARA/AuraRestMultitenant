@@ -30,6 +30,24 @@ export function useCreateOrder(initialTableId?: string) {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    if (!initialTableId) return;
+    let cancelled = false;
+    ordersService.getTable(initialTableId)
+      .then((res) => {
+        if (!cancelled) {
+          const tableData = (res as any)?.data ?? res;
+          if (tableData && tableData.id) {
+            setTable(tableData);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Error al cargar la mesa:', err);
+      });
+    return () => { cancelled = true; };
+  }, [initialTableId]);
+
   const addItem = useCallback((item: MenuItem, quantity = 1) => {
     setCart((prev) => {
       const existing = prev.find((c) => c.menuItem.id === item.id);

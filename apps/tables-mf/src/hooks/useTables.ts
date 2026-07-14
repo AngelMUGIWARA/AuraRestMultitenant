@@ -29,7 +29,28 @@ export function useTables() {
 
     tablesService.getAll({ ...filters, branchId })
       .then((response) => {
-        if (!cancelled) setTables(response.data);
+        if (!cancelled) {
+          const rawData = response as any;
+          let items: RestaurantTable[] = [];
+          
+          if (Array.isArray(rawData)) {
+            items = rawData;
+          } else if (rawData && Array.isArray(rawData.data)) {
+            items = rawData.data;
+          } else if (rawData && rawData.data && Array.isArray(rawData.data.data)) {
+            items = rawData.data.data;
+          } else if (rawData && rawData.items && Array.isArray(rawData.items)) {
+            items = rawData.items;
+          }
+
+          setTables({
+            data: items,
+            total: items.length,
+            page: filters.page || 1,
+            limit: filters.limit || 30,
+            totalPages: Math.ceil(items.length / (filters.limit || 30))
+          });
+        }
       })
       .catch((e: unknown) => {
         if (!cancelled) setError(e instanceof Error ? e : new Error('Error al cargar mesas'));

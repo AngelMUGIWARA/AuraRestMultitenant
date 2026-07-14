@@ -4,7 +4,7 @@ import OrdersPage from './pages/OrdersPage';
 import CreateOrderPage from './pages/CreateOrderPage';
 
 const initialPath = typeof window !== 'undefined'
-  ? window.location.pathname.replace(/^\/waiter/, '') || '/orders'
+  ? (window.location.pathname.replace(/^\/waiter/, '') + window.location.search) || '/orders'
   : '/orders';
 
 export default function OrdersApp() {

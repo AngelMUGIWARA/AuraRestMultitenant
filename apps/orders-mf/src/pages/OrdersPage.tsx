@@ -118,12 +118,14 @@ function OrderCard({
   onUpdateStatus,
   onCancel,
   disabled,
+  readOnly, // <--- 1. Agrégalo aquí
 }: {
   order: Order;
   onUpdateStatus: (orderId: string, status: string) => void;
   onCancel: (orderId: string) => void;
   disabled: boolean;
-}) {
+  readOnly: boolean; // <--- 2. Agrégalo al tipo
+}){
   const cfg = STATUS_CONFIG[order.status];
   const maxItems = 3;
   const shownItems = order.items?.slice(0, maxItems) ?? [];
@@ -492,6 +494,7 @@ export default function OrdersPage() {
                 onUpdateStatus={updateOrderStatus}
                 onCancel={cancelOrder}
                 disabled={isActing}
+                readOnly={readOnly}
               />
             ))}
           </div>

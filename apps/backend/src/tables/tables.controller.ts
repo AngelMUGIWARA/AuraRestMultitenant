@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Patch,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiSecurity, ApiTags } from '@nestjs/swagger';
@@ -29,8 +30,11 @@ export class TablesController {
   @Get()
   @ApiOperation({ summary: 'Listar mesas', operationId: 'tables_findAll' })
   @ApiResponse({ status: 200, type: [TableResponseDto] })
-  findAll(@CurrentTenant() tenant: TenantContext) {
-    return this.tablesService.findAll(tenant.schemaName);
+  findAll(
+    @CurrentTenant() tenant: TenantContext,
+    @Query('branchId') branchId?: string,
+  ) {
+    return this.tablesService.findAll(tenant.schemaName, branchId);
   }
 
   @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')

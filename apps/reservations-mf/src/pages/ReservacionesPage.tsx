@@ -544,7 +544,9 @@ export default function ReservacionesPage() {
             refresh();
             setIsModalOpen(false);
           }}
-          branchId={selectedBranch.id}
+          // CAMBIO AQUÍ: Si es global, pasamos undefined para que el modal sepa
+          // que no debe filtrar por un ID que no existe.
+          branchId={selectedBranch.isGlobal ? undefined : selectedBranch.id}
         />
       )}
     </div>
