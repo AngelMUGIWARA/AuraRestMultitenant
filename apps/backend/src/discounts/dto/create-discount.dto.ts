@@ -24,10 +24,6 @@ export class CreateDiscountDto {
   @IsString()
   value: string;
 
-  @ApiProperty()
-  @IsString()
-  amount: string;
-
   @ApiPropertyOptional({ default: true })
   @IsOptional()
   @IsBoolean()
@@ -50,7 +46,6 @@ export class DiscountResponseDto {
   @ApiPropertyOptional() code?: string | null;
   @ApiProperty() type: string;
   @ApiProperty() value: number;
-  @ApiProperty() amount: number;
   @ApiProperty() isActive: boolean;
   @ApiPropertyOptional() maxAmount?: number | null;
   @ApiPropertyOptional() minPurchase?: number | null;
