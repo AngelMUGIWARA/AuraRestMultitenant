@@ -22,7 +22,6 @@ export class DiscountsService {
       code: dto.code,
       type: dto.type as $Enums.DiscountType,
       value: dto.value,
-      amount: dto.amount,
       isActive: dto.isActive ?? true,
       maxAmount: dto.maxAmount,
       minPurchase: dto.minPurchase,
@@ -57,7 +56,6 @@ export class DiscountsService {
     if (dto.code !== undefined) data.code = dto.code;
     if (dto.type !== undefined) data.type = dto.type as $Enums.DiscountType;
     if (dto.value !== undefined) data.value = dto.value;
-    if (dto.amount !== undefined) data.amount = dto.amount;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
     if (dto.maxAmount !== undefined) data.maxAmount = dto.maxAmount;
     if (dto.minPurchase !== undefined) data.minPurchase = dto.minPurchase;
@@ -79,7 +77,6 @@ export class DiscountsService {
       code: discount.code || null,
       type: discount.type?.toLowerCase() || 'fixed',
       value: Number(discount.value),
-      amount: Number(discount.amount),
       isActive: discount.isActive,
       maxAmount: discount.maxAmount ? Number(discount.maxAmount) : null,
       minPurchase: discount.minPurchase ? Number(discount.minPurchase) : null,
