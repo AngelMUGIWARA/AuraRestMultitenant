@@ -21,7 +21,7 @@ export class ReservationsController {
   constructor(private readonly reservationsService: ReservationsService) {}
 
   @Get('stats')
-  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER')
+  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER')
   @ApiOperation({ summary: 'Obtener estadísticas de reservaciones', operationId: 'reservations_getStats' })
   @ApiResponse({ status: 200, description: 'Estadísticas de reservaciones' })
   getStats(

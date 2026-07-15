@@ -1,8 +1,17 @@
 import { useTables } from '../hooks/useTables';
 import { TablesGrid } from '../components/TablesGrid';
+import type { RestaurantTable } from '@maison/types';
+import { useCallback } from 'react';
 
 export function TablesPage() {
   const { tables, isLoading, error, refresh, branch } = useTables();
+
+  const handleSelect = useCallback((table: RestaurantTable) => {
+    window.location.href = `/waiter/orders/new?tableId=${table.id}`;
+    // TODO: tech-debt — window.location.href forces full shell reload.
+    // Replace with a global navigation bridge (e.g. custom event or window.__SHELL_NAVIGATE__)
+    // when cross-MFE navigation mechanism is introduced.
+  }, []);
 
   if (isLoading) {
     return (
@@ -26,19 +35,21 @@ export function TablesPage() {
     <div className="p-6 space-y-6">
       <header className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-maison-cream">Gestión de Mesas</h1>
+          <h1 className="text-2xl font-bold text-maison-cream">Mesas</h1>
           <p className="text-sm text-maison-cream-muted">Sucursal: {branch.name}</p>
         </div>
         <button 
           onClick={refresh}
           className="px-4 py-2 bg-surface-2 rounded-lg text-sm text-maison-cream hover:bg-surface-3 transition"
         >
-          Actualizar Vista
+          Actualizar
         </button>
       </header>
 
-      {/* Aquí renderizamos el croquis o grid */}
-      <TablesGrid data={tables?.data || []} />
+      <TablesGrid
+        data={tables?.data || []}
+        onSelect={handleSelect}
+      />
     </div>
   );
 }

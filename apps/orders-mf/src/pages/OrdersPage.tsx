@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useBranch } from '@maison/ui';
+import { getIsReadOnly } from '@maison/auth-client';
 import { useOrders } from '../hooks/useOrders';
 import { formatCurrency, formatNumber, formatRelativeTime, cn } from '../utils';
 import { StatCard, StatCardSkeleton } from '@maison/ui';
@@ -117,12 +118,14 @@ function OrderCard({
   onUpdateStatus,
   onCancel,
   disabled,
+  readOnly, // <--- 1. Agrégalo aquí
 }: {
   order: Order;
   onUpdateStatus: (orderId: string, status: string) => void;
   onCancel: (orderId: string) => void;
   disabled: boolean;
-}) {
+  readOnly: boolean; // <--- 2. Agrégalo al tipo
+}){
   const cfg = STATUS_CONFIG[order.status];
   const maxItems = 3;
   const shownItems = order.items?.slice(0, maxItems) ?? [];
@@ -227,8 +230,8 @@ function OrderCard({
         </div>
       </div>
 
-      {/* Card actions */}
-      {(next || canCancel) && (
+      {/* Card actions — blocked for read-only roles */}
+      {!readOnly && (next || canCancel) && (
         <div className="relative flex items-center gap-2 border-t border-maison-border px-4 py-3 bg-surface-2/50">
           {next && (
             <button
@@ -299,6 +302,7 @@ function OrderCardSkeleton() {
 /* ─── Page ──────────────────────────────────────────────────────── */
 
 export default function OrdersPage() {
+  const readOnly = getIsReadOnly();
   const { selectedBranch } = useBranch();
   const { stats, orders, isLoading, error, filters, setFilters, refresh, updateOrderStatus, cancelOrder, isActing } = useOrders(
     selectedBranch.id,
@@ -490,6 +494,7 @@ export default function OrdersPage() {
                 onUpdateStatus={updateOrderStatus}
                 onCancel={cancelOrder}
                 disabled={isActing}
+                readOnly={readOnly}
               />
             ))}
           </div>

@@ -55,7 +55,7 @@ export class MenusController {
     type: String,
     description: "Filtrar productos por categoría",
   })
-  @Roles("OWNER", "ADMIN", "MANAGER")
+  @Roles("OWNER", "ADMIN", "MANAGER", "WAITER")
   @ApiOperation({ summary: "Listar menú", operationId: "menus_findAll" })
   @ApiResponse({ status: 200, type: [MenuResponseDto] })
   findAll(

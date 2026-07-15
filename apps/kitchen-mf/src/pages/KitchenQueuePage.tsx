@@ -1,3 +1,4 @@
+import { getIsReadOnly } from '@maison/auth-client';
 import { useKitchenQueue } from '../hooks/useKitchenQueue';
 import type { KitchenTicket, KitchenTicketStatus } from '@maison/types';
 
@@ -19,9 +20,10 @@ function formatElapsed(seconds: number): string {
   return `${m}m ${s}s`;
 }
 
-function KitchenTicketCard({ ticket, onUpdateStatus }: {
+function KitchenTicketCard({ ticket, onUpdateStatus, readOnly }: {
   ticket: KitchenTicket;
   onUpdateStatus: (ticketId: string, orderId: string, orderNumber: string, status: KitchenTicketStatus) => void;
+  readOnly?: boolean;
 }) {
   const cfg = STATUS_CONFIG[ticket.status];
   const isOverdue = ticket.elapsedSeconds > 900;
@@ -69,7 +71,7 @@ function KitchenTicketCard({ ticket, onUpdateStatus }: {
 
       {/* Actions */}
       <div className="flex gap-2 px-4 py-3 border-t border-white/10">
-        {ticket.status === 'PENDING' && (
+        {!readOnly && ticket.status === 'PENDING' && (
           <button
             type="button"
             onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber, 'IN_PROGRESS')}
@@ -78,7 +80,7 @@ function KitchenTicketCard({ ticket, onUpdateStatus }: {
             Iniciar preparación
           </button>
         )}
-        {ticket.status === 'IN_PROGRESS' && (
+        {!readOnly && ticket.status === 'IN_PROGRESS' && (
           <button
             type="button"
             onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber, 'READY')}
@@ -87,9 +89,14 @@ function KitchenTicketCard({ ticket, onUpdateStatus }: {
             Marcar como listo ✓
           </button>
         )}
-        {ticket.status === 'READY' && (
+        {(!readOnly && ticket.status === 'READY') && (
           <span className="flex-1 text-center text-sm font-medium text-maison-sage py-2">
             ✓ Listo para servir
+          </span>
+        )}
+        {readOnly && ticket.status !== 'DELIVERED' && (
+          <span className="flex-1 text-center text-sm font-medium text-maison-cream-dim py-2">
+            {STATUS_CONFIG[ticket.status].label}
           </span>
         )}
       </div>
@@ -99,6 +106,7 @@ function KitchenTicketCard({ ticket, onUpdateStatus }: {
 
 export default function KitchenQueuePage() {
   const { tickets, isLoading, error, wsConnected, updateTicketStatus } = useKitchenQueue();
+  const readOnly = getIsReadOnly();
 
   const newTickets = tickets.filter((t) => t.status === 'PENDING');
   const inProgressTickets = tickets.filter((t) => t.status === 'IN_PROGRESS');
@@ -162,7 +170,7 @@ export default function KitchenQueuePage() {
               <h2 className="text-sm font-medium text-maison-cream uppercase tracking-wider">Nuevos ({newTickets.length})</h2>
             </div>
             <div className="space-y-4">
-              {newTickets.map((t) => <KitchenTicketCard key={t.id} ticket={t} onUpdateStatus={updateTicketStatus} />)}
+              {newTickets.map((t) => <KitchenTicketCard key={t.id} ticket={t} onUpdateStatus={updateTicketStatus} readOnly={readOnly} />)}
               {newTickets.length === 0 && <p className="text-xs text-maison-cream-dim text-center py-8">Sin nuevas órdenes</p>}
             </div>
           </section>
@@ -173,7 +181,7 @@ export default function KitchenQueuePage() {
               <h2 className="text-sm font-medium text-maison-cream uppercase tracking-wider">En preparación ({inProgressTickets.length})</h2>
             </div>
             <div className="space-y-4">
-              {inProgressTickets.map((t) => <KitchenTicketCard key={t.id} ticket={t} onUpdateStatus={updateTicketStatus} />)}
+              {inProgressTickets.map((t) => <KitchenTicketCard key={t.id} ticket={t} onUpdateStatus={updateTicketStatus} readOnly={readOnly} />)}
               {inProgressTickets.length === 0 && <p className="text-xs text-maison-cream-dim text-center py-8">Sin órdenes en preparación</p>}
             </div>
           </section>
@@ -184,7 +192,7 @@ export default function KitchenQueuePage() {
               <h2 className="text-sm font-medium text-maison-cream uppercase tracking-wider">Listos ({readyTickets.length})</h2>
             </div>
             <div className="space-y-4">
-              {readyTickets.map((t) => <KitchenTicketCard key={t.id} ticket={t} onUpdateStatus={updateTicketStatus} />)}
+              {readyTickets.map((t) => <KitchenTicketCard key={t.id} ticket={t} onUpdateStatus={updateTicketStatus} readOnly={readOnly} />)}
               {readyTickets.length === 0 && <p className="text-xs text-maison-cream-dim text-center py-8">Sin órdenes listas</p>}
             </div>
           </section>

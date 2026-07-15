@@ -101,3 +101,19 @@ export const AuthClient = {
     return token ? `Bearer ${token}` : null;
   },
 };
+
+/**
+ * Roles whose UI should be read-only (view without edit/action controls).
+ * Reusable across MFEs to avoid repeating role checks.
+ */
+const READ_ONLY_ROLES = new Set(['WAITER']);
+
+export function hasReadOnlyAccess(role?: string | null): boolean {
+  return role !== undefined && role !== null && READ_ONLY_ROLES.has(role);
+}
+
+export function getIsReadOnly(): boolean {
+  if (typeof window === 'undefined') return false;
+  const role = AuthClient.getRole();
+  return hasReadOnlyAccess(role);
+}

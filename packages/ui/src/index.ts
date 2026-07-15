@@ -4,3 +4,5 @@ export { EmptyState } from './EmptyState';
 export { StatCard, StatCardSkeleton } from './StatCard';
 export { cn } from './cn';
 export { BranchProvider, useBranch, GLOBAL_BRANCH } from './branch';
+export { TableCard } from './table/TableCard';
+export { TABLE_STATUS_CONFIG } from './table/table-status';

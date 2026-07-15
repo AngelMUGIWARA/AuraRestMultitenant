@@ -8,7 +8,7 @@ interface ReservationModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void; // Corregido/Asegurado de tus props originales
-    branchId: string;      // Recibido automáticamente del contexto de la sucursal seleccionada
+    branchId?: string;      // Recibido automáticamente del contexto de la sucursal seleccionada
 }
 
 export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: ReservationModalProps) {
@@ -28,38 +28,51 @@ export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: Reser
 
     // Cargar mesas cuando se abre el modal (SIN CAMBIOS)
     useEffect(() => {
-        console.log("Intentando buscar mesas para branchId:", branchId);
-
+        console.log("Estado actual - isOpen:", isOpen, "branchId:", branchId);
+    
         if (isOpen && branchId) {
             tablesService.findByBranch(branchId)
                 .then((mesas) => {
-                    console.log("Mesas listas para renderizar en el modal:", mesas);
+                    console.log("Respuesta del servicio (Mesas):", mesas);
+                    // Si la respuesta es un objeto que contiene una lista (ej: { data: [...] }), 
+                    // debes acceder a la propiedad correcta:
+                    // setTables(mesas.data || []);
                     setTables(Array.isArray(mesas) ? mesas : []);
                 })
                 .catch((err) => {
-                    console.error("Error atrapado en el componente:", err);
-                    setTables([]);
+                    console.error("Error detallado en la petición de mesas:", err);
                 });
+        } else {
+            console.log("No se ejecuta la petición: isOpen o branchId faltantes.");
+            setTables([]);
         }
     }, [isOpen, branchId]);
-
+    
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
 
+
         try {
+            // Validación de seguridad: no permitir crear reserva sin sucursal
+            if (!branchId) {
+                alert("No se ha seleccionado una sucursal válida.");
+                setIsSubmitting(false);
+                return;
+            }
+    
             const payload: CreateReservationPayload = {
                 guestName: formData.guestName,
                 guestPhone: formData.guestPhone,
-                guestEmail: formData.guestEmail.trim() || undefined, // Envía undefined si viene vacío para cumplir el contrato
+                guestEmail: formData.guestEmail.trim() || undefined,
                 partySize: Number(formData.partySize),
                 date: formData.date,
                 time: formData.time,
-                notes: formData.notes.trim() || undefined,           // Envía undefined si viene vacío para cumplir el contrato
-                branchId: branchId,
-                tableId: formData.tableId || undefined             // Se envía el ID seleccionado o undefined si es opcional
+                notes: formData.notes.trim() || undefined,
+                branchId: branchId, // Como ya validamos que existe, TS no se quejará
+                tableId: formData.tableId || undefined 
             };
-
+    
             await reservationsService.create(payload);
             onSuccess();
             onClose();

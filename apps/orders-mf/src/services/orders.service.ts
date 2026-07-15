@@ -1,5 +1,5 @@
 import { apiClient } from '@maison/api-client';
-import type { PaginatedResponse, Order, OrderStats, OrderFilters, UpdateOrderStatusPayload } from '@maison/types';
+import type { PaginatedResponse, Order, OrderStats, OrderFilters, UpdateOrderStatusPayload, CreateOrderPayload, MenuItem, RestaurantTable } from '@maison/types';
 
 export const ordersService = {
   getStats: (branchId?: string) =>
@@ -16,4 +16,12 @@ export const ordersService = {
     apiClient.patch<Order>(`/orders/${id}/status`, payload),
   cancel: (id: string, reason?: string) =>
     apiClient.post<Order>(`/orders/${id}/cancel`, { reason }),
+  createOrder: (payload: CreateOrderPayload) =>
+    apiClient.post<Order>('/orders', payload),
+  getMenuItems: (categoryId?: string) =>
+    apiClient.get<MenuItem[]>('/admin/menus', {
+      params: { ...(categoryId ? { categoryId } : {}), status: 'AVAILABLE' },
+    }),
+  getTable: (id: string) =>
+    apiClient.get<RestaurantTable>(`/tables/${id}`),
 };

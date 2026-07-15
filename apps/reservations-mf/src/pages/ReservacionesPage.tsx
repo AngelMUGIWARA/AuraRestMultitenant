@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { emit } from '@maison/event-bus';
 import { useBranch } from '@maison/ui';
+import { getIsReadOnly } from '@maison/auth-client';
 import { useReservations } from '../hooks/useReservations';
 import { formatNumber, cn } from '../utils';
 import { StatCard, StatCardSkeleton } from '@maison/ui';
@@ -102,7 +103,7 @@ function MiniCalendarSkeleton() {
 /* ─── Reservation row ───────────────────────────────────────────── */
 
 interface ReservationRowProps {
-  id: string; // <-- Necesitamos el ID para saber cuál actualizar
+  id: string;
   confirmationCode: string;
   guestName: string;
   guestPhone: string;
@@ -111,8 +112,9 @@ interface ReservationRowProps {
   tableName: string | undefined;
   status: ReservationStatus;
   notes: string | undefined;
+  readOnly?: boolean;
   onCancel: (confirmationCode: string) => void;
-  onStatusChange: (id: string, newStatus: ReservationStatus) => void; // <-- Nueva prop
+  onStatusChange: (id: string, newStatus: ReservationStatus) => void;
 }
 
 function ReservationRow({
@@ -125,6 +127,7 @@ function ReservationRow({
   tableName,
   status,
   notes,
+  readOnly,
   onCancel,
   onStatusChange,
 }: ReservationRowProps) {
@@ -159,24 +162,30 @@ function ReservationRow({
         {tableName ?? '—'}
       </span>
 
-      {/* Status Interactivo (Select en lugar de Span) */}
+      {/* Status */}
       <div className="relative flex items-center">
         <span className={cn('absolute left-3 h-1.5 w-1.5 rounded-full pointer-events-none', STATUS_DOT[status.toLowerCase() as ReservationStatus])} />
 
-        <select
-          value={status.toUpperCase()} // <-- Forzamos minúsculas para el valor seleccionado
-          onChange={(e) => onStatusChange(id, e.target.value as ReservationStatus)}
-          className={cn(
-            'badge pl-6 pr-2 py-1 appearance-none cursor-pointer border border-transparent hover:border-maison-cream-muted/30 focus:outline-none transition-all',
-            STATUS_BADGE[status.toUpperCase() as ReservationStatus]
-          )}
-        >
-          {Object.entries(RESERVATION_STATUS_LABELS).map(([key, label]) => (
-            <option key={key} value={key} className="bg-surface-1 text-maison-cream text-xs">
-              {label} {/* Al usar Object.entries mapeamos exactamente las 6 opciones únicas */}
-            </option>
-          ))}
-        </select>
+        {readOnly ? (
+          <span className={cn('badge pl-6 pr-2 py-1 text-xs font-medium', STATUS_BADGE[status.toUpperCase() as ReservationStatus])}>
+            {RESERVATION_STATUS_LABELS[status.toUpperCase() as ReservationStatus]}
+          </span>
+        ) : (
+          <select
+            value={status.toUpperCase()}
+            onChange={(e) => onStatusChange(id, e.target.value as ReservationStatus)}
+            className={cn(
+              'badge pl-6 pr-2 py-1 appearance-none cursor-pointer border border-transparent hover:border-maison-cream-muted/30 focus:outline-none transition-all',
+              STATUS_BADGE[status.toUpperCase() as ReservationStatus]
+            )}
+          >
+            {Object.entries(RESERVATION_STATUS_LABELS).map(([key, label]) => (
+              <option key={key} value={key} className="bg-surface-1 text-maison-cream text-xs">
+                {label}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {notes && (
@@ -186,7 +195,7 @@ function ReservationRow({
       )}
 
       {/* Cancel action (only for pending/confirmed) */}
-      {(status === 'pending' || status === 'confirmed') && (
+      {!readOnly && (status === 'pending' || status === 'confirmed') && (
         <button
           type="button"
           onClick={() => onCancel(confirmationCode)}
@@ -203,6 +212,7 @@ function ReservationRow({
 /* ─── Page ──────────────────────────────────────────────────────── */
 
 export default function ReservacionesPage() {
+  const readOnly = getIsReadOnly();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { selectedBranch } = useBranch(); // <-- Extraemos la sucursal seleccionada del contexto global
 
@@ -283,14 +293,16 @@ export default function ReservacionesPage() {
           <button type="button" onClick={refresh} className="btn-ghost" disabled={isLoading}>
             <IconRefresh className={cn('h-4 w-4', isLoading && 'animate-spin')} />
           </button>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => setIsModalOpen(true)}
-          >
-            <IconPlus className="h-4 w-4" />
-            Nueva reservación
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setIsModalOpen(true)}
+            >
+              <IconPlus className="h-4 w-4" />
+              Nueva reservación
+            </button>
+          )}
         </div>
       </header>
 
@@ -412,7 +424,9 @@ export default function ReservacionesPage() {
                 title={
                   hasError
                     ? 'No se pudieron cargar las reservaciones'
-                    : 'Sin reservaciones'
+                    : readOnly
+                      ? 'Sin reservaciones para hoy'
+                      : 'Sin reservaciones'
                 }
                 description={
                   hasError
@@ -440,10 +454,11 @@ export default function ReservacionesPage() {
                     tableName={r.tableName || r.table?.number}
                     status={r.status}
                     notes={r.notes}
+                    readOnly={readOnly}
                     onCancel={(confirmationCode) =>
                       handleCancelReservation(r.id, confirmationCode)
                     }
-                    onStatusChange={handleStatusChange} // <-- Pasamos la nueva función
+                    onStatusChange={handleStatusChange}
                   />
                 ))}
               </div>
@@ -521,15 +536,19 @@ export default function ReservacionesPage() {
         </div>
       </div>
 
-      <ReservationModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={() => {
-          refresh();
-          setIsModalOpen(false);
-        }}
-        branchId={selectedBranch.id} // <-- Pasamos de forma garantizada el id limpio de la sucursal seleccionada
-      />
+      {!readOnly && (
+        <ReservationModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={() => {
+            refresh();
+            setIsModalOpen(false);
+          }}
+          // CAMBIO AQUÍ: Si es global, pasamos undefined para que el modal sepa
+          // que no debe filtrar por un ID que no existe.
+          branchId={selectedBranch.isGlobal ? undefined : selectedBranch.id}
+        />
+      )}
     </div>
   );
 }
