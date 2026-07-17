@@ -311,8 +311,8 @@ export interface CreateMenuItemPayload {
   description?: string;
   categoryId: string;
   price: number;
-  preparationTime: number;
-  branchId?: string;
+  imageUrl?: string;
+  isAvailable?: boolean;
 }
 
 export interface UpdateMenuItemPricePayload {
@@ -358,9 +358,9 @@ export interface CategoryFilters {
 export interface CreateCategoryPayload {
   name: string;
   description?: string;
-  color?: string;
-  parentId?: string;
-  branchId?: string;
+  imageUrl?: string;
+  sortOrder?: number;
+  isActive?: boolean;
 }
 
 // ─── Inventory ────────────────────────────────────────────────────────────────
