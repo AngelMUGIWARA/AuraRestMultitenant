@@ -53,7 +53,10 @@ describe('Security (Integration HTTP)', () => {
   });
 
   describe('Roles', () => {
-    it('debe retornar 403 cuando el rol no tiene permisos (WAITER en lista de órdenes)', async () => {
+    it('debe permitir acceso a WAITER en lista de órdenes (meseros necesitan ver órdenes)', async () => {
+      tenantDb.order.findMany.mockResolvedValue([]);
+      tenantDb.order.count.mockResolvedValue(0);
+
       const token = generateAccessToken(jwtService, {
         id: mockWaiterUser.id,
         email: mockWaiterUser.email,
@@ -64,7 +67,7 @@ describe('Security (Integration HTTP)', () => {
         .get('/api/v1/orders')
         .set('Authorization', `Bearer ${token}`);
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(200);
     });
 
     it('debe permitir acceso con rol correcto (ADMIN en lista de órdenes)', async () => {
