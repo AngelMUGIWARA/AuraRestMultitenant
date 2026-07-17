@@ -1,5 +1,5 @@
 import { apiClient } from '@maison/api-client';
-import type { ApiResponse, PaginatedResponse, MenuItem, MenuStats, MenuFilters, CreateMenuItemPayload, UpdateMenuItemPricePayload } from '@maison/types';
+import type { ApiResponse, PaginatedResponse, MenuItem, MenuItemStatus, MenuStats, MenuFilters, CreateMenuItemPayload, UpdateMenuItemPricePayload } from '@maison/types';
 
 export const menusService = {
   getStats: (branchId?: string) => apiClient.get<ApiResponse<MenuStats>>('/admin/menus/stats', { params: branchId && branchId !== 'global' ? { branchId } : undefined }),
@@ -8,6 +8,6 @@ export const menusService = {
   create: (payload: CreateMenuItemPayload) => apiClient.post<ApiResponse<MenuItem>>('/admin/menus', payload),
   update: (id: string, payload: Partial<CreateMenuItemPayload>) => apiClient.put<ApiResponse<MenuItem>>(`/admin/menus/${id}`, payload),
   updatePrice: (id: string, payload: UpdateMenuItemPricePayload) => apiClient.patch<ApiResponse<MenuItem>>(`/admin/menus/${id}/price`, payload),
-  toggleStatus: (id: string, available: boolean) => apiClient.patch<ApiResponse<MenuItem>>(`/admin/menus/${id}/status`, { available }),
+  updateStatus: (id: string, status: MenuItemStatus) => apiClient.patch<ApiResponse<MenuItem>>(`/admin/menus/${id}/status`, { status }),
   delete: (id: string) => apiClient.delete<ApiResponse<void>>(`/admin/menus/${id}`),
 };

@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useBranch } from '@maison/ui';
 import { useCategories } from '../hooks/useCategories';
+import { CategoryFormModal } from '../components/CategoryFormModal';
 import { formatNumber, cn } from '../utils';
 import { StatCard, StatCardSkeleton } from '@maison/ui';
 import { Skeleton } from '@maison/ui';
 import { EmptyState } from '@maison/ui';
+import { ConfirmDialog } from '@maison/ui';
 import {
-  IconCategories, IconPlus, IconRefresh, IconSearch,
+  IconCategories, IconPlus, IconRefresh, IconSearch, IconPencil, IconTrash,
 } from '@maison/ui';
-import type { Category } from '@maison/types';
+import type { Category, CreateCategoryPayload } from '@maison/types';
 
 /* ─── Category card ─────────────────────────────────────────────── */
 
@@ -19,7 +21,14 @@ const ACCENT_COLORS = [
   'bg-maison-ruby-bg text-maison-ruby border-maison-ruby/20',
 ];
 
-function CategoryCard({ cat, index }: { cat: Category; index: number }) {
+interface CategoryCardProps {
+  cat: Category;
+  index: number;
+  onEdit: (cat: Category) => void;
+  onDelete: (cat: Category) => void;
+}
+
+function CategoryCard({ cat, index, onEdit, onDelete }: CategoryCardProps) {
   const accent = ACCENT_COLORS[index % ACCENT_COLORS.length];
   return (
     <div className="card card-hover flex flex-col gap-4 p-4">
@@ -54,6 +63,25 @@ function CategoryCard({ cat, index }: { cat: Category; index: number }) {
           {formatNumber(cat.productCount)}
         </span>
       </div>
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => onEdit(cat)}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded border border-maison-border bg-surface-2 px-2.5 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:bg-surface-3 hover:text-maison-cream"
+          aria-label={`Editar ${cat.name}`}
+        >
+          <IconPencil className="h-3 w-3" />
+          Editar
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(cat)}
+          className="flex items-center justify-center gap-1.5 rounded border border-maison-border bg-surface-2 px-2.5 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:border-maison-ruby/30 hover:bg-maison-ruby-bg hover:text-maison-ruby"
+          aria-label={`Eliminar ${cat.name}`}
+        >
+          <IconTrash className="h-3 w-3" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -83,15 +111,43 @@ function CategoryCardSkeleton() {
 
 export default function CategoriasPage() {
   const { selectedBranch } = useBranch();
-  const { stats, categories, isLoading, error, filters, setFilters, refresh } = useCategories(
-    selectedBranch.id,
-  );
+  const {
+    stats, categories, isLoading, error, filters, setFilters, refresh,
+    createCategory, updateCategory, removeCategory, isMutating,
+  } = useCategories(selectedBranch.id);
   const [search, setSearch] = useState('');
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const hasError = !!error;
 
   function handleSearch(value: string) {
     setSearch(value);
     setFilters({ search: value || undefined });
+  }
+
+  function openCreateForm() {
+    setEditingCategory(null);
+    setFormOpen(true);
+  }
+
+  function openEditForm(cat: Category) {
+    setEditingCategory(cat);
+    setFormOpen(true);
+  }
+
+  async function handleFormSubmit(payload: CreateCategoryPayload) {
+    if (editingCategory) {
+      await updateCategory(editingCategory.id, payload);
+    } else {
+      await createCategory(payload);
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!deletingCategory) return;
+    await removeCategory(deletingCategory.id);
+    setDeletingCategory(null);
   }
 
   return (
@@ -113,7 +169,7 @@ export default function CategoriasPage() {
           <button type="button" onClick={refresh} className="btn-ghost" disabled={isLoading}>
             <IconRefresh className={cn('h-4 w-4', isLoading && 'animate-spin')} />
           </button>
-          <button type="button" className="btn-primary">
+          <button type="button" onClick={openCreateForm} className="btn-primary">
             <IconPlus className="h-4 w-4" />
             Nueva categoría
           </button>
@@ -224,7 +280,7 @@ export default function CategoriasPage() {
               }
               action={
                 !hasError && !search ? (
-                  <button type="button" className="btn-primary">
+                  <button type="button" onClick={openCreateForm} className="btn-primary">
                     <IconPlus className="h-4 w-4" />
                     Crear primera categoría
                   </button>
@@ -238,11 +294,32 @@ export default function CategoriasPage() {
         {!isLoading && !hasError && categories?.data && categories.data.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {categories.data.map((cat, i) => (
-              <CategoryCard key={cat.id} cat={cat} index={i} />
+              <CategoryCard key={cat.id} cat={cat} index={i} onEdit={openEditForm} onDelete={setDeletingCategory} />
             ))}
           </div>
         )}
       </section>
+
+      <CategoryFormModal
+        open={formOpen}
+        category={editingCategory}
+        onClose={() => setFormOpen(false)}
+        onSubmit={handleFormSubmit}
+      />
+
+      <ConfirmDialog
+        open={!!deletingCategory}
+        title="Eliminar categoría"
+        description={
+          deletingCategory
+            ? `¿Seguro que quieres desactivar "${deletingCategory.name}"? Los productos existentes conservarán la categoría, pero dejará de aparecer como activa.`
+            : ''
+        }
+        confirmLabel="Eliminar"
+        isLoading={isMutating}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingCategory(null)}
+      />
     </div>
   );
 }
