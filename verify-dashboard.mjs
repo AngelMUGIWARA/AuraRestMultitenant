@@ -1,7 +1,8 @@
-import { chromium } from 'file:///C:/Users/ameri/AppData/Roaming/npm/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';
 import { mkdirSync } from 'fs';
+import { fileURLToPath } from 'node:url';
 
-const SHOTS = 'C:/Proyectos/noveno/AuraRestMultitenant/verify-screenshots';
+const SHOTS = fileURLToPath(new URL('./verify-screenshots', import.meta.url));
 mkdirSync(SHOTS, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });

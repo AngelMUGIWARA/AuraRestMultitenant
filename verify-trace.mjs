@@ -1,4 +1,4 @@
-import { chromium } from 'file:///C:/Users/ameri/AppData/Roaming/npm/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';
 
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
