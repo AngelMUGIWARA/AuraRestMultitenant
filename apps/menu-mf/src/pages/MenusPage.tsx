@@ -1,40 +1,48 @@
 import { useState } from 'react';
 import { useBranch } from '@maison/ui';
 import { useMenus } from '../hooks/useMenus';
+import { MenuFormModal } from '../components/MenuFormModal';
 import { formatCurrency, formatNumber, cn } from '../utils';
 import { StatCard, StatCardSkeleton } from '@maison/ui';
 import { Skeleton } from '@maison/ui';
 import { EmptyState } from '@maison/ui';
+import { ConfirmDialog } from '@maison/ui';
 import {
   IconMenus, IconTag, IconFlame, IconClock, IconPlus,
-  IconRefresh, IconSearch, IconPencil, IconAlertCircle,
+  IconRefresh, IconSearch, IconPencil, IconAlertCircle, IconTrash,
 } from '@maison/ui';
-import type { MenuItem, MenuItemStatus } from '@maison/types';
+import type { CreateMenuItemPayload, MenuItem, MenuItemStatus } from '@maison/types';
 
 /* ─── Config ────────────────────────────────────────────────────── */
 
 const STATUS_BADGE: Record<MenuItemStatus, string> = {
-  available: 'badge-active',
-  unavailable: 'badge-inactive',
-  out_of_stock: 'badge-suspended',
+  AVAILABLE: 'badge-active',
+  UNAVAILABLE: 'badge-inactive',
+  OUT_OF_STOCK: 'badge-suspended',
 };
 
 const STATUS_LABEL: Record<MenuItemStatus, string> = {
-  available: 'Disponible',
-  unavailable: 'No disponible',
-  out_of_stock: 'Sin stock',
+  AVAILABLE: 'Disponible',
+  UNAVAILABLE: 'No disponible',
+  OUT_OF_STOCK: 'Sin stock',
 };
 
 const STATUS_FILTERS: { value: MenuItemStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'Todos' },
-  { value: 'available', label: 'Disponibles' },
-  { value: 'unavailable', label: 'No disponibles' },
-  { value: 'out_of_stock', label: 'Sin stock' },
+  { value: 'AVAILABLE', label: 'Disponibles' },
+  { value: 'UNAVAILABLE', label: 'No disponibles' },
+  { value: 'OUT_OF_STOCK', label: 'Sin stock' },
 ];
 
 /* ─── Product card ──────────────────────────────────────────────── */
 
-function ProductCard({ item }: { item: MenuItem }) {
+interface ProductCardProps {
+  item: MenuItem;
+  onEdit: (item: MenuItem) => void;
+  onDelete: (item: MenuItem) => void;
+}
+
+function ProductCard({ item, onEdit, onDelete }: ProductCardProps) {
   const hasDiscount = item.originalPrice && item.originalPrice > item.price;
 
   return (
@@ -55,7 +63,7 @@ function ProductCard({ item }: { item: MenuItem }) {
             Popular
           </span>
         )}
-        {item.status !== 'available' && (
+        {item.status !== 'AVAILABLE' && (
           <div className="absolute inset-0 flex items-center justify-center bg-surface-0/70">
             <span className={cn('badge', STATUS_BADGE[item.status])}>
               {STATUS_LABEL[item.status]}
@@ -70,10 +78,10 @@ function ProductCard({ item }: { item: MenuItem }) {
           <p className="line-clamp-2 text-sm font-medium text-maison-cream">{item.name}</p>
           <div className="mt-1 flex items-center gap-1.5">
             <span className="text-2xs text-maison-cream-muted">{item.categoryName}</span>
-            {item.status === 'available' && (
+            {item.status === 'AVAILABLE' && (
               <span className="h-0.5 w-0.5 rounded-full bg-maison-cream-dim" />
             )}
-            {item.status === 'available' && (
+            {item.status === 'AVAILABLE' && (
               <span className="badge-active badge text-2xs">
                 <span className="h-1 w-1 rounded-full bg-current" />
                 Disponible
@@ -105,14 +113,25 @@ function ProductCard({ item }: { item: MenuItem }) {
             </span>
           )}
         </div>
-        <button
-          type="button"
-          className="flex items-center gap-1.5 rounded border border-maison-border bg-surface-2 px-2.5 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:bg-surface-3 hover:text-maison-cream"
-          aria-label={`Editar ${item.name}`}
-        >
-          <IconPencil className="h-3 w-3" />
-          Editar
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onEdit(item)}
+            className="flex items-center gap-1.5 rounded border border-maison-border bg-surface-2 px-2.5 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:bg-surface-3 hover:text-maison-cream"
+            aria-label={`Editar ${item.name}`}
+          >
+            <IconPencil className="h-3 w-3" />
+            Editar
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(item)}
+            className="flex items-center justify-center rounded border border-maison-border bg-surface-2 px-2 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:border-maison-ruby/30 hover:bg-maison-ruby-bg hover:text-maison-ruby"
+            aria-label={`Eliminar ${item.name}`}
+          >
+            <IconTrash className="h-3 w-3" />
+          </button>
+        </div>
       </div>
     </article>
   );
@@ -143,15 +162,43 @@ function ProductCardSkeleton() {
 
 export default function MenusPage() {
   const { selectedBranch } = useBranch();
-  const { stats, items, isLoading, error, filters, setFilters, refresh } = useMenus(
-    selectedBranch.id,
-  );
+  const {
+    stats, items, isLoading, error, filters, setFilters, refresh,
+    createMenuItem, updateMenuItem, removeMenuItem, isMutating,
+  } = useMenus(selectedBranch.id);
   const [activeStatus, setActiveStatus] = useState<MenuItemStatus | 'all'>('all');
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [deletingItem, setDeletingItem] = useState<MenuItem | null>(null);
   const hasError = !!error;
 
   function handleStatusFilter(val: MenuItemStatus | 'all') {
     setActiveStatus(val);
     setFilters({ status: val === 'all' ? undefined : val });
+  }
+
+  function openCreateForm() {
+    setEditingItem(null);
+    setFormOpen(true);
+  }
+
+  function openEditForm(item: MenuItem) {
+    setEditingItem(item);
+    setFormOpen(true);
+  }
+
+  async function handleFormSubmit(payload: CreateMenuItemPayload) {
+    if (editingItem) {
+      await updateMenuItem(editingItem.id, payload);
+    } else {
+      await createMenuItem(payload);
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!deletingItem) return;
+    await removeMenuItem(deletingItem.id);
+    setDeletingItem(null);
   }
 
   return (
@@ -173,7 +220,7 @@ export default function MenusPage() {
           <button type="button" onClick={refresh} className="btn-ghost" disabled={isLoading}>
             <IconRefresh className={cn('h-4 w-4', isLoading && 'animate-spin')} />
           </button>
-          <button type="button" className="btn-primary">
+          <button type="button" onClick={openCreateForm} className="btn-primary">
             <IconPlus className="h-4 w-4" />
             Nuevo producto
           </button>
@@ -282,7 +329,7 @@ export default function MenusPage() {
               }
               action={
                 !hasError && !filters.search ? (
-                  <button type="button" className="btn-primary">
+                  <button type="button" onClick={openCreateForm} className="btn-primary">
                     <IconPlus className="h-4 w-4" />
                     Agregar primer producto
                   </button>
@@ -295,10 +342,33 @@ export default function MenusPage() {
 
         {!isLoading && !hasError && items?.data && items.data.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {items.data.map((item) => <ProductCard key={item.id} item={item} />)}
+            {items.data.map((item) => (
+              <ProductCard key={item.id} item={item} onEdit={openEditForm} onDelete={setDeletingItem} />
+            ))}
           </div>
         )}
       </section>
+
+      <MenuFormModal
+        open={formOpen}
+        item={editingItem}
+        onClose={() => setFormOpen(false)}
+        onSubmit={handleFormSubmit}
+      />
+
+      <ConfirmDialog
+        open={!!deletingItem}
+        title="Eliminar producto"
+        description={
+          deletingItem
+            ? `¿Seguro que quieres marcar "${deletingItem.name}" como no disponible? El producto dejará de mostrarse en el menú activo.`
+            : ''
+        }
+        confirmLabel="Eliminar"
+        isLoading={isMutating}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingItem(null)}
+      />
     </div>
   );
 }

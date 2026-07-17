@@ -1,13 +1,15 @@
 import { apiClient } from '@maison/api-client';
-import type { MenuItem, MenuFilters, RestaurantTable, Order, CreateOrderPayload, Payment, ProcessPaymentPayload, PaginatedResponse } from '@maison/types';
+import type { ApiResponse, MenuItem, MenuFilters, RestaurantTable, Order, CreateOrderPayload, Payment, ProcessPaymentPayload, PaginatedResponse } from '@maison/types';
 
 export const cashierService = {
   // Menu catalog for POS
-  // TODO: No backend endpoint exists yet (no Menu/Category controller) — replace when menu API is created
-  getMenuItems: (filters?: MenuFilters) =>
-    apiClient.get<MenuItem[]>('/admin/menus', {
-      params: { ...(filters as Record<string, string | number | boolean | undefined>), status: 'available' },
-    }),
+  getMenuItems: async (filters?: MenuFilters) => {
+    // /admin/menus responde envuelto en { data: { data: MenuItem[], total, ... }, ... }
+    const res = await apiClient.get<ApiResponse<PaginatedResponse<MenuItem>>>('/admin/menus', {
+      params: { ...(filters as Record<string, string | number | boolean | undefined>), status: 'AVAILABLE' },
+    });
+    return res.data.data;
+  },
 
   // Tables
   getTables: () =>

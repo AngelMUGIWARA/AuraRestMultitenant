@@ -9,7 +9,7 @@ export const ADMIN_NAV = [
     label: 'Visión General',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { href: '/reportes azules', label: 'Reportes', icon: 'analytics' },
+      { href: '/reportes', label: 'Reportes', icon: 'analytics' },
     ],
   },
   {

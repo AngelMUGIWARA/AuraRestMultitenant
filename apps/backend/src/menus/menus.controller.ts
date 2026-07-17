@@ -9,15 +9,16 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
 
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiSecurity,
   ApiTags,
-  ApiQuery,
 } from "@nestjs/swagger";
 
 import { MenusService } from "./menus.service";
@@ -26,7 +27,7 @@ import { CreateMenuDto } from "./dto/create-menu.dto";
 import { UpdateMenuDto } from "./dto/update-menu.dto";
 import { UpdatePriceDto } from "./dto/update-price.dto";
 import { UpdateStatusDto } from "./dto/update-status.dto";
-import { MenuResponseDto, PaginatedMenusDto } from "./dto/menu-response.dto";
+import { MenuResponseDto } from "./dto/menu-response.dto";
 import { MenuStatsDto } from "./dto/menu-stats.dto";
 
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
@@ -40,29 +41,31 @@ import {
   TenantContext,
 } from "../common/decorators/current-tenant.decorator";
 
+import { TransformInterceptor } from "../common/interceptors/transform.interceptor";
+
 @ApiTags("Menus")
 @ApiBearerAuth("JWT")
 @ApiSecurity("TenantSlug")
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
+@UseInterceptors(TransformInterceptor)
 @Controller("admin/menus")
 export class MenusController {
   constructor(private readonly service: MenusService) {}
 
   @Get()
-  @ApiQuery({
-    name: "categoryId",
-    required: false,
-    type: String,
-    description: "Filtrar productos por categoría",
-  })
   @Roles("OWNER", "ADMIN", "MANAGER", "WAITER")
   @ApiOperation({ summary: "Listar menú", operationId: "menus_findAll" })
   @ApiResponse({ status: 200, type: [MenuResponseDto] })
+  @ApiQuery({ name: "categoryId", required: false, type: String, description: "Filtrar por categoría" })
+  @ApiQuery({ name: "status", required: false, enum: ["AVAILABLE", "UNAVAILABLE", "OUT_OF_STOCK"] })
+  @ApiQuery({ name: "search", required: false, type: String })
   findAll(
     @CurrentTenant() tenant: TenantContext,
     @Query("categoryId") categoryId?: string,
+    @Query("status") status?: string,
+    @Query("search") search?: string,
   ) {
-    return this.service.findAll(tenant.schemaName, categoryId);
+    return this.service.findAll(tenant.schemaName, categoryId, { status, search });
   }
 
   @Get("stats")
@@ -116,7 +119,7 @@ export class MenusController {
 
   @Patch(":id/status")
   @Roles("OWNER", "ADMIN")
-  @ApiOperation({ summary: "Actualizar estado", operationId: "menus_updateStatus" })
+  @ApiOperation({ summary: "Actualizar estado de disponibilidad", operationId: "menus_updateStatus" })
   @ApiResponse({ status: 200, type: MenuResponseDto })
   updateStatus(
     @CurrentTenant() tenant: TenantContext,
@@ -128,8 +131,8 @@ export class MenusController {
 
   @Delete(":id")
   @Roles("OWNER", "ADMIN")
-  @ApiOperation({ summary: "Eliminar producto", operationId: "menus_remove" })
-  @ApiResponse({ status: 200, description: "Producto eliminado" })
+  @ApiOperation({ summary: "Eliminar producto (soft-delete)", operationId: "menus_remove" })
+  @ApiResponse({ status: 200, description: "Producto marcado como no disponible" })
   remove(@CurrentTenant() tenant: TenantContext, @Param("id") id: string) {
     return this.service.remove(tenant.schemaName, id);
   }

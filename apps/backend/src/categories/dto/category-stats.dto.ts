@@ -9,4 +9,16 @@ export class CategoryStatsDto {
 
   @ApiProperty()
   inactiveCategories: number;
+
+  @ApiProperty()
+  rootCategories: number;
+
+  @ApiProperty()
+  subCategories: number;
+
+  @ApiProperty()
+  avgProductsPerCategory: number;
+
+  @ApiProperty()
+  mostPopularCategory: string;
 }

@@ -1,5 +1,5 @@
 import { apiClient } from '@maison/api-client';
-import type { PaginatedResponse, Order, OrderStats, OrderFilters, UpdateOrderStatusPayload, CreateOrderPayload, MenuItem, RestaurantTable } from '@maison/types';
+import type { ApiResponse, PaginatedResponse, Order, OrderStats, OrderFilters, UpdateOrderStatusPayload, CreateOrderPayload, MenuItem, RestaurantTable } from '@maison/types';
 
 export const ordersService = {
   getStats: (branchId?: string) =>
@@ -18,10 +18,13 @@ export const ordersService = {
     apiClient.post<Order>(`/orders/${id}/cancel`, { reason }),
   createOrder: (payload: CreateOrderPayload) =>
     apiClient.post<Order>('/orders', payload),
-  getMenuItems: (categoryId?: string) =>
-    apiClient.get<MenuItem[]>('/admin/menus', {
+  getMenuItems: async (categoryId?: string) => {
+    // /admin/menus responde envuelto en { data: { data: MenuItem[], total, ... }, ... }
+    const res = await apiClient.get<ApiResponse<PaginatedResponse<MenuItem>>>('/admin/menus', {
       params: { ...(categoryId ? { categoryId } : {}), status: 'AVAILABLE' },
-    }),
+    });
+    return res.data.data;
+  },
   getTable: (id: string) =>
     apiClient.get<RestaurantTable>(`/tables/${id}`),
 };

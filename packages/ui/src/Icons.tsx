@@ -354,6 +354,19 @@ export const IconRefresh = base(
   </>,
 );
 
+export const IconTrash = base(
+  <>
+    <path d="M3 6h18" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <line x1="10" x2="10" y1="11" y2="17" />
+    <line x1="14" x2="14" y1="11" y2="17" />
+  </>,
+);
+
+export const IconLoader = base(
+  <path d="M21 12a9 9 0 1 1-6.219-8.56" />,
+);
+
 export const IconDownload = base(
   <>
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
