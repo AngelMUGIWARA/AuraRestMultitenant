@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 
-import { CategoriesRepository } from "./categories.repository";
+import { CategoriesRepository, CategoryFilters } from "./categories.repository";
 
 import { CreateCategoryDto } from "./dto/create-category.dto";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
@@ -9,8 +9,15 @@ import { UpdateCategoryDto } from "./dto/update-category.dto";
 export class CategoriesService {
   constructor(private readonly repo: CategoriesRepository) {}
 
-  async findAll(schemaName: string) {
-    return this.repo.findAll(schemaName);
+  async findAll(schemaName: string, filters?: CategoryFilters) {
+    const categories = await this.repo.findAll(schemaName, filters);
+    return {
+      data: categories,
+      total: categories.length,
+      page: 1,
+      limit: categories.length || 20,
+      totalPages: 1,
+    };
   }
 
   async findOne(schemaName: string, id: string) {

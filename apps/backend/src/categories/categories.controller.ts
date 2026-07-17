@@ -6,12 +6,15 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
 
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiSecurity,
   ApiTags,
@@ -35,11 +38,13 @@ import {
 
 import { CategoryResponseDto } from "./dto/category-response.dto";
 import { CategoryStatsDto } from "./dto/category-stats.dto";
+import { TransformInterceptor } from "../common/interceptors/transform.interceptor";
 
 @ApiTags("Categories")
 @ApiBearerAuth("JWT")
 @ApiSecurity("TenantSlug")
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
+@UseInterceptors(TransformInterceptor)
 @Controller("admin/categories")
 export class CategoriesController {
   constructor(private readonly service: CategoriesService) {}
@@ -48,8 +53,19 @@ export class CategoriesController {
   @Roles("OWNER", "ADMIN", "MANAGER")
   @ApiOperation({ summary: "Listar categorías", operationId: "categories_findAll" })
   @ApiResponse({ status: 200, type: [CategoryResponseDto] })
-  findAll(@CurrentTenant() tenant: TenantContext) {
-    return this.service.findAll(tenant.schemaName);
+  @ApiQuery({ name: "isActive", required: false, type: Boolean })
+  @ApiQuery({ name: "search", required: false, type: String })
+  findAll(
+    @CurrentTenant() tenant: TenantContext,
+    @Query("isActive") isActive?: string,
+    @Query("search") search?: string,
+  ) {
+    const parsedIsActive =
+      isActive === "true" ? true : isActive === "false" ? false : undefined;
+    return this.service.findAll(tenant.schemaName, {
+      isActive: parsedIsActive,
+      search,
+    });
   }
 
   @Get("stats")
@@ -94,8 +110,8 @@ export class CategoriesController {
 
   @Delete(":id")
   @Roles("OWNER", "ADMIN")
-  @ApiOperation({ summary: "Eliminar categoría", operationId: "categories_remove" })
-  @ApiResponse({ status: 200, description: "Categoría eliminada" })
+  @ApiOperation({ summary: "Eliminar categoría (soft-delete)", operationId: "categories_remove" })
+  @ApiResponse({ status: 200, description: "Categoría desactivada" })
   remove(@CurrentTenant() tenant: TenantContext, @Param("id") id: string) {
     return this.service.remove(tenant.schemaName, id);
   }
