@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 
-import { MenusRepository } from "./menus.repository";
+import { MenusRepository, MenuFilters } from "./menus.repository";
 
 import { CreateMenuDto } from "./dto/create-menu.dto";
 import { UpdateMenuDto } from "./dto/update-menu.dto";
@@ -11,8 +11,15 @@ import { UpdateStatusDto } from "./dto/update-status.dto";
 export class MenusService {
   constructor(private readonly repo: MenusRepository) {}
 
-  async findAll(schemaName: string, categoryId?: string) {
-    return this.repo.findAll(schemaName, categoryId);
+  async findAll(schemaName: string, categoryId?: string, filters?: MenuFilters) {
+    const items = await this.repo.findAll(schemaName, categoryId, filters);
+    return {
+      data: items,
+      total: items.length,
+      page: 1,
+      limit: items.length || 20,
+      totalPages: 1,
+    };
   }
 
   async findOne(schemaName: string, id: string) {

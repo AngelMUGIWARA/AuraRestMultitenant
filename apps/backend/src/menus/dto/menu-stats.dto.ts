@@ -2,17 +2,23 @@ import { ApiProperty } from "@nestjs/swagger";
 
 export class MenuStatsDto {
   @ApiProperty()
-  totalProducts: number;
+  totalItems: number;
 
   @ApiProperty()
-  availableProducts: number;
+  availableItems: number;
 
   @ApiProperty()
-  unavailableProducts: number;
+  unavailableItems: number;
 
   @ApiProperty()
-  outOfStockProducts: number;
+  outOfStockItems: number;
 
   @ApiProperty()
-  categories: number;
+  totalCategories: number;
+
+  @ApiProperty()
+  avgPrice: number;
+
+  @ApiProperty()
+  popularItems: number;
 }
