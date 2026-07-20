@@ -6,7 +6,11 @@
  *  - 3 usuarios (owner, mesero, cajero)
  *  - 4 categorías + 12 platillos
  *  - 6 mesas
- *  - 1 orden de ejemplo con 2 items
+ *  - 1 orden de ejemplo con 2 items (IN_PROGRESS)
+ *  - 18 órdenes PAID de demo para reportes (ventas/productos/pagos/horarios
+ *    pico), repartidas en los últimos 7 días, el resto del mes actual y
+ *    meses anteriores del año — todas con fechas relativas a "hoy" para
+ *    seguir siendo válidas sin importar cuándo se corra el seed.
  *
  * Uso:
  *   pnpm --filter backend exec ts-node prisma/seed.ts
@@ -303,6 +307,131 @@ async function main() {
     console.log(`✅  Orden:    ORD-0001 (Mesa 3, ${total} MXN)`);
   } else {
     console.log(`⏭️   Orden:    ORD-0001 ya existe, se omitió`);
+  }
+
+  // ── 7. Órdenes de demo para reportes ──────────────────────────────────────
+  // 18 órdenes PAID (+ su Payment COMPLETED) para que /admin/reports tenga
+  // datos realistas: últimos 7 días (period=weekly), resto del mes actual
+  // (period=monthly) y meses anteriores del año (period=yearly / contraste
+  // mensual). Todas las fechas son relativas a "hoy" al momento de correr el
+  // seed, para seguir siendo válidas sin importar cuándo se ejecute.
+  const polloMole = await tenantDb.menuItem.findFirst({ where: { name: 'Pollo en Mole Negro' } });
+  const flan = await tenantDb.menuItem.findFirst({ where: { name: 'Flan Napolitano' } });
+  const guacamole = await tenantDb.menuItem.findFirst({ where: { name: 'Guacamole con Totopos' } });
+  const demoTables = await tenantDb.restaurantTable.findMany({
+    where: { branchId: branch.id },
+    orderBy: { number: 'asc' },
+  });
+
+  if (arrachera && horchata && polloMole && flan && guacamole && demoTables.length > 0) {
+    const now = new Date();
+
+    // Clona `now`, resta N días, fija hora/minuto en hora local del servidor.
+    const dateAt = (daysAgo: number, hour: number, minute: number): Date => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - daysAgo);
+      d.setHours(hour, minute, 0, 0);
+      return d;
+    };
+
+    // Grupo B ("resto del mes actual, antes de los últimos 7 días") se
+    // calcula entre el día 1 del mes y hoy-7d, para no depender de en qué
+    // día del mes se corra el seed. Si esa ventana colapsa (seed corrido en
+    // los primeros días del mes, donde hoy-7d cae en el mes anterior), se
+    // clampa al día 1 — sigue siendo válido, solo pierde dispersión visual.
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const weekAgo = new Date(now);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const groupBEnd = weekAgo.getTime() > startOfMonth.getTime() ? weekAgo : startOfMonth;
+    const groupBSpanMs = groupBEnd.getTime() - startOfMonth.getTime();
+
+    const atGroupBFraction = (fraction: number, hour: number, minute: number): Date => {
+      const d = new Date(startOfMonth.getTime() + groupBSpanMs * fraction);
+      d.setHours(hour, minute, 0, 0);
+      return d;
+    };
+
+    const demoOrders = [
+      // ── Grupo A: últimos 7 días (period=weekly) ──
+      { folio: 'ORD-0002', createdAt: dateAt(0, 13, 20), items: [{ menuItem: arrachera, quantity: 2 }, { menuItem: horchata, quantity: 2 }] },
+      { folio: 'ORD-0003', createdAt: dateAt(0, 20, 45), items: [{ menuItem: polloMole, quantity: 1 }, { menuItem: horchata, quantity: 1 }] },
+      { folio: 'ORD-0004', createdAt: dateAt(1, 14, 10), items: [{ menuItem: arrachera, quantity: 1 }, { menuItem: flan, quantity: 1 }] },
+      { folio: 'ORD-0005', createdAt: dateAt(2, 21, 0), items: [{ menuItem: arrachera, quantity: 2 }, { menuItem: polloMole, quantity: 1 }] },
+      // Tarde en la noche — para demostrar el fix de endDate con startDate/endDate explícitos
+      { folio: 'ORD-0006', createdAt: dateAt(3, 23, 40), items: [{ menuItem: arrachera, quantity: 1 }, { menuItem: flan, quantity: 1 }] },
+      { folio: 'ORD-0007', createdAt: dateAt(4, 13, 50), items: [{ menuItem: polloMole, quantity: 2 }, { menuItem: horchata, quantity: 1 }] },
+      { folio: 'ORD-0008', createdAt: dateAt(6, 19, 30), items: [{ menuItem: arrachera, quantity: 1 }, { menuItem: horchata, quantity: 2 }] },
+
+      // ── Grupo B: resto del mes actual (period=monthly) ──
+      { folio: 'ORD-0009', createdAt: atGroupBFraction(0.1, 13, 30), items: [{ menuItem: polloMole, quantity: 2 }, { menuItem: arrachera, quantity: 1 }] },
+      { folio: 'ORD-0010', createdAt: atGroupBFraction(0.3, 20, 15), items: [{ menuItem: arrachera, quantity: 2 }, { menuItem: horchata, quantity: 1 }] },
+      { folio: 'ORD-0011', createdAt: atGroupBFraction(0.5, 14, 20), items: [{ menuItem: guacamole, quantity: 1 }, { menuItem: arrachera, quantity: 1 }] },
+      { folio: 'ORD-0012', createdAt: atGroupBFraction(0.7, 19, 50), items: [{ menuItem: flan, quantity: 1 }, { menuItem: polloMole, quantity: 1 }] },
+      { folio: 'ORD-0013', createdAt: atGroupBFraction(0.9, 13, 0), items: [{ menuItem: arrachera, quantity: 1 }, { menuItem: horchata, quantity: 2 }] },
+
+      // ── Grupo C: meses anteriores del año (period=yearly / contraste mensual) ──
+      { folio: 'ORD-0014', createdAt: dateAt(45, 13, 15), items: [{ menuItem: arrachera, quantity: 2 }, { menuItem: horchata, quantity: 1 }] },
+      { folio: 'ORD-0015', createdAt: dateAt(70, 20, 30), items: [{ menuItem: polloMole, quantity: 1 }, { menuItem: flan, quantity: 1 }] },
+      { folio: 'ORD-0016', createdAt: dateAt(95, 13, 45), items: [{ menuItem: arrachera, quantity: 1 }, { menuItem: guacamole, quantity: 1 }] },
+      { folio: 'ORD-0017', createdAt: dateAt(120, 21, 10), items: [{ menuItem: horchata, quantity: 2 }, { menuItem: polloMole, quantity: 2 }] },
+      { folio: 'ORD-0018', createdAt: dateAt(150, 14, 0), items: [{ menuItem: arrachera, quantity: 2 }, { menuItem: flan, quantity: 1 }] },
+      { folio: 'ORD-0019', createdAt: dateAt(180, 20, 0), items: [{ menuItem: polloMole, quantity: 1 }, { menuItem: arrachera, quantity: 1 }, { menuItem: horchata, quantity: 1 }] },
+    ];
+
+    const paymentMethods = ['CASH', 'CARD', 'TRANSFER'] as const;
+    let createdCount = 0;
+
+    for (let i = 0; i < demoOrders.length; i++) {
+      const spec = demoOrders[i];
+      const existingDemoOrder = await tenantDb.order.findUnique({ where: { folio: spec.folio } });
+      if (existingDemoOrder) continue;
+
+      const subtotal = spec.items.reduce(
+        (sum, it) => sum + Number(it.menuItem.price) * it.quantity,
+        0,
+      );
+      const tax = +(subtotal * 0.16).toFixed(2);
+      const total = +(subtotal + tax).toFixed(2);
+      const table = demoTables[i % demoTables.length];
+
+      await tenantDb.order.create({
+        data: {
+          folio: spec.folio,
+          tableId: table.id,
+          userId: mesero.id,
+          type: 'DINE_IN',
+          status: 'PAID',
+          subtotal,
+          tax,
+          total,
+          createdAt: spec.createdAt,
+          orderItems: {
+            create: spec.items.map((it) => ({
+              menuItemId: it.menuItem.id,
+              quantity: it.quantity,
+              unitPrice: it.menuItem.price,
+              subtotal: Number(it.menuItem.price) * it.quantity,
+            })),
+          },
+          payments: {
+            create: {
+              amount: total,
+              method: paymentMethods[i % paymentMethods.length],
+              status: 'COMPLETED',
+              processedAt: spec.createdAt,
+              createdAt: spec.createdAt,
+            },
+          },
+        },
+      });
+      createdCount++;
+    }
+
+    console.log(
+      `✅  Órdenes demo: ${createdCount} nuevas creadas (${demoOrders.length - createdCount} ya existían)`,
+    );
+  } else {
+    console.log('⏭️   Órdenes demo: se omitieron (faltan platillos o mesas base)');
   }
 
   // ─── Resumen de credenciales ──────────────────────────────────────────────
