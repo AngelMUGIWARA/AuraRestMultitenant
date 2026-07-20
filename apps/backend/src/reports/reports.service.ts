@@ -167,19 +167,22 @@ export class ReportsService {
     schemaName: string,
     query: SalesReportQueryDto,
   ): Promise<PeakHoursReportResponseDto> {
-    const { orders, startDate, endDate } = await this.repo.getPeakHoursReport(
+    const { entries, startDate, endDate } = await this.repo.getPeakHoursReport(
       schemaName,
       query,
     );
 
+    // entries normaliza ambos casos: sin filtro, 1 entrada = 1 orden
+    // (quantity 1, amount = total de la orden); con menuItem, 1 entrada =
+    // 1 línea de ese platillo (quantity = unidades, amount = subtotal de esa línea).
     const hourMap = new Map<number, { orders: number; revenue: number }>();
 
-    for (const order of orders) {
-      const hour = order.createdAt.getHours();
+    for (const entry of entries) {
+      const hour = entry.createdAt.getHours();
       const existing = hourMap.get(hour) ?? { orders: 0, revenue: 0 };
       hourMap.set(hour, {
-        orders: existing.orders + 1,
-        revenue: existing.revenue + Number(order.total),
+        orders: existing.orders + entry.quantity,
+        revenue: existing.revenue + entry.amount,
       });
     }
 
@@ -192,10 +195,12 @@ export class ReportsService {
       }))
       .sort((a, b) => b.orders - a.orders);
 
+    const totalOrders = entries.reduce((sum, entry) => sum + entry.quantity, 0);
+
     return {
       startDate: startDate.toISOString().slice(0, 10),
       endDate: endDate.toISOString().slice(0, 10),
-      totalOrders: orders.length,
+      totalOrders,
       byHour,
     };
   }

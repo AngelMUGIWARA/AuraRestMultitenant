@@ -17,4 +17,22 @@ export class SalesReportQueryDto {
     @IsOptional()
     @IsDateString()
     endDate?: string;
+
+    @ApiPropertyOptional({
+        description:
+            'Solo para /peak-hours: filtra por nombre de platillo (coincidencia parcial, insensible a mayúsculas). Si no hay match, el resultado viene vacío en vez de fallar.',
+        example: 'pizza',
+    })
+    @IsOptional()
+    @IsString()
+    menuItem?: string;
+
+    @ApiPropertyOptional({
+        description:
+            'Solo para /sales: período estándar que reemplaza startDate/endDate (daily | weekly | monthly | yearly). Un valor no reconocido se ignora silenciosamente y se usa el comportamiento por defecto.',
+        example: 'weekly',
+    })
+    @IsOptional()
+    @IsString()
+    period?: string;
 }
