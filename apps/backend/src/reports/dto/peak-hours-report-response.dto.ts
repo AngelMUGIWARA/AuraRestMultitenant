@@ -7,10 +7,18 @@ export class PeakHourDto {
   @ApiProperty({ description: 'Etiqueta legible', example: '1:00 PM' })
   label: string;
 
-  @ApiProperty({ description: 'Número de órdenes en esa hora', example: 18 })
+  @ApiProperty({
+    description:
+      'Número de órdenes en esa hora. Si se filtró por platillo (menuItem), representa en cambio las unidades de ESE platillo vendidas en esa hora.',
+    example: 18,
+  })
   orders: number;
 
-  @ApiProperty({ description: 'Ingresos totales en esa hora', example: 4200.0 })
+  @ApiProperty({
+    description:
+      'Ingresos totales en esa hora. Si se filtró por platillo (menuItem), representa el ingreso generado solo por ESE platillo en esa hora.',
+    example: 4200.0,
+  })
   revenue: number;
 }
 
@@ -27,7 +35,11 @@ export class PeakHoursReportResponseDto {
   })
   endDate: string;
 
-  @ApiProperty({ description: 'Total de órdenes en el período', example: 120 })
+  @ApiProperty({
+    description:
+      'Total de órdenes en el período. Si se filtró por platillo (menuItem), representa el total de unidades de ESE platillo vendidas en el período.',
+    example: 120,
+  })
   totalOrders: number;
 
   @ApiProperty({
