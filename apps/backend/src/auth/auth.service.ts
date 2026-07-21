@@ -1,13 +1,30 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../database/prisma.service';
 import { TenantPrismaService } from '../database/tenant-prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { VoiceSeedDto } from './dto/voice-seed.dto';
+import { VoiceLoginDto } from './dto/voice-login.dto';
+import { VoiceLoginResponseDto } from './dto/voice-login-response.dto';
+
+const VOICE_ROLES = ['OWNER', 'ADMIN'];
 
 @Injectable()
 export class AuthService {
+  // Hash dummy precalculado en el arranque del proceso: se usa para comparar
+  // contra él cuando el voiceUsername no existe, así el tiempo de respuesta
+  // no revela si el usuario existe o no.
+  private readonly dummyVoiceHash = bcrypt.hashSync(
+    'dummy-seed-word-placeholder',
+    Number(process.env.BCRYPT_ROUNDS ?? 10),
+  );
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantPrisma: TenantPrismaService,
@@ -86,6 +103,62 @@ export class AuthService {
 
   async logout(): Promise<{ message: string }> {
     return { message: 'Sesión cerrada exitosamente' };
+  }
+
+  async setVoiceSeed(
+    userId: string,
+    tenantSchemaName: string,
+    dto: VoiceSeedDto,
+  ): Promise<{ voiceUsername: string }> {
+    const db = this.tenantPrisma.getClient(tenantSchemaName);
+    const voiceUsername = dto.voiceUsername.toLowerCase();
+
+    const existing = await db.user.findUnique({
+      where: { voiceUsername },
+    });
+    if (existing && existing.id !== userId) {
+      throw new ConflictException(
+        'Ese nombre de voz ya está en uso por otro usuario',
+      );
+    }
+
+    const voiceSeedHash = await bcrypt.hash(
+      dto.seedWord,
+      Number(process.env.BCRYPT_ROUNDS ?? 10),
+    );
+
+    await db.user.update({
+      where: { id: userId },
+      data: { voiceUsername, voiceSeedHash },
+    });
+
+    return { voiceUsername };
+  }
+
+  async voiceLogin(
+    dto: VoiceLoginDto,
+    tenantSchemaName: string,
+  ): Promise<VoiceLoginResponseDto> {
+    const db = this.tenantPrisma.getClient(tenantSchemaName);
+    const invalid: VoiceLoginResponseDto = { valid: false };
+
+    const user = await db.user.findUnique({
+      where: { voiceUsername: dto.voiceUsername.toLowerCase() },
+    });
+
+    if (!user || !user.voiceSeedHash) {
+      await bcrypt.compare(dto.seedWord, this.dummyVoiceHash);
+      return invalid;
+    }
+
+    const matches = await bcrypt.compare(dto.seedWord, user.voiceSeedHash);
+    if (!matches) return invalid;
+
+    if (!VOICE_ROLES.includes(user.role) || user.status !== 'ACTIVE') {
+      return invalid;
+    }
+
+    return { valid: true, name: user.name, role: user.role };
   }
 
   private buildAuthResponse(
