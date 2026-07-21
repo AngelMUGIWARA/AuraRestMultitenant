@@ -636,6 +636,17 @@ export interface TableFilters {
   search?: string;
 }
 
+// ─── Voice / Alexa ────────────────────────────────────────────────────────────
+
+export interface VoiceSeedPayload {
+  voiceUsername: string;
+  seedWord: string;
+}
+
+export interface VoiceSeedResponse {
+  voiceUsername: string;
+}
+
 // ─── Reports ──────────────────────────────────────────────────────────────────
 
 export interface SalesSummary {
