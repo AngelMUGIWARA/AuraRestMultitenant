@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router-dom';
+import { AuthClient } from '@maison/auth-client';
 import { cn } from '../../utils';
 import { useNav } from '../../context/NavContext';
 import { useSidebar } from '../../context/SidebarContext';
@@ -64,9 +65,17 @@ function NavItem({ href, label, icon, isActive, isCollapsed }: { href: string; l
   );
 }
 
+function handleLogout() {
+  AuthClient.clearTokens();
+  window.location.replace('/auth/login');
+}
+
 function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: { isCollapsed: boolean; isMobile?: boolean; onClose?: () => void; onToggle: () => void }) {
   const { pathname } = useLocation();
   const nav = useNav();
+  const role = AuthClient.getRole();
+  const email = AuthClient.getUser()?.email ?? '';
+  const initials = (role ?? 'US').slice(0, 2);
   return (
     <>
       <div className={cn('flex flex-shrink-0 items-center border-b border-maison-border', isCollapsed ? 'justify-center px-3 py-4' : 'gap-2.5 px-4 py-4')}>
@@ -102,15 +111,20 @@ function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: { isCollap
       <div className="flex-shrink-0 border-t border-maison-border">
         {!isCollapsed && (
           <div className="px-2 pt-3">
-            <div className="flex cursor-pointer items-center gap-2.5 rounded px-2 py-2 transition-colors hover:bg-surface-2 group">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex w-full items-center gap-2.5 rounded px-2 py-2 text-left transition-colors hover:bg-surface-2 group"
+              aria-label="Cerrar sesión"
+            >
               <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white"
-                style={{ background: 'linear-gradient(140deg, rgb(var(--color-border)) 0%, rgb(var(--color-muted)) 100%)' }} aria-hidden="true">SA</div>
+                style={{ background: 'linear-gradient(140deg, rgb(var(--color-border)) 0%, rgb(var(--color-muted)) 100%)' }} aria-hidden="true">{initials}</div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium text-maison-cream">Super Admin</p>
-                <p className="truncate text-2xs text-maison-cream-dim">admin@maison.mx</p>
+                <p className="truncate text-xs font-medium text-maison-cream">{role ?? 'Usuario'}</p>
+                {email && <p className="truncate text-2xs text-maison-cream-dim">{email}</p>}
               </div>
               <IconLogOut className="h-3.5 w-3.5 flex-shrink-0 text-maison-cream-dim opacity-0 transition-opacity group-hover:opacity-100" />
-            </div>
+            </button>
           </div>
         )}
         {!isMobile && (
