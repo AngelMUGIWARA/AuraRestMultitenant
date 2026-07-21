@@ -9,45 +9,15 @@ export type NavGroup = {
 };
 export type NavConfig = ReadonlyArray<NavGroup>;
 
-// Full admin navigation — used by ADMIN role
+// Navegación de ADMIN — acordada en equipo: Menú, Usuarios, Reportes, Configuración
 export const ADMIN_NAV: NavConfig = [
   {
-    label: 'Visión General',
+    label: 'General',
     items: [
-      { href: '/dashboard',     label: 'Dashboard',     icon: 'dashboard' },
-      { href: '/reportes',      label: 'Reportes',      icon: 'analytics' },
-    ],
-  },
-  {
-    label: 'Operaciones',
-    items: [
-      { href: '/orders',        label: 'Pedidos',        icon: 'orders' },
-      { href: '/kitchen',       label: 'Cocina',         icon: 'kitchen' },
-      { href: '/cashier',       label: 'Caja / POS',     icon: 'cashier' },
-      { href: '/reservaciones', label: 'Reservaciones',  icon: 'reservations' },
-    ],
-  },
-  {
-    label: 'Carta',
-    items: [
-      { href: '/menus',         label: 'Menús',          icon: 'menus' },
-      { href: '/categorias',    label: 'Categorías',     icon: 'categories' },
-      { href: '/inventario',    label: 'Inventario',     icon: 'inventory' },
-    ],
-  },
-  {
-    label: 'Gestión',
-    items: [
-      { href: '/sucursales',    label: 'Sucursales',     icon: 'branches' },
-      { href: '/users',         label: 'Usuarios',       icon: 'users' },
-    ],
-  },
-  {
-    label: 'Sistema',
-    items: [
-      { href: '/settings',      label: 'Configuración',  icon: 'settings' },
-      { href: '/integrations',  label: 'Integraciones',  icon: 'integrations' },
-      { href: '/logs',          label: 'Registros',      icon: 'logs' },
+      { href: '/menus',          label: 'Menú',          icon: 'menus' },
+      { href: '/admin/users',    label: 'Usuarios',      icon: 'users' },
+      { href: '/reportes',       label: 'Reportes',      icon: 'analytics' },
+      { href: '/admin/settings', label: 'Configuración', icon: 'settings' },
     ],
   },
 ];
