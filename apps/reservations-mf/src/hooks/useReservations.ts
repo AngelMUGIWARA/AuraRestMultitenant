@@ -32,8 +32,9 @@ useEffect(() => {
   setIsLoading(true);
   setError(null);
 
-  // Limpiamos el ID si es global tanto para el listado como para las stats
-  const branchFilter = branchId !== 'global' && branchId ? branchId : undefined;
+  // Si el event-bus actualizó filters.branchId, tiene prioridad sobre la prop.
+  // Fallback: la prop branchId (global → undefined).
+  const branchFilter = filters.branchId ?? (branchId !== 'global' && branchId ? branchId : undefined);
 
   Promise.all([
     // ¡CORREGIDO!: Ahora pasa branchFilter en lugar de branchId crudo
