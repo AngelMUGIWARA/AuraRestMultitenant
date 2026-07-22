@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom';
 import { AuthClient } from '@maison/auth-client';
+import { emit } from '@maison/event-bus';
 import { cn } from '../../utils';
 import { useNav } from '../../context/NavContext';
 import { useSidebar } from '../../context/SidebarContext';
@@ -67,7 +68,7 @@ function NavItem({ href, label, icon, isActive, isCollapsed }: { href: string; l
 
 function handleLogout() {
   AuthClient.clearTokens();
-  window.location.replace('/auth/login');
+  emit('auth:logout', undefined);
 }
 
 function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: { isCollapsed: boolean; isMobile?: boolean; onClose?: () => void; onToggle: () => void }) {

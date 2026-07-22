@@ -2,15 +2,13 @@ import { useTables } from '../hooks/useTables';
 import { TablesGrid } from '../components/TablesGrid';
 import type { RestaurantTable } from '@maison/types';
 import { useCallback } from 'react';
+import { navigateTo } from '@maison/event-bus';
 
 export function TablesPage() {
   const { tables, isLoading, error, refresh, branch } = useTables();
 
   const handleSelect = useCallback((table: RestaurantTable) => {
-    window.location.href = `/waiter/orders/new?tableId=${table.id}`;
-    // TODO: tech-debt — window.location.href forces full shell reload.
-    // Replace with a global navigation bridge (e.g. custom event or window.__SHELL_NAVIGATE__)
-    // when cross-MFE navigation mechanism is introduced.
+    navigateTo(`/waiter/orders/new?tableId=${table.id}`);
   }, []);
 
   if (isLoading) {

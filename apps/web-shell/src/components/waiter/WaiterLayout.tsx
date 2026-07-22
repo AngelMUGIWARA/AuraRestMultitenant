@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { BranchSelector } from '@/components/ui/BranchSelector';
 import { AuthClient } from '@maison/auth-client';
+import { emit } from '@maison/event-bus';
 
 const NAV_ITEMS = [
   { href: '/waiter/tables', label: 'Mesas', icon: 'tables' },
@@ -50,7 +51,7 @@ export function WaiterLayout({ children }: { children: React.ReactNode }) {
           )}
           <button
             type="button"
-            onClick={() => { AuthClient.clearTokens(); window.location.href = '/auth/login'; }}
+            onClick={() => { AuthClient.clearTokens(); emit('auth:logout', undefined); }}
             className="rounded-lg px-3 py-1.5 text-xs font-medium text-maison-cream-dim transition-colors hover:bg-surface-2 hover:text-maison-cream"
           >
             Salir
