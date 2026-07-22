@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { parseAllowedOrigins, isOriginAllowed } from './cors/cors-utils';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,15 +17,22 @@ async function bootstrap() {
     }),
   );
 
-  const corsOrigins = process.env.CORS_ORIGINS?.split(',').filter(Boolean) ?? [];
+  const allowedOrigins = parseAllowedOrigins(process.env.CORS_ORIGINS);
   const isDev = process.env.NODE_ENV === 'development';
-  app.enableCors({
-    origin: corsOrigins.length > 0
-      ? corsOrigins
+  const origins =
+    allowedOrigins.length > 0
+      ? allowedOrigins
       : isDev
-        ? ['http://localhost:3030', 'http://localhost:5001', 'http://localhost:5002', 'http://localhost:5003', 'http://localhost:5004', 'http://localhost:5005', 'http://localhost:5006', 'http://localhost:5007', 'http://localhost:5008, http://localhost:5014']
-        : [],
-    credentials: true,
+        ? parseAllowedOrigins(
+            'http://localhost:3030,http://localhost:5001,http://localhost:5002,http://localhost:5003,http://localhost:5004,http://localhost:5005,http://localhost:5006,http://localhost:5007,http://localhost:5008,http://localhost:5014',
+          )
+        : [];
+
+  app.enableCors({
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      callback(null, isOriginAllowed(origin, origins));
+    },
   });
 
   const swaggerConfig = new DocumentBuilder()
