@@ -48,7 +48,8 @@ export class ReservationRepository {
     if (filters?.search) {
       whereClause.OR = [
         { guestName: { contains: filters.search, mode: 'insensitive' } },
-        { confirmationCode: { contains: filters.search, mode: 'insensitive' } }
+        { guestPhone: { contains: filters.search, mode: 'insensitive' } },
+        { guestEmail: { contains: filters.search, mode: 'insensitive' } },
       ];
     }
   

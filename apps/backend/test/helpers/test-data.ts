@@ -225,6 +225,40 @@ export const mockActivityLogEntry = {
   user: { id: OWNER_USER_ID, name: 'Owner User' },
 };
 
+export const RESERVATION_ID = 'res-001';
+
+export const mockReservation = {
+  id: RESERVATION_ID,
+  branchId: BRANCH_ID,
+  tableId: TABLE_ID,
+  userId: OWNER_USER_ID,
+  guestName: 'Juan Pérez',
+  guestPhone: '555-1234567',
+  guestEmail: 'juan@test.com',
+  partySize: 4,
+  scheduledAt: new Date('2026-07-21T19:00:00Z'),
+  status: 'CONFIRMED',
+  notes: 'Mesa junto a la ventana',
+  createdAt: new Date('2026-07-20T10:00:00Z'),
+  updatedAt: new Date('2026-07-20T10:00:00Z'),
+};
+
+export const mockReservation2 = {
+  id: 'res-002',
+  branchId: BRANCH_ID,
+  tableId: TABLE_ID,
+  userId: OWNER_USER_ID,
+  guestName: 'María López',
+  guestPhone: '555-9876543',
+  guestEmail: 'maria@test.com',
+  partySize: 2,
+  scheduledAt: new Date('2026-07-21T20:00:00Z'),
+  status: 'PENDING',
+  notes: null,
+  createdAt: new Date('2026-07-20T11:00:00Z'),
+  updatedAt: new Date('2026-07-20T11:00:00Z'),
+};
+
 export const mockPaymentRecord = {
   id: PAYMENT_ID,
   orderId: ORDER_ID,
