@@ -53,7 +53,7 @@ export class MenusController {
   constructor(private readonly service: MenusService) {}
 
   @Get()
-  @Roles("OWNER", "ADMIN", "MANAGER", "WAITER")
+  @Roles("OWNER", "ADMIN", "MANAGER", "WAITER", "CASHIER")
   @ApiOperation({ summary: "Listar menú", operationId: "menus_findAll" })
   @ApiResponse({ status: 200, type: [MenuResponseDto] })
   @ApiQuery({ name: "categoryId", required: false, type: String, description: "Filtrar por categoría" })
@@ -77,7 +77,7 @@ export class MenusController {
   }
 
   @Get(":id")
-  @Roles("OWNER", "ADMIN", "MANAGER")
+  @Roles("OWNER", "ADMIN", "MANAGER", "CASHIER")
   @ApiOperation({ summary: "Obtener producto por ID", operationId: "menus_findOne" })
   @ApiResponse({ status: 200, type: MenuResponseDto })
   @ApiResponse({ status: 404, description: "Producto no encontrado" })
