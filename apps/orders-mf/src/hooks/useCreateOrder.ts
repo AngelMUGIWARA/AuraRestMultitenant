@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { emit } from '@maison/event-bus';
+import { emit, navigateTo } from '@maison/event-bus';
 import { useBranch } from '@maison/ui';
 import { ordersService } from '../services/orders.service';
 import type { MenuItem, RestaurantTable, CreateOrderPayload } from '@maison/types';
@@ -93,7 +93,7 @@ export function useCreateOrder(initialTableId?: string) {
       emit('order:created', { order });
       setCart([]);
       setCustomerName('');
-      window.location.href = '/waiter/tables';
+      navigateTo('/waiter/tables', true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al crear la orden');
     } finally {

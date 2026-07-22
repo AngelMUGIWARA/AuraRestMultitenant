@@ -51,6 +51,10 @@ export interface MaisonEventMap {
   // ── Shell / MFE lifecycle ─────────────────────────────────────────────────
   /** Un MFE remoto terminó de montar su árbol React. */
   'mfe:ready': { name: string };
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+  /** Solicitud de navegación SPA desde un MFE hacia una ruta del shell. */
+  'navigate:to': { path: string; replace?: boolean };
 }
 
 export type MaisonEventName = keyof MaisonEventMap;

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useCreateOrder } from '../hooks/useCreateOrder';
 import { useBranch } from '@maison/ui';
+import { navigateTo } from '@maison/event-bus';
 import type { MenuItem } from '@maison/types';
 
 function formatCurrency(value: number) {
@@ -35,7 +36,7 @@ export default function CreateOrderPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => { window.location.href = '/waiter/tables'; }}
+            onClick={() => { navigateTo('/waiter/tables'); }}
             className="rounded-lg p-1.5 text-maison-cream-dim hover:bg-surface-2 hover:text-maison-cream transition-colors"
             aria-label="Volver"
           >
