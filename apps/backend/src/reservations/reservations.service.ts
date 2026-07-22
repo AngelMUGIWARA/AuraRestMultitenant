@@ -37,6 +37,7 @@ export class ReservationsService {
     const filters: any = {};
     if (query.status) filters.status = query.status;
     if (query.branchId) filters.branchId = query.branchId;
+    if (query.search) filters.search = query.search;
 
     const reservations = await this.reservationRepo.findAll(schema, filters);
     return { data: reservations, meta: { total: reservations.length } };
