@@ -26,7 +26,7 @@ services:
       TENANT_DATABASE_URL: ${TENANT_DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/aura_rest?schema=tenant_ejemplo}
       JWT_SECRET: ${JWT_SECRET:-cambia_este_secreto_por_uno_seguro_en_produccion}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-cambia_este_secreto_por_otro_seguro_en_produccion}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3030}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
       postgres:
         condition: service_healthy
