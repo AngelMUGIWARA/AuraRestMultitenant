@@ -6,7 +6,7 @@ jest.mock('../generated/prisma-system', () => ({
   PrismaClient: jest.fn(() => ({})),
 }));
 
-import { UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../database/prisma.service';
@@ -451,6 +451,266 @@ describe('AuthService', () => {
       });
 
       await expect(svc.refreshToken('token')).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('changePassword', () => {
+    const USER_WITH_HASH = {
+      ...ACTIVE_USER,
+      passwordHash: '$2b$10$gyexhOEEEx3Jq6NyRxD3uePE4MfyHCDFIPoBojEjoScAffoRpgni.',
+    };
+
+    function setupChangePassword(userOverrides?: Record<string, unknown>) {
+      const { svc, tenantPrisma, prisma } = buildService();
+      const db = mockDb();
+      (tenantPrisma.getClient as jest.Mock).mockReturnValue(db);
+      db.user.findUnique.mockResolvedValue({ ...USER_WITH_HASH, ...userOverrides });
+      db.user.update.mockResolvedValue({});
+      (prisma.refreshSession.updateMany as jest.Mock).mockResolvedValue({ count: 3 });
+      return { svc, db, prisma };
+    }
+
+    it('requiere JWT (se obtiene usuario desde @CurrentUser)', async () => {
+      const { svc, db } = setupChangePassword();
+      const result = await svc.changePassword('u1', SCHEMA, 'TestPass123', 'NuevaPass456');
+      expect(result.message).toBe('Contraseña actualizada exitosamente');
+      expect(db.user.findUnique).toHaveBeenCalledWith({ where: { id: 'u1' } });
+    });
+
+    it('usa el usuario autenticado y no userId del cliente', async () => {
+      const { svc, db } = setupChangePassword();
+      await svc.changePassword('u1', SCHEMA, 'TestPass123', 'NuevaPass456');
+      expect(db.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'u1' } }),
+      );
+    });
+
+    it('contraseña actual incorrecta devuelve 401', async () => {
+      const { svc } = setupChangePassword();
+      await expect(
+        svc.changePassword('u1', SCHEMA, 'WrongPassword', 'NuevaPass456'),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('contraseña nueva igual a la actual devuelve 400', async () => {
+      const { svc } = setupChangePassword();
+      await expect(
+        svc.changePassword('u1', SCHEMA, 'TestPass123', 'TestPass123'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('contraseña nueva igual a la actual no modifica hash ni revoca sesiones', async () => {
+      const { svc, db, prisma } = setupChangePassword();
+      await expect(
+        svc.changePassword('u1', SCHEMA, 'TestPass123', 'TestPass123'),
+      ).rejects.toThrow();
+      expect(db.user.update).not.toHaveBeenCalled();
+      expect(prisma.refreshSession.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('contraseña nueva válida actualiza passwordHash', async () => {
+      const { svc, db } = setupChangePassword();
+      await svc.changePassword('u1', SCHEMA, 'TestPass123', 'NuevaPass456');
+      expect(db.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'u1' },
+          data: expect.objectContaining({
+            passwordHash: expect.any(String),
+            mustChangePassword: false,
+          }),
+        }),
+      );
+    });
+
+    it('mustChangePassword cambia a false', async () => {
+      const { svc, db } = setupChangePassword({ mustChangePassword: true });
+      await svc.changePassword('u1', SCHEMA, 'TestPass123', 'NuevaPass456');
+      expect(db.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ mustChangePassword: false }),
+        }),
+      );
+    });
+
+    it('sesiones activas quedan revocadas', async () => {
+      const { svc, prisma } = setupChangePassword();
+      await svc.changePassword('u1', SCHEMA, 'TestPass123', 'NuevaPass456');
+      expect(prisma.refreshSession.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'u1', tenantSchemaName: SCHEMA, revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it('respuesta no contiene hash ni contraseña', async () => {
+      const { svc } = setupChangePassword();
+      const result = await svc.changePassword('u1', SCHEMA, 'TestPass123', 'NuevaPass456');
+      expect(result).not.toHaveProperty('passwordHash');
+      expect(result).not.toHaveProperty('password');
+      expect(result).not.toHaveProperty('currentPassword');
+      expect(result).not.toHaveProperty('newPassword');
+    });
+
+    it('lanza 401 si el usuario no existe', async () => {
+      const { svc, tenantPrisma } = buildService();
+      const db = mockDb();
+      (tenantPrisma.getClient as jest.Mock).mockReturnValue(db);
+      db.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        svc.changePassword('nonexistent', SCHEMA, 'pass', 'newpass'),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('fail-closed: revoca sesiones ANTES de actualizar password', async () => {
+      const { svc, prisma, db } = setupChangePassword();
+      const callOrder: string[] = [];
+      (prisma.refreshSession.updateMany as jest.Mock).mockImplementation(async () => {
+        callOrder.push('revoke');
+        return { count: 3 };
+      });
+      db.user.update.mockImplementation(async () => {
+        callOrder.push('update');
+        return {};
+      });
+
+      await svc.changePassword('u1', SCHEMA, 'TestPass123', 'NuevaPass456');
+      expect(callOrder).toEqual(['revoke', 'update']);
+    });
+
+    it('si falla la revocación, la contraseña no se modifica', async () => {
+      const { svc, prisma, db } = setupChangePassword();
+      (prisma.refreshSession.updateMany as jest.Mock).mockRejectedValue(
+        new Error('System DB unreachable'),
+      );
+
+      await expect(
+        svc.changePassword('u1', SCHEMA, 'TestPass123', 'NuevaPass456'),
+      ).rejects.toThrow('System DB unreachable');
+      expect(db.user.update).not.toHaveBeenCalled();
+    });
+
+    it('si la actualización de contraseña falla, las sesiones ya quedaron revocadas', async () => {
+      const { svc, prisma, db } = setupChangePassword();
+      (prisma.refreshSession.updateMany as jest.Mock).mockResolvedValue({ count: 3 });
+      db.user.update.mockRejectedValue(new Error('Tenant DB write failed'));
+
+      await expect(
+        svc.changePassword('u1', SCHEMA, 'TestPass123', 'NuevaPass456'),
+      ).rejects.toThrow('Tenant DB write failed');
+      expect(prisma.refreshSession.updateMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('operación exitosa revoca todas las sesiones activas', async () => {
+      const { svc, prisma } = setupChangePassword();
+      await svc.changePassword('u1', SCHEMA, 'TestPass123', 'NuevaPass456');
+      expect(prisma.refreshSession.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'u1', tenantSchemaName: SCHEMA, revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+      expect(prisma.refreshSession.updateMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('no imprime contraseñas, hashes ni tokens en logs', async () => {
+      const logSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
+      const { svc } = setupChangePassword();
+
+      await svc.changePassword('u1', SCHEMA, 'TestPass123', 'NuevaPass456');
+
+      for (const call of logSpy.mock.calls) {
+        const msg = String(call[0]);
+        expect(msg).not.toContain('TestPass123');
+        expect(msg).not.toContain('NuevaPass456');
+        expect(msg).not.toContain('$2b$');
+      }
+      logSpy.mockRestore();
+    });
+  });
+
+  describe('mustChangePassword in tokens', () => {
+    it('login devuelve mustChangePassword', async () => {
+      const { svc, tenantPrisma, prisma } = buildService();
+      const db = mockDb();
+      (tenantPrisma.getClient as jest.Mock).mockReturnValue(db);
+      db.user.findUnique.mockResolvedValue({ ...ACTIVE_USER, mustChangePassword: true });
+
+      const result = await svc.login(
+        { email: 'test@test.com', password: 'TestPass123' },
+        SCHEMA,
+      );
+
+      expect(result.user.mustChangePassword).toBe(true);
+    });
+
+    it('login con mustChangePassword=false devuelve el valor correcto', async () => {
+      const { svc, tenantPrisma } = buildService();
+      const db = mockDb();
+      (tenantPrisma.getClient as jest.Mock).mockReturnValue(db);
+      db.user.findUnique.mockResolvedValue({ ...ACTIVE_USER, mustChangePassword: false });
+
+      const result = await svc.login(
+        { email: 'test@test.com', password: 'TestPass123' },
+        SCHEMA,
+      );
+
+      expect(result.user.mustChangePassword).toBe(false);
+    });
+
+    it('refresh consulta el valor actual desde BD', async () => {
+      const { svc, tenantPrisma, prisma, jwt } = buildService();
+      const db = mockDb();
+      (tenantPrisma.getClient as jest.Mock).mockReturnValue(db);
+      db.user.findUnique.mockResolvedValue({ ...ACTIVE_USER, mustChangePassword: true });
+
+      const tokenHash = AuthService.hashToken('old-refresh-token');
+      (prisma.refreshSession.findUnique as jest.Mock).mockResolvedValue({
+        id: 'sess-1',
+        jti: 'jti-1',
+        tokenHash,
+        familyId: 'fam-1',
+        revokedAt: null,
+        expiresAt: new Date(Date.now() + 86400000),
+      });
+
+      (jwt.verify as jest.Mock).mockReturnValue({
+        sub: 'u1',
+        email: 'test@test.com',
+        role: 'OWNER',
+        tenantSchemaName: SCHEMA,
+        jti: 'jti-1',
+        familyId: 'fam-1',
+      });
+
+      const result = await svc.refreshToken('old-refresh-token');
+      expect(result.user.mustChangePassword).toBe(true);
+    });
+
+    it('refresh con mustChangePassword=false en BD refleja el valor actual', async () => {
+      const { svc, tenantPrisma, prisma, jwt } = buildService();
+      const db = mockDb();
+      (tenantPrisma.getClient as jest.Mock).mockReturnValue(db);
+      db.user.findUnique.mockResolvedValue({ ...ACTIVE_USER, mustChangePassword: false });
+
+      const tokenHash = AuthService.hashToken('old-refresh-token');
+      (prisma.refreshSession.findUnique as jest.Mock).mockResolvedValue({
+        id: 'sess-1',
+        jti: 'jti-1',
+        tokenHash,
+        familyId: 'fam-1',
+        revokedAt: null,
+        expiresAt: new Date(Date.now() + 86400000),
+      });
+
+      (jwt.verify as jest.Mock).mockReturnValue({
+        sub: 'u1',
+        email: 'test@test.com',
+        role: 'OWNER',
+        tenantSchemaName: SCHEMA,
+        jti: 'jti-1',
+        familyId: 'fam-1',
+      });
+
+      const result = await svc.refreshToken('old-refresh-token');
+      expect(result.user.mustChangePassword).toBe(false);
     });
   });
 

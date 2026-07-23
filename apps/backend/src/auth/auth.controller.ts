@@ -13,6 +13,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { LogoutDto } from './dto/logout.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { VoiceSeedDto } from './dto/voice-seed.dto';
 import { VoiceLoginDto } from './dto/voice-login.dto';
@@ -64,6 +65,25 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Sesion cerrada' })
   logout(@Body() dto: LogoutDto): Promise<{ message: string }> {
     return this.authService.logout(dto.refreshToken);
+  }
+
+  @ApiBearerAuth('JWT')
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cambiar la contraseña del usuario autenticado', operationId: 'auth_changePassword' })
+  @ApiResponse({ status: 200, description: 'Contraseña actualizada' })
+  @ApiResponse({ status: 401, description: 'Contraseña actual incorrecta o credenciales inválidas' })
+  changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @CurrentTenant() tenant: TenantContext,
+    @Body() dto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    return this.authService.changePassword(
+      user.id,
+      tenant.schemaName,
+      dto.currentPassword,
+      dto.newPassword,
+    );
   }
 
   @ApiBearerAuth('JWT')
