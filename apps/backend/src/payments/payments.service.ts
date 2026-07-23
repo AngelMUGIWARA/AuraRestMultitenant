@@ -1,9 +1,10 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { $Enums, TableStatus } from '../generated/prisma-tenant';
-import type { Prisma } from '../generated/prisma-tenant';
 import { EventBusService } from '../event-bus/event-bus.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import { PaymentsRepository } from './payments.repository';
@@ -15,6 +16,8 @@ import {
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     private readonly paymentsRepo: PaymentsRepository,
     private readonly eventBus: EventBusService,
@@ -38,7 +41,7 @@ export class PaymentsService {
     try {
       return await this.paymentsRepo.runTransaction(
         schemaName,
-        async (tx: Prisma.TransactionClient) => {
+        async (tx) => {
           const order = await this.paymentsRepo.findOrderById(
             schemaName,
             dto.orderId,
@@ -49,24 +52,29 @@ export class PaymentsService {
             throw new BadRequestException('La orden no existe.');
           }
 
-          const existingPayments = await this.paymentsRepo.findByOrder(
-            schemaName,
-            dto.orderId,
-            tx,
+          if (order.status === $Enums.OrderStatus.CANCELLED) {
+            throw new BadRequestException('No se puede pagar una orden cancelada.');
+          }
+
+          const completedPayments = order.payments.filter(
+            (p) => p.status === $Enums.PaymentStatus.COMPLETED,
           );
 
-          const completedPayments = existingPayments.filter(
-            (payment) => payment.status === $Enums.PaymentStatus.COMPLETED,
+          const alreadyPaid = completedPayments.reduce(
+            (sum, p) => sum + Number(p.amount),
+            0,
           );
-
-          const alreadyPaid = completedPayments.reduce((sum, payment) => {
-            return sum + Number(payment.amount);
-          }, 0);
 
           const orderTotal = Number(order.total);
           const pendingAmount = Number((orderTotal - alreadyPaid).toFixed(2));
 
           if (pendingAmount <= 0) {
+            const idempotent = idempotencyKey
+              ? await this.paymentsRepo.findPaymentByIdempotencyKey(schemaName, idempotencyKey, tx)
+              : null;
+            if (idempotent) {
+              return this.toPaymentResponse(idempotent, dto);
+            }
             throw new BadRequestException('La orden ya fue pagada.');
           }
 
@@ -76,6 +84,12 @@ export class PaymentsService {
             if (Number.isNaN(amount) || amount <= 0) {
               throw new BadRequestException(
                 'El monto de cada pago debe ser mayor a cero.',
+              );
+            }
+
+            if (!Number.isFinite(amount)) {
+              throw new BadRequestException(
+                'El monto del pago no es un número válido.',
               );
             }
 
@@ -90,15 +104,12 @@ export class PaymentsService {
             );
           }
 
-          if (normalizedIncomingAmount < pendingAmount) {
-            throw new BadRequestException(
-              `El pago no cubre el total pendiente. Pendiente: ${pendingAmount.toFixed(2)}`,
-            );
-          }
-
           const paymentRecords: any[] = [];
 
-          for (const split of dto.payments) {
+          for (let i = 0; i < dto.payments.length; i++) {
+            const split = dto.payments[i];
+            const isFirstPayment = i === 0;
+
             const payment = await this.paymentsRepo.createPayment(
               schemaName,
               {
@@ -106,7 +117,7 @@ export class PaymentsService {
                 method: split.method as $Enums.PaymentMethod,
                 status: $Enums.PaymentStatus.COMPLETED,
                 reference: split.reference,
-                ...(idempotencyKey ? { idempotencyKey } : {}),
+                ...(isFirstPayment && idempotencyKey ? { idempotencyKey } : {}),
                 processedAt: new Date(),
                 order: { connect: { id: dto.orderId } },
               },
@@ -133,14 +144,22 @@ export class PaymentsService {
             );
           }
 
-          await this.paymentsRepo.updateOrderStatus(
+          const newAlreadyPaid = Number((alreadyPaid + normalizedIncomingAmount).toFixed(2));
+          const newRemaining = Number((orderTotal - newAlreadyPaid).toFixed(2));
+          const isFullyPaid = newRemaining <= 0;
+          const newPaymentStatus = isFullyPaid
+            ? 'PAID'
+            : 'PARTIALLY_PAID';
+
+          await this.paymentsRepo.updateOrderPaymentStatus(
             schemaName,
             dto.orderId,
-            'PAID',
+            newPaymentStatus as any,
+            order.version,
             tx,
           );
 
-          if (order.table) {
+          if (isFullyPaid && order.table) {
             await this.paymentsRepo.updateTableStatus(
               schemaName,
               order.table.id,
@@ -151,8 +170,12 @@ export class PaymentsService {
 
           this.eventBus.emit('payment:completed', {
             orderId: dto.orderId,
+            orderNumber: order.folio,
+            methods: dto.payments.map((p) => mapPaymentMethodFromDb(p.method as any)),
             amount: normalizedIncomingAmount,
-            methods: dto.payments.map((p) => p.method),
+            paidAmount: newAlreadyPaid,
+            remainingAmount: newRemaining,
+            isFullyPaid,
           });
 
           const branchId = order.table?.branchId;
@@ -167,6 +190,8 @@ export class PaymentsService {
                 amount: normalizedIncomingAmount,
                 methods: dto.payments.map((p) => p.method),
                 hasTip: !!dto.tip,
+                isFullyPaid,
+                remainingAmount: newRemaining,
               }),
             }, tx);
           }
@@ -193,6 +218,12 @@ export class PaymentsService {
         if (existing) {
           return this.toPaymentResponse(existing, dto);
         }
+      }
+
+      if (err?.code === 'P2025') {
+        throw new ConflictException(
+          'La orden fue modificada por otro usuario. Recarga e intenta de nuevo.',
+        );
       }
 
       throw err;

@@ -11,6 +11,8 @@ import { ActivityLogService } from '../activity-log/activity-log.service';
 import { TaxConfigService, DEFAULT_TAX_RATE } from '../tax-config/tax-config.service';
 import {
   mapOrderStatusFromDb,
+  mapOrderPaymentStatusFromDb,
+  mapPaymentMethodFromDb,
 } from '../common/utils/order-mapper';
 import { OrdersRepository } from './orders.repository';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -435,19 +437,36 @@ export class OrdersService {
   }
 
   private toResponse(order: any) {
-    const hasPaidPayment =
-      Array.isArray(order.payments) &&
-      order.payments.some((p: any) => p.status === 'COMPLETED');
-
     const subtotalNum = Number(order.subtotal);
     const taxNum = Number(order.tax);
     const taxRate = subtotalNum > 0 ? taxNum / subtotalNum : DEFAULT_TAX_RATE;
+
+    const completedPayments = Array.isArray(order.payments)
+      ? order.payments.filter((p: any) => p.status === 'COMPLETED')
+      : [];
+    const paidAmount = completedPayments.reduce(
+      (sum: number, p: any) => sum + Number(p.amount),
+      0,
+    );
+    const totalNum = Number(order.total);
+    const remainingAmount = Number(Math.max(0, totalNum - paidAmount).toFixed(2));
+    const isFullyPaid = remainingAmount <= 0;
+
+    const distinctMethods: string[] = [];
+    for (const p of completedPayments) {
+      const method = mapPaymentMethodFromDb(p.method);
+      if (!distinctMethods.includes(method)) {
+        distinctMethods.push(method);
+      }
+    }
+
+    const paymentStatusRaw = order.paymentStatus ?? (isFullyPaid ? 'PAID' : 'UNPAID');
 
     return {
       id: order.id,
       orderNumber: order.folio,
       status: mapOrderStatusFromDb(order.status),
-      paymentStatus: hasPaidPayment ? 'paid' : 'pending',
+      paymentStatus: mapOrderPaymentStatusFromDb(paymentStatusRaw),
       type: order.type?.toLowerCase() || 'dine_in',
       items: (order.orderItems || []).map((item: any) => ({
         id: item.id,
@@ -462,7 +481,11 @@ export class OrdersService {
       subtotal: subtotalNum,
       tax: taxNum,
       taxRate,
-      total: Number(order.total),
+      total: totalNum,
+      paidAmount: Number(paidAmount.toFixed(2)),
+      remainingAmount,
+      isFullyPaid,
+      paymentMethods: distinctMethods as any[],
       customerName: order.customerName || '',
       tableNumber: order.table?.number || null,
       tableId: order.table?.id || null,
