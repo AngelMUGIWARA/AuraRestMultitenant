@@ -86,6 +86,9 @@ enum PromotionType {
   FIXED_DISCOUNT
   BUY_X_GET_Y
   FREE_ITEM
+  SPECIAL_PRICE
+  CATEGORY_PERCENTAGE
+  CATEGORY_FIXED
 }
 
 enum TipMethod {
@@ -152,7 +155,8 @@ model Category {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  menuItems MenuItem[]
+  menuItems           MenuItem[]
+  promotionCategories PromotionCategory[]
 
   @@map("categories")
 }
@@ -169,8 +173,9 @@ model MenuItem {
   createdAt   DateTime       @default(now()) @map("created_at")
   updatedAt   DateTime       @updatedAt @map("updated_at")
 
-  category   Category    @relation(fields: [categoryId], references: [id])
-  orderItems OrderItem[]
+  category       Category        @relation(fields: [categoryId], references: [id])
+  orderItems     OrderItem[]
+  promotionItems PromotionItem[]
 
   @@unique([name, categoryId])
   @@index([categoryId])
@@ -198,36 +203,40 @@ model RestaurantTable {
 }
 
 model Order {
-  id           String      @id @default(cuid())
-  folio        String      @unique
-  tableId      String?     @map("table_id")
-  branchId     String?     @map("branch_id")
-  userId       String      @map("user_id")
-  customerName String?     @map("customer_name")
-  type         OrderType        @default(DINE_IN)
-  status       OrderStatus      @default(PENDING)
-  paymentStatus OrderPaymentStatus @default(UNPAID) @map("payment_status")
-  notes        String?
-  subtotal         Decimal      @db.Decimal(10, 2)
-  discountAmount   Decimal?     @db.Decimal(10, 2) @map("discount_amount")
-  taxableSubtotal  Decimal?     @db.Decimal(10, 2) @map("taxable_subtotal")
-  tax              Decimal      @db.Decimal(10, 2)
-  total            Decimal      @db.Decimal(10, 2)
-  discountId       String?      @map("discount_id")
-  version          Int          @default(0)
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
+  id               String             @id @default(cuid())
+  folio            String             @unique
+  tableId          String?            @map("table_id")
+  branchId         String?            @map("branch_id")
+  userId           String             @map("user_id")
+  customerName     String?            @map("customer_name")
+  type             OrderType          @default(DINE_IN)
+  status           OrderStatus        @default(PENDING)
+  paymentStatus    OrderPaymentStatus @default(UNPAID) @map("payment_status")
+  notes            String?
+  subtotal         Decimal            @db.Decimal(10, 2)
+  promotionAmount  Decimal?           @map("promotion_amount") @db.Decimal(10, 2)
+  promotedSubtotal Decimal?           @map("promoted_subtotal") @db.Decimal(10, 2)
+  discountAmount   Decimal?           @db.Decimal(10, 2) @map("discount_amount")
+  taxableSubtotal  Decimal?           @db.Decimal(10, 2) @map("taxable_subtotal")
+  tax              Decimal            @db.Decimal(10, 2)
+  total            Decimal            @db.Decimal(10, 2)
+  discountId       String?            @map("discount_id")
+  version          Int                @default(0)
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
 
+  /// @deprecated Order.promotionId is deprecated; use OrderPromotion relation for order promotions.
   promotionId String? @map("promotion_id")
 
-  table         RestaurantTable? @relation(fields: [tableId], references: [id])
-  branch        Branch?          @relation(fields: [branchId], references: [id])
-  user          User             @relation(fields: [userId], references: [id])
-  discount      Discount?        @relation(fields: [discountId], references: [id])
-  promotion     Promotion?       @relation(fields: [promotionId], references: [id])
-  orderItems    OrderItem[]
-  payments      Payment[]
-  kitchenTicket KitchenTicket?
+  table           RestaurantTable? @relation(fields: [tableId], references: [id])
+  branch          Branch?          @relation(fields: [branchId], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
+  discount        Discount?        @relation(fields: [discountId], references: [id])
+  promotion       Promotion?       @relation(fields: [promotionId], references: [id])
+  orderItems      OrderItem[]
+  orderPromotions OrderPromotion[]
+  payments        Payment[]
+  kitchenTicket   KitchenTicket?
 
   @@index([userId])
   @@index([tableId])
@@ -238,20 +247,30 @@ model Order {
 }
 
 model OrderItem {
-  id         String   @id @default(cuid())
-  orderId    String   @map("order_id")
-  menuItemId String   @map("menu_item_id")
-  quantity   Int
-  unitPrice  Decimal  @map("unit_price") @db.Decimal(10, 2)
-  subtotal   Decimal  @db.Decimal(10, 2)
-  notes      String?
-  createdAt  DateTime @default(now()) @map("created_at")
+  id                     String   @id @default(cuid())
+  orderId                String   @map("order_id")
+  menuItemId             String   @map("menu_item_id")
+  quantity               Int
+  unitPrice              Decimal  @map("unit_price") @db.Decimal(10, 2)
+  subtotal               Decimal  @db.Decimal(10, 2)
+  promotionId            String?  @map("promotion_id")
+  promotionNameSnapshot  String?  @map("promotion_name_snapshot")
+  promotionTypeSnapshot  String?  @map("promotion_type_snapshot")
+  promotionValueSnapshot Decimal? @map("promotion_value_snapshot") @db.Decimal(10, 2)
+  promotionQuantity      Int?     @map("promotion_quantity")
+  promotionAmount        Decimal? @map("promotion_amount") @db.Decimal(10, 2)
+  originalUnitPrice      Decimal? @map("original_unit_price") @db.Decimal(10, 2)
+  effectiveUnitPrice     Decimal? @map("effective_unit_price") @db.Decimal(10, 2)
+  notes                  String?
+  createdAt              DateTime @default(now()) @map("created_at")
 
-  order    Order    @relation(fields: [orderId], references: [id])
-  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
+  order     Order      @relation(fields: [orderId], references: [id])
+  menuItem  MenuItem   @relation(fields: [menuItemId], references: [id])
+  promotion Promotion? @relation(fields: [promotionId], references: [id])
 
   @@index([orderId])
   @@index([menuItemId])
+  @@index([promotionId])
   @@map("order_items")
 }
 
@@ -339,21 +358,78 @@ model Discount {
 }
 
 model Promotion {
-  id          String        @id @default(cuid())
-  name        String
-  description String?
-  type        PromotionType
-  value       Decimal       @db.Decimal(10, 2)
-  minPurchase Decimal?      @map("min_purchase") @db.Decimal(10, 2)
-  startsAt    DateTime?     @map("starts_at")
-  endsAt      DateTime?     @map("ends_at")
-  isActive    Boolean       @default(true) @map("is_active")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  id           String        @id @default(cuid())
+  name         String
+  description  String?
+  type         PromotionType
+  value        Decimal       @db.Decimal(10, 2)
+  minPurchase  Decimal?      @map("min_purchase") @db.Decimal(10, 2)
+  maxAmount    Decimal?      @map("max_amount") @db.Decimal(10, 2)
+  specialPrice Decimal?      @map("special_price") @db.Decimal(10, 2)
+  buyQuantity  Int?          @map("buy_quantity")
+  getQuantity  Int?          @map("get_quantity")
+  startsAt     DateTime?     @map("starts_at")
+  endsAt       DateTime?     @map("ends_at")
+  startMinute  Int?          @map("start_minute")
+  endMinute    Int?          @map("end_minute")
+  priority     Int           @default(0)
+  isActive     Boolean       @default(true) @map("is_active")
+  branchId     String?       @map("branch_id")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
 
-  orders Order[]
+  branch              Branch?             @relation(fields: [branchId], references: [id])
+  promotionCategories PromotionCategory[]
+  promotionItems      PromotionItem[]
+  orderItems          OrderItem[]
+  orderPromotions     OrderPromotion[]
+  orders              Order[]
 
+  @@index([branchId])
   @@map("promotions")
+}
+
+model PromotionCategory {
+  promotionId String @map("promotion_id")
+  categoryId  String @map("category_id")
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([promotionId, categoryId])
+  @@index([categoryId])
+  @@map("promotion_categories")
+}
+
+model PromotionItem {
+  promotionId String  @map("promotion_id")
+  menuItemId  String  @map("menu_item_id")
+  isTarget    Boolean @default(false) @map("is_target")
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  menuItem  MenuItem  @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@id([promotionId, menuItemId])
+  @@index([menuItemId])
+  @@map("promotion_items")
+}
+
+model OrderPromotion {
+  id              String   @id @default(cuid())
+  orderId         String   @map("order_id")
+  promotionId     String   @map("promotion_id")
+  nameSnapshot    String   @map("name_snapshot")
+  typeSnapshot    String   @map("type_snapshot")
+  valueSnapshot   Decimal  @db.Decimal(10, 2) @map("value_snapshot")
+  promotionAmount Decimal  @db.Decimal(10, 2) @map("promotion_amount")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([promotionId])
+  @@map("order_promotions")
 }
 
 model Tip {
@@ -389,6 +465,7 @@ model Branch {
   activities ActivityLog[]
   orders     Order[]
   discounts  Discount[]
+  promotions Promotion[]
 
   @@map("branches")
 }

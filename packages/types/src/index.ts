@@ -425,10 +425,18 @@ export interface OrderItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  promotionId?: string | null;
+  promotionNameSnapshot?: string | null;
+  promotionTypeSnapshot?: string | null;
+  promotionValueSnapshot?: number | null;
+  promotionQuantity?: number | null;
+  promotionAmount?: number | null;
+  originalUnitPrice?: number | null;
+  effectiveUnitPrice?: number | null;
   notes?: string;
 }
 
-// ─── Discount ─────────────────────────────────────────────────────────────────
+// ─── Discount & Promotion ───────────────────────────────────────────────────
 
 export type DiscountType = 'PERCENTAGE' | 'FIXED';
 
@@ -447,6 +455,49 @@ export interface Discount {
   maxAmount?: number | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type PromotionType =
+  | 'PERCENTAGE_DISCOUNT'
+  | 'FIXED_DISCOUNT'
+  | 'BUY_X_GET_Y'
+  | 'FREE_ITEM'
+  | 'SPECIAL_PRICE'
+  | 'CATEGORY_PERCENTAGE'
+  | 'CATEGORY_FIXED';
+
+export interface Promotion {
+  id: string;
+  name: string;
+  description?: string | null;
+  type: PromotionType;
+  value: number;
+  minPurchase?: number | null;
+  maxAmount?: number | null;
+  specialPrice?: number | null;
+  buyQuantity?: number | null;
+  getQuantity?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  startMinute?: number | null;
+  endMinute?: number | null;
+  priority: number;
+  isActive: boolean;
+  branchId?: string | null;
+  categoryIds?: string[];
+  itemIds?: string[];
+  targetItemIds?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderPromotion {
+  id: string;
+  promotionId: string;
+  name: string;
+  type: string;
+  value: number;
+  promotionAmount: number;
 }
 
 export interface ApplyDiscountPayload {
@@ -476,9 +527,12 @@ export interface Order {
   items: OrderItem[];
   itemCount: number;
   subtotal: number;
+  promotionAmount?: number | null;
+  promotedSubtotal?: number | null;
   discountId?: string | null;
   discountAmount?: number | null;
   taxableSubtotal?: number | null;
+  appliedPromotions?: OrderPromotion[];
   discount?: {
     id: string;
     name: string;

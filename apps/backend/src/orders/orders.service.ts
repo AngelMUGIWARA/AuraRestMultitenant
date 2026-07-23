@@ -1,14 +1,17 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { $Enums, Prisma, TableStatus } from '../generated/prisma-tenant';
 import type { Prisma as PrismaType } from '../generated/prisma-tenant';
 import { EventBusService } from '../event-bus/event-bus.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import { TaxConfigService, DEFAULT_TAX_RATE } from '../tax-config/tax-config.service';
+import { OrderPromotionService } from '../promotions/order-promotion.service';
 import {
   mapOrderStatusFromDb,
   mapOrderPaymentStatusFromDb,
@@ -27,6 +30,8 @@ export class OrdersService {
     private readonly eventBus: EventBusService,
     private readonly activityLog: ActivityLogService,
     private readonly taxConfig: TaxConfigService,
+    @Inject(forwardRef(() => OrderPromotionService))
+    private readonly orderPromotionService: OrderPromotionService,
   ) {}
 
   async create(schemaName: string, dto: CreateOrderDto, userId: string) {
@@ -478,13 +483,31 @@ export class OrdersService {
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
         totalPrice: Number(item.subtotal),
+        promotionId: item.promotionId || null,
+        promotionNameSnapshot: item.promotionNameSnapshot || null,
+        promotionTypeSnapshot: item.promotionTypeSnapshot || null,
+        promotionValueSnapshot: item.promotionValueSnapshot ? Number(item.promotionValueSnapshot) : null,
+        promotionQuantity: item.promotionQuantity ?? null,
+        promotionAmount: item.promotionAmount ? Number(item.promotionAmount) : null,
+        originalUnitPrice: item.originalUnitPrice ? Number(item.originalUnitPrice) : Number(item.unitPrice),
+        effectiveUnitPrice: item.effectiveUnitPrice ? Number(item.effectiveUnitPrice) : Number(item.unitPrice),
         notes: item.notes || null,
       })),
       itemCount: (order.orderItems || []).length,
       subtotal: subtotalNum,
+      promotionAmount: order.promotionAmount ? Number(order.promotionAmount) : 0,
+      promotedSubtotal: order.promotedSubtotal ? Number(order.promotedSubtotal) : subtotalNum,
       discountId: order.discountId || null,
       discountAmount: discountAmountNum,
       taxableSubtotal: taxableSubtotalNum,
+      appliedPromotions: (order.orderPromotions || []).map((op: any) => ({
+        id: op.id,
+        promotionId: op.promotionId,
+        name: op.nameSnapshot,
+        type: op.typeSnapshot,
+        value: Number(op.valueSnapshot),
+        promotionAmount: Number(op.promotionAmount),
+      })),
       discount: order.discount
         ? {
             id: order.discount.id,

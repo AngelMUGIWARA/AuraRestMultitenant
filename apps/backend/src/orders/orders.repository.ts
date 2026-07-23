@@ -12,11 +12,12 @@ export class OrdersRepository {
   }
 
   private defaultInclude = {
-    orderItems: { include: { menuItem: true } },
+    orderItems: { include: { menuItem: true, promotion: true } },
     table: true,
     user: true,
     payments: true,
     discount: true,
+    orderPromotions: { include: { promotion: true } },
   };
 
   async create(
@@ -131,6 +132,18 @@ export class OrdersRepository {
   ) {
     return this.db(schemaName, tx).kitchenTicket.create({
       data: { orderId },
+    });
+  }
+
+  async updateOrderItem(
+    schemaName: string,
+    id: string,
+    data: Prisma.OrderItemUpdateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).orderItem.update({
+      where: { id },
+      data,
     });
   }
 }
