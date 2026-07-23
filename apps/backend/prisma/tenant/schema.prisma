@@ -372,7 +372,7 @@ model Branch {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   users      UserBranch[]
-  settings   Settings?
+  settings   Settings[]
   activities ActivityLog[]
   orders     Order[]
 
@@ -433,7 +433,7 @@ model UserBranch {
 
 model Settings {
   id        String   @id @default(cuid())
-  branchId  String   @unique @map("branch_id")
+  branchId  String   @map("branch_id")
   key       String
   value     String
   createdAt DateTime @default(now()) @map("created_at")

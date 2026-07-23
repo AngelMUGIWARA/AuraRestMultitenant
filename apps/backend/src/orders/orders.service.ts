@@ -8,6 +8,7 @@ import { $Enums, Prisma, TableStatus } from '../generated/prisma-tenant';
 import type { Prisma as PrismaType } from '../generated/prisma-tenant';
 import { EventBusService } from '../event-bus/event-bus.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import { TaxConfigService, DEFAULT_TAX_RATE } from '../tax-config/tax-config.service';
 import {
   mapOrderStatusFromDb,
 } from '../common/utils/order-mapper';
@@ -17,13 +18,13 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
 @Injectable()
 export class OrdersService {
-  private readonly TAX_RATE = new Prisma.Decimal(0.15);
   private readonly MAX_FOLIO_RETRIES = 5;
 
   constructor(
     private readonly ordersRepo: OrdersRepository,
     private readonly eventBus: EventBusService,
     private readonly activityLog: ActivityLogService,
+    private readonly taxConfig: TaxConfigService,
   ) {}
 
   async create(schemaName: string, dto: CreateOrderDto, userId: string) {
@@ -35,6 +36,16 @@ export class OrdersService {
       throw new BadRequestException('Algunos platos no existen');
     }
     const menuItemMap = new Map(menuItems.map((m) => [m.id, m.price]));
+
+    let branchId: string | undefined;
+    if (dto.tableId) {
+      const table = await this.ordersRepo.findTableById(schemaName, dto.tableId);
+      branchId = table?.branchId;
+    } else if (dto.branchId) {
+      branchId = dto.branchId;
+    }
+
+    const taxRate = await this.taxConfig.getTaxRate(schemaName, branchId);
 
     return this.ordersRepo.runTransaction(
       schemaName,
@@ -55,7 +66,7 @@ export class OrdersService {
           (acc, item) => acc.plus(item.subtotal),
           new Prisma.Decimal(0),
         );
-        const tax = subtotal.mul(this.TAX_RATE);
+        const tax = subtotal.mul(new Prisma.Decimal(taxRate));
         const total = subtotal.plus(tax);
 
         let lastError: unknown = null;
@@ -428,6 +439,10 @@ export class OrdersService {
       Array.isArray(order.payments) &&
       order.payments.some((p: any) => p.status === 'COMPLETED');
 
+    const subtotalNum = Number(order.subtotal);
+    const taxNum = Number(order.tax);
+    const taxRate = subtotalNum > 0 ? taxNum / subtotalNum : DEFAULT_TAX_RATE;
+
     return {
       id: order.id,
       orderNumber: order.folio,
@@ -444,8 +459,9 @@ export class OrdersService {
         notes: item.notes || null,
       })),
       itemCount: (order.orderItems || []).length,
-      subtotal: Number(order.subtotal),
-      tax: Number(order.tax),
+      subtotal: subtotalNum,
+      tax: taxNum,
+      taxRate,
       total: Number(order.total),
       customerName: order.customerName || '',
       tableNumber: order.table?.number || null,

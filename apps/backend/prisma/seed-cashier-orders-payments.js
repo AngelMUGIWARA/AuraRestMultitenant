@@ -125,6 +125,32 @@ async function main() {
         }),
     ]);
     console.log(`✅  Usuarios:  ${users.map((u) => u.role).join(', ')}`);
+    // ── Roles and Branch ──
+    const roles = await tenantDb.role.findMany();
+    if (roles.length === 0) {
+        await Promise.all([
+            tenantDb.role.create({ data: { name: 'OWNER' } }),
+            tenantDb.role.create({ data: { name: 'ADMIN' } }),
+            tenantDb.role.create({ data: { name: 'MANAGER' } }),
+            tenantDb.role.create({ data: { name: 'WAITER' } }),
+            tenantDb.role.create({ data: { name: 'CASHIER' } }),
+            tenantDb.role.create({ data: { name: 'CHEF' } }),
+        ]);
+    }
+    const branch = await tenantDb.branch.upsert({
+        where: { slug: 'central' },
+        update: {},
+        create: { name: 'Sucursal Central', slug: 'central', address: 'Centro', phone: '+52 55 0000 0002' },
+    });
+    // ── 2.c Configuración fiscal (Settings) ──
+    // FIXTURE: tax_rate = "0.15" (15%). Order amounts below computed with this rate.
+    const DEMO_TAX_RATE = '0.15';
+    await tenantDb.settings.upsert({
+        where: { branchId_key: { branchId: branch.id, key: 'tax_rate' } },
+        update: { value: DEMO_TAX_RATE },
+        create: { branchId: branch.id, key: 'tax_rate', value: DEMO_TAX_RATE },
+    });
+    console.log(`✅  Settings:  tax_rate = ${DEMO_TAX_RATE} (sucursal ${branch.slug})`);
     const [entradas, fuertes, bebidas, postres] = await Promise.all([
         tenantDb.category.upsert({
             where: { name: 'Entradas' },
@@ -190,10 +216,11 @@ async function main() {
     const mesa3 = await tenantDb.restaurantTable.findUnique({ where: { number: 3 } });
     const arrachera = await tenantDb.menuItem.findFirst({ where: { name: 'Arrachera a las Brasas' } });
     const horchata = await tenantDb.menuItem.findFirst({ where: { name: 'Agua de Horchata' } });
+    const SEED_TAX_RATE = parseFloat(DEMO_TAX_RATE);
     const existingOrder = await tenantDb.order.findUnique({ where: { folio: 'ORD-0001' } });
     if (!existingOrder && mesa3 && arrachera && horchata) {
         const subtotal = Number(arrachera.price) * 2 + Number(horchata.price);
-        const tax = +(subtotal * 0.16).toFixed(2);
+        const tax = +(subtotal * SEED_TAX_RATE).toFixed(2);
         const total = +(subtotal + tax).toFixed(2);
         await tenantDb.order.create({
             data: {
