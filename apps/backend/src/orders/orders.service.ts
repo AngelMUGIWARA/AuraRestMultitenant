@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { $Enums, Prisma } from '../generated/prisma-tenant';
+import { $Enums, Prisma, TableStatus } from '../generated/prisma-tenant';
 import type { Prisma as PrismaType } from '../generated/prisma-tenant';
 import { EventBusService } from '../event-bus/event-bus.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
@@ -85,7 +85,7 @@ export class OrdersService {
               await this.ordersRepo.updateTableStatus(
                 schemaName,
                 dto.tableId,
-                'OCCUPIED',
+                TableStatus.OCCUPIED,
                 tx,
               );
             }
@@ -247,7 +247,7 @@ export class OrdersService {
               await this.ordersRepo.updateTableStatus(
                 schemaName,
                 updated.table.id,
-                'AVAILABLE',
+                TableStatus.AVAILABLE,
                 tx,
               );
             }

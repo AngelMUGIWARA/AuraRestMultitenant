@@ -7,9 +7,6 @@ import { OWNER_NAV } from './constants';
 import DashboardPage from './pages/DashboardPage';
 import SucursalesPage from './pages/SucursalesPage';
 import SettingsPage from './pages/SettingsPage';
-import React, { Suspense } from 'react';
-
-const ReservacionesPage = React.lazy(() => import('../../reservations-mf/src/pages/ReservacionesPage'));
 
 export default function OwnerApp() {
   const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/dashboard';
@@ -23,14 +20,6 @@ export default function OwnerApp() {
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/sucursales" element={<SucursalesPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
-                <Route
-                  path="/reservaciones"
-                  element={
-                    <Suspense>
-                      <ReservacionesPage />
-                    </Suspense>
-                  }
-                />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </AdminShell>

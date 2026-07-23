@@ -11,7 +11,6 @@ export default defineConfig({
       '@maison/event-bus': path.resolve(__dirname, '../../packages/event-bus/src'),
       '@maison/types': path.resolve(__dirname, '../../packages/types/src'),
       '@maison/ui': path.resolve(__dirname, '../../packages/ui/src'),
-      '../../../tables-mf/src/services/tables.service': path.resolve(__dirname, '../tables-mf/src/services/tables.service'),
     },
   },
   test: {

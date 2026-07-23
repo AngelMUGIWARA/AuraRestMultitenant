@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { TenantPrismaService } from '../database/tenant-prisma.service';
 import type { Prisma } from '../generated/prisma-tenant';
+import { TableStatus } from '../generated/prisma-tenant';
 
 @Injectable()
 export class PaymentsRepository {
@@ -63,12 +64,12 @@ export class PaymentsRepository {
   async updateTableStatus(
     schemaName: string,
     tableId: string,
-    status: string,
+    status: TableStatus,
     tx?: Prisma.TransactionClient,
   ) {
     return this.db(schemaName, tx).restaurantTable.update({
       where: { id: tableId },
-      data: { status: status as any },
+      data: { status },
     });
   }
 

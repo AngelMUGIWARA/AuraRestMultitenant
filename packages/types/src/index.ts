@@ -600,7 +600,7 @@ export interface CreateReservationPayload {
 
 // ─── Table ────────────────────────────────────────────────────────────────────
 
-export type TableStatus = "free" | "occupied" | "reserved" | "maintenance";
+export type TableStatus = "AVAILABLE" | "OCCUPIED" | "RESERVED" | "MAINTENANCE";
 
 export interface RestaurantTable {
   id: string;
