@@ -50,4 +50,9 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({ description: 'Sucursal explícita. Requerida para TAKEOUT/DELIVERY sin mesa.', example: 'clx...' })
+  @IsOptional()
+  @IsString()
+  branchId?: string;
 }

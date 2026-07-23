@@ -438,6 +438,7 @@ export interface Order {
   itemCount: number;
   subtotal: number;
   tax: number;
+  taxRate: number;
   total: number;
   customerName: string;
   tableNumber?: string;

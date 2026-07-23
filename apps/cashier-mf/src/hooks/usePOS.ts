@@ -70,8 +70,6 @@ export function usePOS() {
   const clearCart = useCallback(() => { setCart([]); setSelectedTable(null); setCompletedOrder(null); }, []);
 
   const cartTotal = cart.reduce((sum, item) => sum + item.menuItem.price * item.quantity, 0);
-  const cartSubtotal = cartTotal / 1.16;
-  const cartTax = cartTotal - cartSubtotal;
 
   const submitOrder = useCallback(async (customerName: string) => {
     if (cart.length === 0) return;
@@ -130,7 +128,7 @@ export function usePOS() {
 
   return {
     menuItems, tables, cart, selectedTable, setSelectedTable,
-    cartTotal, cartSubtotal, cartTax,
+    cartTotal,
     isLoading, isSubmitting, error, completedOrder,
     addToCart, removeFromCart, clearCart, submitOrder, processPayment,
     refreshTables,

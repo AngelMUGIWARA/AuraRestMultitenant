@@ -21,6 +21,7 @@ export class OrderResponseDto {
   @ApiProperty() itemCount: number;
   @ApiProperty() subtotal: number;
   @ApiProperty() tax: number;
+  @ApiProperty() taxRate: number;
   @ApiProperty() total: number;
   @ApiProperty() customerName: string;
   @ApiPropertyOptional() tableNumber?: string | null;

@@ -37,6 +37,7 @@ describe('Orders (Integration HTTP)', () => {
     tenantDb.restaurantTable = { update: jest.fn(), findUnique: jest.fn() };
     tenantDb.kitchenTicket = { create: jest.fn() };
     tenantDb.activityLog = { create: jest.fn() };
+    tenantDb.settings = { findUnique: jest.fn().mockResolvedValue(null) };
   });
 
   function getAdminToken() {
@@ -75,6 +76,8 @@ describe('Orders (Integration HTTP)', () => {
       expect(res.status).toBe(201);
       expect(res.body).toHaveProperty('id');
       expect(res.body).toHaveProperty('orderNumber');
+      expect(res.body).toHaveProperty('taxRate');
+      expect(typeof res.body.taxRate).toBe('number');
     });
 
     it('debe retornar 400 si se envía array de items vacío', async () => {

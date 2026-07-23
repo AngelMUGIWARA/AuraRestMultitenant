@@ -170,6 +170,24 @@ async function main() {
     });
   }
 
+  // ── 2.c Configuración fiscal (Settings) ────────────────────────────────────
+  //
+  // The tax rate is stored as a decimal fraction in the Settings table.
+  // Value format: "0.15" = 15% (NOT "16", NOT "16%", NOT "1.16").
+  // The backend reads this via TaxConfigService.getTaxRate(branchId).
+  // If absent, DEFAULT_TAX_RATE (0.15) is used.
+  //
+  // FIXTURE NOTE: Order monetary amounts below are computed with rate 0.15.
+  // If you change this rate, update all fixture amounts accordingly:
+  //   tax = subtotal × rate
+  //   total = subtotal + tax
+  const DEMO_TAX_RATE = '0.15';
+  await tenantDb.settings.upsert({
+    where: { branchId_key: { branchId: branch.id, key: 'tax_rate' } },
+    update: { value: DEMO_TAX_RATE },
+    create: { branchId: branch.id, key: 'tax_rate', value: DEMO_TAX_RATE },
+  });
+  console.log(`✅  Settings:  tax_rate = ${DEMO_TAX_RATE} (sucursal ${branch.slug})`);
 
   // ── 3. Categorías ──────────────────────────────────────────────────────────
   const [entradas, fuertes, bebidas, postres] = await Promise.all([
@@ -268,9 +286,13 @@ async function main() {
 
   const existingOrder = await tenantDb.order.findUnique({ where: { folio: 'ORD-0001' } });
 
+  // FIXTURE: These amounts assume tax_rate = 0.15 from Settings above.
+  // Arrachera x2 = 285*2=570, Horchata x1 = 55 → subtotal=625, tax=93.75, total=718.75
+  const SEED_TAX_RATE = parseFloat(DEMO_TAX_RATE);
+
   if (!existingOrder && mesa3 && arrachera && horchata) {
     const subtotal = Number(arrachera.price) * 2 + Number(horchata.price);
-    const tax = +(subtotal * 0.16).toFixed(2);
+    const tax = +(subtotal * SEED_TAX_RATE).toFixed(2);
     const total = +(subtotal + tax).toFixed(2);
 
     await tenantDb.order.create({
@@ -390,7 +412,7 @@ async function main() {
         (sum, it) => sum + Number(it.menuItem.price) * it.quantity,
         0,
       );
-      const tax = +(subtotal * 0.16).toFixed(2);
+      const tax = +(subtotal * SEED_TAX_RATE).toFixed(2);
       const total = +(subtotal + tax).toFixed(2);
       const table = demoTables[i % demoTables.length];
 

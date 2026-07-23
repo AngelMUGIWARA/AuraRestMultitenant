@@ -101,7 +101,7 @@ type PosView = 'tables' | 'menu' | 'payment';
 export default function POSPage() {
   const {
     menuItems, tables, cart, selectedTable, setSelectedTable,
-    cartTotal, cartSubtotal, cartTax,
+    cartTotal,
     isLoading, isSubmitting, error, completedOrder,
     addToCart, removeFromCart, clearCart, submitOrder, processPayment,
     refreshTables,
@@ -485,7 +485,7 @@ export default function POSPage() {
                           <span className="font-mono">{formatCurrency(completedOrder.subtotal)}</span>
                         </div>
                         <div className="flex justify-between text-sm text-maison-cream-muted">
-                          <span>IVA 16%</span>
+                          <span>IVA {Math.round(completedOrder.taxRate * 100)}%</span>
                           <span className="font-mono">{formatCurrency(completedOrder.tax)}</span>
                         </div>
                         <div className="flex justify-between text-base font-bold text-maison-cream border-t border-maison-border pt-2 mt-1">
@@ -623,14 +623,6 @@ export default function POSPage() {
                   </div>
 
                   <div className="rounded-xl bg-surface-2 p-3.5 space-y-2">
-                    <div className="flex justify-between text-sm text-maison-cream-muted">
-                      <span>Subtotal</span>
-                      <span className="font-mono">{formatCurrency(cartSubtotal)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-maison-cream-muted">
-                      <span>IVA 16%</span>
-                      <span className="font-mono">{formatCurrency(cartTax)}</span>
-                    </div>
                     <div className="flex justify-between text-base font-bold text-maison-cream border-t border-maison-border pt-2 mt-1">
                       <span>Total</span>
                       <span className="font-mono text-maison-amber text-lg">{formatCurrency(cartTotal)}</span>
