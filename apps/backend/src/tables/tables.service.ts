@@ -1,5 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { mapTableStatusFromDb } from '../common/utils/order-mapper';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { TablesRepository } from './tables.repository';
 import { TableStatus } from '../generated/prisma-tenant';
 
@@ -19,19 +18,10 @@ export class TablesService {
     return this.toResponse(table);
   }
 
-  async updateStatus(schemaName: string, id: string, status: string) {  
+  async updateStatus(schemaName: string, id: string, status: TableStatus) {
     const table = await this.tablesRepo.findById(schemaName, id);
     if (!table) throw new NotFoundException('Mesa no encontrada');
-    const map: Record<string, TableStatus> = {
-      free: TableStatus.AVAILABLE,
-      occupied: TableStatus.OCCUPIED,
-      reserved: TableStatus.RESERVED,
-      maintenance: TableStatus.MAINTENANCE,
-    };
-  
-    const dbStatus = map[status];
-    if (!dbStatus) throw new BadRequestException('Estado inválido');
-    const updated = await this.tablesRepo.updateStatus(schemaName, id, dbStatus);
+    const updated = await this.tablesRepo.updateStatus(schemaName, id, status);
     return this.toResponse(updated);
   }
 
@@ -41,7 +31,7 @@ export class TablesService {
       number: table.number,
       name: table.name || null,
       capacity: table.capacity,
-      status: mapTableStatusFromDb(table.status),
+      status: table.status as TableStatus,
       locationZone: table.locationZone || null,
       isActive: table.isActive,
       createdAt: table.createdAt?.toISOString(),

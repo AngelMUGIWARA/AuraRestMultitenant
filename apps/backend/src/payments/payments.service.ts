@@ -2,7 +2,7 @@ import {
   BadRequestException,
   Injectable,
 } from '@nestjs/common';
-import { $Enums } from '../generated/prisma-tenant';
+import { $Enums, TableStatus } from '../generated/prisma-tenant';
 import type { Prisma } from '../generated/prisma-tenant';
 import { EventBusService } from '../event-bus/event-bus.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
@@ -144,7 +144,7 @@ export class PaymentsService {
             await this.paymentsRepo.updateTableStatus(
               schemaName,
               order.table.id,
-              'AVAILABLE',
+              TableStatus.AVAILABLE,
               tx,
             );
           }

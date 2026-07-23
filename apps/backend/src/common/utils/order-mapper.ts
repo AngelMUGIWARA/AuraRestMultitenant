@@ -24,26 +24,6 @@ export function mapOrderStatusFromDb(status: string): string {
   return map[status] ?? status;
 }
 
-export function mapTableStatusToDb(status: string): string {
-  const map: Record<string, string> = {
-    free: 'AVAILABLE',
-    occupied: 'OCCUPIED',
-    reserved: 'RESERVED',
-    maintenance: 'MAINTENANCE',
-  };
-  return map[status] ?? status;
-}
-
-export function mapTableStatusFromDb(status: string): string {
-  const map: Record<string, string> = {
-    AVAILABLE: 'free',
-    OCCUPIED: 'occupied',
-    RESERVED: 'reserved',
-    MAINTENANCE: 'maintenance',
-  };
-  return map[status] ?? status;
-}
-
 export function mapPaymentMethodToDb(method: string): string {
   const map: Record<string, string> = {
     cash: 'CASH',

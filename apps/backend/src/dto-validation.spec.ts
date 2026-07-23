@@ -11,6 +11,8 @@ import { CreateMenuDto } from './menus/dto/create-menu.dto';
 import { CreateCategoryDto } from './categories/dto/create-category.dto';
 import { CreateBranchDto } from './branches/dto/branch.dto';
 import { ReservationQueryDto } from './reservations/dto/reservation-query.dto';
+import { UpdateTableStatusDto } from './tables/dto/update-table.dto';
+import { TableStatus } from './generated/prisma-tenant';
 import { TableQueryDto } from './tables/dto/table-query.dto';
 
 async function validateDto(DtoClass: any, data: Record<string, unknown>) {
@@ -294,6 +296,54 @@ describe('DTO Validation', () => {
       const errors = await validateDto(TableQueryDto, { limit: 101 });
       const limitErrors = errors.filter(e => e.property === 'limit');
       expect(limitErrors.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('TableStatus — IsEnum validation', () => {
+    it('accepts AVAILABLE', async () => {
+      const errors = await validateDto(UpdateTableStatusDto, { status: 'AVAILABLE' });
+      expect(errors.length).toBe(0);
+    });
+
+    it('accepts OCCUPIED', async () => {
+      const errors = await validateDto(UpdateTableStatusDto, { status: 'OCCUPIED' });
+      expect(errors.length).toBe(0);
+    });
+
+    it('accepts RESERVED', async () => {
+      const errors = await validateDto(UpdateTableStatusDto, { status: 'RESERVED' });
+      expect(errors.length).toBe(0);
+    });
+
+    it('accepts MAINTENANCE', async () => {
+      const errors = await validateDto(UpdateTableStatusDto, { status: 'MAINTENANCE' });
+      expect(errors.length).toBe(0);
+    });
+
+    it('rejects lowercase free', async () => {
+      const errors = await validateDto(UpdateTableStatusDto, { status: 'free' });
+      expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('rejects INVALID_STATUS', async () => {
+      const errors = await validateDto(UpdateTableStatusDto, { status: 'INVALID_STATUS' });
+      expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('rejects empty string', async () => {
+      const errors = await validateDto(UpdateTableStatusDto, { status: '' });
+      expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('rejects missing status', async () => {
+      const errors = await validateDto(UpdateTableStatusDto, {});
+      expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('TableStatus enum has exactly 4 values matching Prisma schema', () => {
+      const values = Object.values(TableStatus);
+      expect(values).toEqual(['AVAILABLE', 'OCCUPIED', 'RESERVED', 'MAINTENANCE']);
+      expect(values).toHaveLength(4);
     });
   });
 });

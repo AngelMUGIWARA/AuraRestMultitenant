@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { on } from '@maison/event-bus';
-import type { RestaurantTable, TableFilters, PaginatedResponse } from '@maison/types';
+import type { RestaurantTable, TableFilters, PaginatedResponse, TableStatus } from '@maison/types';
 import { tablesService } from '../services/tables.service'; // Asegúrate de tener este servicio
 import { useBranch } from '@maison/ui'; // Tu nuevo hook de contexto
-import { TableStatus } from '@maison/types';
-
 export function useTables() {
   const { selectedBranch } = useBranch(); // Obtenemos la branch activa globalmente
   const [tables, setTables] = useState<PaginatedResponse<RestaurantTable> | null>(null);
@@ -68,11 +66,10 @@ export function useTables() {
     };
   }, [selectedBranch.id, filters, tick]);
 
-  const updateTableStatus = useCallback(async (tableId: string, status: string) => {
+  const updateTableStatus = useCallback(async (tableId: string, status: TableStatus) => {
     setIsActing(true);
     try {
-      const statusEnum = status as TableStatus; 
-      await tablesService.updateStatus(tableId, { status: statusEnum });
+      await tablesService.updateStatus(tableId, { status });
       setTick((t) => t + 1);
     } catch (e: unknown) {
       setError(e instanceof Error ? e : new Error('Error al actualizar mesa'));
