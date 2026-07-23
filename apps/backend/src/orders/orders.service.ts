@@ -457,7 +457,9 @@ export class OrdersService {
       0,
     );
     const totalNum = Number(order.total);
-    const remainingAmount = Number(Math.max(0, totalNum - paidAmount).toFixed(2));
+    const totalBeforeTipNum = order.totalBeforeTip ? Number(order.totalBeforeTip) : totalNum;
+    const amountDueForPaymentsNum = order.amountDueForPayments ? Number(order.amountDueForPayments) : totalNum;
+    const remainingAmount = Number(Math.max(0, amountDueForPaymentsNum - paidAmount).toFixed(2));
     const isFullyPaid = remainingAmount <= 0;
 
     const distinctMethods: string[] = [];
@@ -518,10 +520,20 @@ export class OrdersService {
         : null,
       tax: taxNum,
       taxRate,
+      totalBeforeTip: totalBeforeTipNum,
+      tipAmount: order.tipAmount ? Number(order.tipAmount) : 0,
+      cashTipAmount: order.cashTipAmount ? Number(order.cashTipAmount) : 0,
+      chargeableTipAmount: order.chargeableTipAmount ? Number(order.chargeableTipAmount) : 0,
       total: totalNum,
+      amountDueForPayments: amountDueForPaymentsNum,
       paidAmount: Number(paidAmount.toFixed(2)),
       remainingAmount,
       isFullyPaid,
+      tip: order.tip ? {
+        method: order.tip.method,
+        percentage: order.tip.percentage ? Number(order.tip.percentage) : null,
+        requestedAmount: order.tip.requestedAmount ? Number(order.tip.requestedAmount) : null,
+      } : null,
       paymentMethods: distinctMethods as any[],
       customerName: order.customerName || '',
       tableNumber: order.table?.number || null,

@@ -18,6 +18,7 @@ export class OrdersRepository {
     payments: true,
     discount: true,
     orderPromotions: { include: { promotion: true } },
+    tip: true,
   };
 
   async create(

@@ -541,10 +541,20 @@ export interface Order {
   } | null;
   tax: number;
   taxRate: number;
+  totalBeforeTip: number;
+  tipAmount: number;
+  cashTipAmount: number;
+  chargeableTipAmount: number;
   total: number;
+  amountDueForPayments: number;
   paidAmount: number;
   remainingAmount: number;
   isFullyPaid: boolean;
+  tip?: {
+    method: 'NONE' | 'PERCENTAGE' | 'FIXED' | 'CASH';
+    percentage?: number | null;
+    requestedAmount?: number | null;
+  } | null;
   paymentMethods: PaymentMethod[];
   customerName: string;
   tableNumber?: string;
@@ -635,10 +645,6 @@ export interface ProcessPaymentPayload {
     amount: string;
     reference?: string;
   }>;
-  tip?: {
-    amount: string;
-    method: 'PERCENTAGE' | 'FIXED';
-  };
 }
 
 // ─── Reservation ──────────────────────────────────────────────────────────────
