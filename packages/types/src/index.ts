@@ -428,6 +428,45 @@ export interface OrderItem {
   notes?: string;
 }
 
+// ─── Discount ─────────────────────────────────────────────────────────────────
+
+export type DiscountType = 'PERCENTAGE' | 'FIXED';
+
+export interface Discount {
+  id: string;
+  name: string;
+  description?: string | null;
+  code?: string | null;
+  type: DiscountType;
+  value: number;
+  isActive: boolean;
+  branchId?: string | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  minPurchase?: number | null;
+  maxAmount?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApplyDiscountPayload {
+  discountId: string;
+}
+
+export interface CreateDiscountPayload {
+  name: string;
+  type: DiscountType;
+  value: string;
+  isActive?: boolean;
+  branchId?: string;
+  startsAt?: string;
+  endsAt?: string;
+  minPurchase?: string;
+  maxAmount?: string;
+  description?: string;
+  code?: string;
+}
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -437,6 +476,15 @@ export interface Order {
   items: OrderItem[];
   itemCount: number;
   subtotal: number;
+  discountId?: string | null;
+  discountAmount?: number | null;
+  taxableSubtotal?: number | null;
+  discount?: {
+    id: string;
+    name: string;
+    type: DiscountType;
+    value: number;
+  } | null;
   tax: number;
   taxRate: number;
   total: number;

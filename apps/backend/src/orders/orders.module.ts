@@ -1,13 +1,19 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { EventBusModule } from '../event-bus/event-bus.module';
 import { ActivityLogModule } from '../activity-log/activity-log.module';
 import { TaxConfigModule } from '../tax-config/tax-config.module';
 import { OrdersController } from './orders.controller';
 import { OrdersRepository } from './orders.repository';
 import { OrdersService } from './orders.service';
+import { DiscountsModule } from '../discounts/discounts.module';
 
 @Module({
-  imports: [EventBusModule, ActivityLogModule, TaxConfigModule],
+  imports: [
+    EventBusModule,
+    ActivityLogModule,
+    TaxConfigModule,
+    forwardRef(() => DiscountsModule),
+  ],
   controllers: [OrdersController],
   providers: [OrdersService, OrdersRepository],
   exports: [OrdersService, OrdersRepository],

@@ -102,15 +102,16 @@ export default function POSPage() {
   const {
     menuItems, tables, cart, selectedTable, setSelectedTable,
     cartTotal,
-    isLoading, isSubmitting, error, completedOrder,
+    isLoading, isSubmitting, error, completedOrder, availableDiscounts,
     addToCart, removeFromCart, clearCart, submitOrder, processPayment,
-    refreshTables,
+    applyDiscount, removeDiscount, refreshTables,
   } = usePOS();
 
   const [view, setView] = useState<PosView>('tables');
   const [customerName, setCustomerName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedDiscountId, setSelectedDiscountId] = useState<string>('');
 
   // Split payment state
   interface PaymentLine {
@@ -516,9 +517,21 @@ export default function POSPage() {
                       {/* Summary rows */}
                       <div className="rounded-xl bg-surface-2 p-3.5 space-y-2">
                         <div className="flex justify-between text-sm text-maison-cream-muted">
-                          <span>Subtotal</span>
+                          <span>Subtotal bruto</span>
                           <span className="font-mono">{formatCurrency(completedOrder.subtotal)}</span>
                         </div>
+                        {completedOrder.discount && (
+                          <div className="flex justify-between text-sm text-maison-amber font-medium">
+                            <span>Descuento ({completedOrder.discount.name})</span>
+                            <span className="font-mono">-{formatCurrency(completedOrder.discountAmount || 0)}</span>
+                          </div>
+                        )}
+                        {completedOrder.taxableSubtotal !== null && completedOrder.taxableSubtotal !== undefined && (
+                          <div className="flex justify-between text-xs text-maison-cream-dim border-t border-maison-border/40 pt-1.5">
+                            <span>Base gravable</span>
+                            <span className="font-mono">{formatCurrency(completedOrder.taxableSubtotal)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between text-sm text-maison-cream-muted">
                           <span>IVA {Math.round(completedOrder.taxRate * 100)}%</span>
                           <span className="font-mono">{formatCurrency(completedOrder.tax)}</span>
@@ -534,6 +547,60 @@ export default function POSPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Discount selector */}
+                      {completedOrder.paymentStatus === 'unpaid' && (
+                        <div className="rounded-xl border border-maison-border bg-surface-2 p-3.5 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-maison-cream-dim uppercase tracking-widest">Descuento de la orden</p>
+                            {completedOrder.discount && (
+                              <span className="text-[10px] font-semibold text-maison-amber bg-maison-amber/10 border border-maison-amber/30 rounded-full px-2 py-0.5">
+                                Aplicado: {completedOrder.discount.name}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <select
+                              value={selectedDiscountId || completedOrder.discountId || ''}
+                              onChange={(e) => setSelectedDiscountId(e.target.value)}
+                              className="flex-1 rounded-lg border border-maison-border bg-surface-1 px-3 py-2 text-xs text-maison-cream focus:outline-none focus:border-maison-amber"
+                            >
+                              <option value="">-- Seleccionar descuento --</option>
+                              {availableDiscounts.map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  {d.name} ({d.type === 'PERCENTAGE' ? `${d.value}%` : formatCurrency(d.value)})
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const idToApply = selectedDiscountId || completedOrder.discountId;
+                                if (idToApply) {
+                                  applyDiscount(idToApply);
+                                }
+                              }}
+                              disabled={isSubmitting || (!selectedDiscountId && !completedOrder.discountId) || (selectedDiscountId === completedOrder.discountId && !!completedOrder.discountId)}
+                              className="rounded-lg bg-maison-amber text-surface-0 px-3 py-2 text-xs font-semibold hover:bg-maison-amber/90 disabled:opacity-40 transition"
+                            >
+                              Aplicar
+                            </button>
+                            {completedOrder.discountId && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedDiscountId('');
+                                  removeDiscount();
+                                }}
+                                disabled={isSubmitting}
+                                className="rounded-lg border border-maison-ruby/40 text-maison-ruby px-3 py-2 text-xs font-semibold hover:bg-maison-ruby/10 disabled:opacity-40 transition"
+                              >
+                                Quitar
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Split payment */}
                       <div className="space-y-3">

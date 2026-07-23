@@ -1,40 +1,62 @@
 import { Injectable } from '@nestjs/common';
 import { TenantPrismaService } from '../database/tenant-prisma.service';
-import { PrismaClient } from '../generated/prisma-tenant';
-import type { Prisma } from '../generated/prisma-tenant';
+import type { Prisma, PrismaClient } from '../generated/prisma-tenant';
 
 @Injectable()
 export class DiscountsRepository {
   constructor(private readonly tenantPrisma: TenantPrismaService) {}
 
-  private db(schemaName: string): PrismaClient {
-    return this.tenantPrisma.getClient(schemaName);
+  private db(schemaName: string, tx?: Prisma.TransactionClient): PrismaClient {
+    return (tx as PrismaClient) ?? this.tenantPrisma.getClient(schemaName);
   }
 
-  async create(schemaName: string, data: Prisma.DiscountCreateInput) {
-    return this.db(schemaName).discount.create({ data });
+  async create(schemaName: string, data: Prisma.DiscountCreateInput, tx?: Prisma.TransactionClient) {
+    return this.db(schemaName, tx).discount.create({ data });
   }
 
-  async findAll(schemaName: string, where?: Prisma.DiscountWhereInput) {
-    return this.db(schemaName).discount.findMany({
+  async findAll(schemaName: string, where?: Prisma.DiscountWhereInput, tx?: Prisma.TransactionClient) {
+    return this.db(schemaName, tx).discount.findMany({
       where,
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findById(schemaName: string, id: string) {
-    return this.db(schemaName).discount.findUnique({ where: { id } });
+  async findActive(schemaName: string, now: Date = new Date(), branchId?: string, tx?: Prisma.TransactionClient) {
+    const where: Prisma.DiscountWhereInput = {
+      isActive: true,
+      AND: [
+        { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+        { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
+      ],
+    };
+
+    if (branchId) {
+      where.OR = [{ branchId: null }, { branchId }];
+    }
+
+    return this.db(schemaName, tx).discount.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
-  async findByCode(schemaName: string, code: string) {
-    return this.db(schemaName).discount.findUnique({ where: { code } });
+  async findById(schemaName: string, id: string, tx?: Prisma.TransactionClient) {
+    return this.db(schemaName, tx).discount.findUnique({ where: { id } });
   }
 
-  async update(schemaName: string, id: string, data: Prisma.DiscountUpdateInput) {
-    return this.db(schemaName).discount.update({ where: { id }, data });
+  async findByCode(schemaName: string, code: string, tx?: Prisma.TransactionClient) {
+    return this.db(schemaName, tx).discount.findUnique({ where: { code } });
   }
 
-  async delete(schemaName: string, id: string) {
-    return this.db(schemaName).discount.delete({ where: { id } });
+  async update(schemaName: string, id: string, data: Prisma.DiscountUpdateInput, tx?: Prisma.TransactionClient) {
+    return this.db(schemaName, tx).discount.update({ where: { id }, data });
+  }
+
+  async countOrdersUsingDiscount(schemaName: string, discountId: string, tx?: Prisma.TransactionClient) {
+    return this.db(schemaName, tx).order.count({ where: { discountId } });
+  }
+
+  async delete(schemaName: string, id: string, tx?: Prisma.TransactionClient) {
+    return this.db(schemaName, tx).discount.delete({ where: { id } });
   }
 }
