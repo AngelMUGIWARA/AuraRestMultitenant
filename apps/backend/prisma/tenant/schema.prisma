@@ -120,9 +120,10 @@ model User {
   status       UserStatus @default(ACTIVE)
   phone        String?
   avatarUrl    String?    @map("avatar_url")
-  voiceUsername String?   @unique @map("voice_username")
-  voiceSeedHash String?   @map("voice_seed_hash")
-  createdAt    DateTime   @default(now()) @map("created_at")
+  voiceUsername      String?   @unique @map("voice_username")
+  voiceSeedHash      String?   @map("voice_seed_hash")
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
   // Relaciones adicionales para gestión por sucursal y auditoría

@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 import { TenantPrismaService } from '../database/tenant-prisma.service';
 import { PrismaClient } from '../generated/prisma-tenant';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -44,6 +43,7 @@ export class UsersRepository {
   }
 
   async create(schemaName: string, dto: CreateUserDto) {
+    const bcrypt = await import('bcrypt');
     const passwordHash = await bcrypt.hash(
       dto.password,
       Number(process.env.BCRYPT_ROUNDS ?? 10),
@@ -62,38 +62,35 @@ export class UsersRepository {
 
   async createInvite(
     schemaName: string,
-    dto: { name: string; email: string; role: string },
+    data: {
+      name: string;
+      email: string;
+      role: string;
+      passwordHash: string;
+      branchId?: string;
+    },
   ) {
-    // Genera una contraseña aleatoria temporal
-    const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
-    const passwordHash = await bcrypt.hash(
-      tempPassword,
-      Number(process.env.BCRYPT_ROUNDS ?? 10),
-    );
-
-    // Crea el usuario con contraseña temporal. En producción deberíamos enviar un correo con un token.
     const user = await this.db(schemaName).user.create({
       data: {
-        name: dto.name,
-        email: dto.email,
-        passwordHash,
-        role: dto.role as any,
+        name: data.name,
+        email: data.email,
+        passwordHash: data.passwordHash,
+        role: data.role as any,
         status: 'ACTIVE',
+        mustChangePassword: true,
       },
       omit: { passwordHash: true },
     });
 
-    // Si se proporcionó branchId, creamos la asignación userBranch
-    if ((dto as any).branchId) {
-      // Intentamos encontrar un role por nombre para asignar
+    if (data.branchId) {
       const roleRecord = await this.db(schemaName).role.findUnique({
-        where: { name: dto.role as any },
+        where: { name: data.role as any },
       });
       if (roleRecord) {
         await this.db(schemaName).userBranch.create({
           data: {
             userId: user.id,
-            branchId: (dto as any).branchId,
+            branchId: data.branchId,
             roleId: roleRecord.id,
           },
         });
@@ -107,6 +104,18 @@ export class UsersRepository {
     return this.db(schemaName).user.update({
       where: { id },
       data: dto,
+      omit: { passwordHash: true },
+    });
+  }
+
+  async updatePassword(
+    schemaName: string,
+    userId: string,
+    passwordHash: string,
+  ) {
+    return this.db(schemaName).user.update({
+      where: { id: userId },
+      data: { passwordHash, mustChangePassword: false },
       omit: { passwordHash: true },
     });
   }

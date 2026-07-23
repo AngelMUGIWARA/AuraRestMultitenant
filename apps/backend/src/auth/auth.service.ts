@@ -1,4 +1,5 @@
 ﻿import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
@@ -84,9 +85,56 @@ export class AuthService {
       role: user.role as string,
       tenantSlug: tenant?.slug ?? '',
       tenantSchemaName,
+      mustChangePassword: user.mustChangePassword,
     };
 
     return this.createSessionAndTokens(user, payload);
+  }
+
+  /* ── Change Password ───────────────────────────────────────── */
+
+  async changePassword(
+    userId: string,
+    tenantSchemaName: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const db = this.tenantPrisma.getClient(tenantSchemaName);
+
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('Usuario no encontrado');
+
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) {
+      throw new UnauthorizedException('La contraseña actual es incorrecta');
+    }
+
+    if (currentPassword === newPassword) {
+      throw new BadRequestException(
+        'La nueva contraseña debe ser diferente a la actual',
+      );
+    }
+
+    const newHash = await bcrypt.hash(
+      newPassword,
+      Number(process.env.BCRYPT_ROUNDS ?? 10),
+    );
+
+    const revokedCount = await this.prisma.refreshSession.updateMany({
+      where: { userId, tenantSchemaName, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    await db.user.update({
+      where: { id: userId },
+      data: { passwordHash: newHash, mustChangePassword: false },
+    });
+
+    this.logger.log(
+      `Password cambiado para usuario ${userId}. ${revokedCount.count} sesiones revocadas.`,
+    );
+
+    return { message: 'Contraseña actualizada exitosamente' };
   }
 
   /* ── Refresh ─────────────────────────────────────────────────── */
@@ -154,17 +202,18 @@ export class AuthService {
       role: user.role as string,
       tenantSlug: tenant?.slug ?? '',
       tenantSchemaName,
+      mustChangePassword: user.mustChangePassword,
     };
 
     const newJti = this.generateJti();
     const newFamilyId = familyId || this.generateFamilyId();
-    const newRefreshToken = this.jwt.sign(
-      { ...newPayload, jti: newJti, familyId: newFamilyId },
-      {
-        secret: this.refreshSecret,
-        expiresIn: this.refreshExpiresIn as any,
-      },
-    );
+
+    const { mustChangePassword: _mcp, ...refreshData } = { ...newPayload, jti: newJti, familyId: newFamilyId };
+
+    const newRefreshToken = this.jwt.sign(refreshData, {
+      secret: this.refreshSecret,
+      expiresIn: this.refreshExpiresIn as any,
+    });
     const accessToken = this.jwt.sign(newPayload);
     const newTokenHash = AuthService.hashToken(newRefreshToken);
     const newExpiresAt = this.getRefreshExpiry();
@@ -195,7 +244,13 @@ export class AuthService {
     return {
       accessToken,
       refreshToken: newRefreshToken,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        mustChangePassword: user.mustChangePassword,
+      },
     };
   }
 
@@ -287,20 +342,20 @@ export class AuthService {
   /* ── Internal helpers ────────────────────────────────────────── */
 
   private async createSessionAndTokens(
-    user: { id: string; name: string; email: string; role: string },
+    user: { id: string; name: string; email: string; role: string; mustChangePassword?: boolean },
     payload: Record<string, unknown>,
   ): Promise<AuthResponseDto> {
     const jti = this.generateJti();
     const familyId = this.generateFamilyId();
     const tenantSchemaName = payload.tenantSchemaName as string;
 
-    const refreshToken = this.jwt.sign(
-      { ...payload, jti, familyId },
-      {
-        secret: this.refreshSecret,
-        expiresIn: this.refreshExpiresIn as any,
-      },
-    );
+    const fullPayload: Record<string, unknown> = { ...payload, jti, familyId };
+    const { mustChangePassword: _mcp, ...refreshPayload } = fullPayload;
+
+    const refreshToken = this.jwt.sign(refreshPayload, {
+      secret: this.refreshSecret,
+      expiresIn: this.refreshExpiresIn as any,
+    });
     const accessToken = this.jwt.sign(payload);
     const tokenHash = AuthService.hashToken(refreshToken);
     const expiresAt = this.getRefreshExpiry();
@@ -319,7 +374,13 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        mustChangePassword: user.mustChangePassword ?? false,
+      },
     };
   }
 

@@ -1,13 +1,23 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
+import * as bcrypt from 'bcrypt';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginatedUsersDto, UserResponseDto } from './dto/user-response.dto';
 import { UsersRepository } from './users.repository';
+import {
+  INVITATION_NOTIFIER,
+  InvitationNotifier,
+} from '../notifications/invitation-notifier.interface';
+
+const TEMP_PASSWORD_BYTES = 16;
 
 /**
  * Capa de lógica de negocio para Users.
@@ -15,7 +25,13 @@ import { UsersRepository } from './users.repository';
  */
 @Injectable()
 export class UsersService {
-  constructor(private readonly repo: UsersRepository) {}
+  private readonly logger = new Logger(UsersService.name);
+
+  constructor(
+    private readonly repo: UsersRepository,
+    @Inject(INVITATION_NOTIFIER)
+    private readonly invitationNotifier: InvitationNotifier,
+  ) {}
 
   async findAll(
     schemaName: string,
@@ -58,7 +74,41 @@ export class UsersService {
     if (existing) {
       throw new ConflictException(`El email ${dto.email} ya está registrado`);
     }
-    return this.repo.createInvite(schemaName, dto);
+
+    this.invitationNotifier.assertAvailable();
+
+    const tempPassword = randomBytes(TEMP_PASSWORD_BYTES)
+      .toString('base64url')
+      .slice(0, 20);
+
+    const passwordHash = await bcrypt.hash(
+      tempPassword,
+      Number(process.env.BCRYPT_ROUNDS ?? 10),
+    );
+
+    const user = await this.repo.createInvite(schemaName, {
+      name: dto.name,
+      email: dto.email,
+      role: dto.role,
+      passwordHash,
+      branchId: dto.branchId,
+    });
+
+    try {
+      await this.invitationNotifier.sendInvitation({
+        name: dto.name,
+        email: dto.email,
+        temporaryPassword: tempPassword,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Fallo al enviar invitación a ${dto.email}, deshaciendo creación de usuario: ${user.id}`,
+      );
+      await this.repo.remove(schemaName, user.id).catch(() => {});
+      throw err;
+    }
+
+    return user;
   }
 
   async update(
@@ -66,7 +116,7 @@ export class UsersService {
     id: string,
     dto: UpdateUserDto,
   ): Promise<UserResponseDto> {
-    await this.findOne(schemaName, id); // lanza 404 si no existe
+    await this.findOne(schemaName, id);
     return this.repo.update(schemaName, id, dto);
   }
 
