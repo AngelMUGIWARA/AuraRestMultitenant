@@ -4,11 +4,11 @@ import { TipCalculator } from './tip-calculator';
 import { TipValidationService } from './tip-validation.service';
 import { TipsController } from './tips.controller';
 import { OrdersModule } from '../orders/orders.module';
-import { CommonModule } from '../common/common.module';
+import { ActivityLogModule } from '../activity-log/activity-log.module';
 
 @Module({
   imports: [
-    CommonModule,
+    ActivityLogModule,
     forwardRef(() => OrdersModule),
   ],
   controllers: [TipsController],

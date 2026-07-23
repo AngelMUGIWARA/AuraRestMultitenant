@@ -2,9 +2,9 @@ import { Controller, Put, Delete, Param, Body, UseGuards, Req, HttpCode, HttpSta
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { OrderTipService } from './order-tip.service';
 import { UpdateTipDto } from './dto/update-tip.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { TenantGuard } from '../auth/tenant.guard';
-import { RolesGuard } from '../auth/roles.guard';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { TenantGuard } from '../common/guards/tenant.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../generated/prisma-tenant';
 import { Request } from 'express';
