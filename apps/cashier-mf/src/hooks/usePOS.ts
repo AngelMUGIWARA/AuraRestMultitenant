@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { on, emit } from '@maison/event-bus';
 import { cashierService } from '../services/cashier.service';
-import type { MenuItem, RestaurantTable, Order, PaymentMethod } from '@maison/types';
+import type { MenuItem, RestaurantTable, Order, PaymentMethod, Discount } from '@maison/types';
 
 interface CartItem {
   menuItem: MenuItem;
@@ -19,6 +19,7 @@ export function usePOS() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
+  const [availableDiscounts, setAvailableDiscounts] = useState<Discount[]>([]);
 
   const loadData = useCallback(async (bId?: string) => {
     setIsLoading(true);
@@ -34,6 +35,15 @@ export function usePOS() {
       setError(err instanceof Error ? err.message : 'Error al cargar datos');
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  const fetchAvailableDiscounts = useCallback(async (orderId: string) => {
+    try {
+      const discounts = await cashierService.getAvailableDiscounts(orderId);
+      setAvailableDiscounts(discounts);
+    } catch {
+      setAvailableDiscounts([]);
     }
   }, []);
 
@@ -53,6 +63,14 @@ export function usePOS() {
     return () => { offBranch(); offMenuUpdated(); };
   }, [loadData]);
 
+  useEffect(() => {
+    if (completedOrder?.id && completedOrder.paymentStatus === 'unpaid') {
+      fetchAvailableDiscounts(completedOrder.id);
+    } else {
+      setAvailableDiscounts([]);
+    }
+  }, [completedOrder?.id, completedOrder?.paymentStatus, fetchAvailableDiscounts]);
+
   const addToCart = useCallback((item: MenuItem, quantity = 1, notes?: string) => {
     setCart((prev) => {
       const existing = prev.find((c) => c.menuItem.id === item.id);
@@ -67,7 +85,12 @@ export function usePOS() {
     setCart((prev) => prev.filter((c) => c.menuItem.id !== menuItemId));
   }, []);
 
-  const clearCart = useCallback(() => { setCart([]); setSelectedTable(null); setCompletedOrder(null); }, []);
+  const clearCart = useCallback(() => {
+    setCart([]);
+    setSelectedTable(null);
+    setCompletedOrder(null);
+    setAvailableDiscounts([]);
+  }, []);
 
   const cartTotal = cart.reduce((sum, item) => sum + item.menuItem.price * item.quantity, 0);
 
@@ -90,7 +113,37 @@ export function usePOS() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [cart, selectedTable, branchId]);
+  }, [cart, selectedTable]);
+
+  const applyDiscount = useCallback(async (discountId: string) => {
+    if (!completedOrder) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const updatedOrder = await cashierService.applyDiscount(completedOrder.id, discountId);
+      setCompletedOrder(updatedOrder);
+      await fetchAvailableDiscounts(completedOrder.id);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al aplicar el descuento');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [completedOrder, fetchAvailableDiscounts]);
+
+  const removeDiscount = useCallback(async () => {
+    if (!completedOrder) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const updatedOrder = await cashierService.removeDiscount(completedOrder.id);
+      setCompletedOrder(updatedOrder);
+      await fetchAvailableDiscounts(completedOrder.id);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al retirar el descuento');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [completedOrder, fetchAvailableDiscounts]);
 
   const refreshTables = useCallback(() => {
     loadData(branchId);
@@ -143,8 +196,8 @@ export function usePOS() {
   return {
     menuItems, tables, cart, selectedTable, setSelectedTable,
     cartTotal,
-    isLoading, isSubmitting, error, completedOrder,
+    isLoading, isSubmitting, error, completedOrder, availableDiscounts,
     addToCart, removeFromCart, clearCart, submitOrder, processPayment,
-    refreshTables, newOrder,
+    applyDiscount, removeDiscount, refreshTables, newOrder,
   };
 }

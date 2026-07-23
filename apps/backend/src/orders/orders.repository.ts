@@ -11,6 +11,14 @@ export class OrdersRepository {
     return tx ?? this.tenantPrisma.getClient(schemaName);
   }
 
+  private defaultInclude = {
+    orderItems: { include: { menuItem: true } },
+    table: true,
+    user: true,
+    payments: true,
+    discount: true,
+  };
+
   async create(
     schemaName: string,
     data: Prisma.OrderCreateInput,
@@ -26,12 +34,7 @@ export class OrdersRepository {
   ) {
     return this.db(schemaName, tx).order.findUnique({
       where: { id },
-      include: {
-        orderItems: { include: { menuItem: true } },
-        table: true,
-        user: true,
-        payments: true,
-      },
+      include: this.defaultInclude,
     });
   }
 
@@ -47,12 +50,7 @@ export class OrdersRepository {
   ) {
     return this.db(schemaName, tx).order.findMany({
       ...params,
-      include: {
-        orderItems: { include: { menuItem: true } },
-        table: true,
-        user: true,
-        payments: true,
-      },
+      include: this.defaultInclude,
     });
   }
 
@@ -73,12 +71,7 @@ export class OrdersRepository {
     return this.db(schemaName, tx).order.update({
       where: { id },
       data,
-      include: {
-        orderItems: { include: { menuItem: true } },
-        table: true,
-        user: true,
-        payments: true,
-      },
+      include: this.defaultInclude,
     });
   }
 
@@ -92,12 +85,7 @@ export class OrdersRepository {
     return this.db(schemaName, tx).order.update({
       where: { id, version },
       data: { ...data, version: { increment: 1 } },
-      include: {
-        orderItems: { include: { menuItem: true } },
-        table: true,
-        user: true,
-        payments: true,
-      },
+      include: this.defaultInclude,
     });
   }
 

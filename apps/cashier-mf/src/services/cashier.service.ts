@@ -1,5 +1,5 @@
 import { apiClient } from '@maison/api-client';
-import type { ApiResponse, MenuItem, MenuFilters, RestaurantTable, Order, CreateOrderPayload, Payment, ProcessPaymentPayload, PaginatedResponse } from '@maison/types';
+import type { ApiResponse, MenuItem, MenuFilters, RestaurantTable, Order, CreateOrderPayload, Payment, ProcessPaymentPayload, PaginatedResponse, Discount } from '@maison/types';
 
 export const cashierService = {
   // Menu catalog for POS
@@ -21,6 +21,16 @@ export const cashierService = {
 
   createOrder: (payload: CreateOrderPayload) =>
     apiClient.post<Order>('/orders', payload),
+
+  // Discounts
+  getAvailableDiscounts: (orderId: string) =>
+    apiClient.get<Discount[]>(`/orders/${orderId}/available-discounts`),
+
+  applyDiscount: (orderId: string, discountId: string) =>
+    apiClient.patch<Order>(`/orders/${orderId}/discount`, { discountId }),
+
+  removeDiscount: (orderId: string) =>
+    apiClient.delete<Order>(`/orders/${orderId}/discount`),
 
   // Payments
   processPayment: (payload: ProcessPaymentPayload) =>

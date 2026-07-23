@@ -212,6 +212,12 @@ function OrderCard({
             {remaining > 0 && (
               <p className="text-[10px] text-maison-amber font-medium">+{remaining} más</p>
             )}
+            {order.discount && (
+              <div className="flex items-center justify-between text-[10px] text-maison-amber border-t border-maison-border/40 pt-1 mt-1">
+                <span>Descuento ({order.discount.name})</span>
+                <span className="font-mono">-{formatCurrency(order.discountAmount || 0)}</span>
+              </div>
+            )}
           </div>
         )}
       </div>

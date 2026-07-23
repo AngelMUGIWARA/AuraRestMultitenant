@@ -438,8 +438,11 @@ export class OrdersService {
 
   private toResponse(order: any) {
     const subtotalNum = Number(order.subtotal);
+    const discountAmountNum = order.discountAmount !== null && order.discountAmount !== undefined ? Number(order.discountAmount) : null;
+    const taxableSubtotalNum = order.taxableSubtotal !== null && order.taxableSubtotal !== undefined ? Number(order.taxableSubtotal) : null;
     const taxNum = Number(order.tax);
-    const taxRate = subtotalNum > 0 ? taxNum / subtotalNum : DEFAULT_TAX_RATE;
+    const baseForTax = taxableSubtotalNum !== null && taxableSubtotalNum > 0 ? taxableSubtotalNum : subtotalNum;
+    const taxRate = baseForTax > 0 ? taxNum / baseForTax : DEFAULT_TAX_RATE;
 
     const completedPayments = Array.isArray(order.payments)
       ? order.payments.filter((p: any) => p.status === 'COMPLETED')
@@ -479,6 +482,17 @@ export class OrdersService {
       })),
       itemCount: (order.orderItems || []).length,
       subtotal: subtotalNum,
+      discountId: order.discountId || null,
+      discountAmount: discountAmountNum,
+      taxableSubtotal: taxableSubtotalNum,
+      discount: order.discount
+        ? {
+            id: order.discount.id,
+            name: order.discount.name,
+            type: order.discount.type,
+            value: Number(order.discount.value),
+          }
+        : null,
       tax: taxNum,
       taxRate,
       total: totalNum,
@@ -490,7 +504,7 @@ export class OrdersService {
       tableNumber: order.table?.number || null,
       tableId: order.table?.id || null,
       notes: order.notes || null,
-      branchId: '',
+      branchId: order.branchId || '',
       createdAt: order.createdAt?.toISOString(),
       updatedAt: order.updatedAt?.toISOString(),
     };

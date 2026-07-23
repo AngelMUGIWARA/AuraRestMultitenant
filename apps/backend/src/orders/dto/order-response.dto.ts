@@ -10,6 +10,13 @@ export class OrderItemResponseDto {
   @ApiPropertyOptional() notes?: string | null;
 }
 
+export class OrderDiscountSummaryDto {
+  @ApiProperty() id: string;
+  @ApiProperty() name: string;
+  @ApiProperty() type: string;
+  @ApiProperty() value: number;
+}
+
 export class OrderResponseDto {
   @ApiProperty() id: string;
   @ApiProperty() orderNumber: string;
@@ -21,6 +28,10 @@ export class OrderResponseDto {
   items: OrderItemResponseDto[];
   @ApiProperty() itemCount: number;
   @ApiProperty() subtotal: number;
+  @ApiPropertyOptional() discountId?: string | null;
+  @ApiPropertyOptional() discountAmount?: number | null;
+  @ApiPropertyOptional() taxableSubtotal?: number | null;
+  @ApiPropertyOptional({ type: OrderDiscountSummaryDto }) discount?: OrderDiscountSummaryDto | null;
   @ApiProperty() tax: number;
   @ApiProperty() taxRate: number;
   @ApiProperty() total: number;

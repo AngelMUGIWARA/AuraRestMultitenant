@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -11,7 +12,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiSecurity, ApiTags } from '@nestjs/swagger';
 
-import { Public } from '../common/decorators/public.decorator';
 import {
   CurrentTenant,
   TenantContext,
@@ -28,6 +28,9 @@ import { OrderQueryDto } from './dto/order-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderResponseDto, OrderStatsResponseDto, PaginatedOrdersDto } from './dto/order-response.dto';
 import { OrdersService } from './orders.service';
+import { OrderDiscountService } from '../discounts/order-discount.service';
+import { ApplyDiscountDto } from '../discounts/dto/apply-discount.dto';
+import { DiscountResponseDto } from '../discounts/dto/create-discount.dto';
 
 @ApiTags('Orders')
 @ApiBearerAuth('JWT')
@@ -35,7 +38,10 @@ import { OrdersService } from './orders.service';
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly orderDiscountService: OrderDiscountService,
+  ) {}
 
   @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Post()
@@ -67,7 +73,7 @@ export class OrdersController {
     return this.ordersService.findAll(tenant.schemaName, query);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER','WAITER')
+  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Get('stats')
   @ApiOperation({ summary: 'Estadísticas de órdenes del día', operationId: 'orders_getStats' })
   @ApiResponse({ status: 200, type: OrderStatsResponseDto })
@@ -85,6 +91,47 @@ export class OrdersController {
     @Param('id') id: string,
   ) {
     return this.ordersService.findById(tenant.schemaName, id);
+  }
+
+  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Get(':id/available-discounts')
+  @ApiOperation({ summary: 'Obtener descuentos aplicables a la orden', operationId: 'orders_getAvailableDiscounts' })
+  @ApiResponse({ status: 200, type: [DiscountResponseDto] })
+  getAvailableDiscounts(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+  ) {
+    return this.orderDiscountService.getAvailable(tenant.schemaName, id);
+  }
+
+  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER')
+  @Patch(':id/discount')
+  @ApiOperation({ summary: 'Aplicar un descuento a la orden', operationId: 'orders_applyDiscount' })
+  @ApiResponse({ status: 200, type: OrderResponseDto })
+  @ApiResponse({ status: 400, description: 'Descuento no aplicable' })
+  @ApiResponse({ status: 404, description: 'Orden o descuento no encontrado' })
+  applyDiscount(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+    @Body() dto: ApplyDiscountDto,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.id ?? user?.sub ?? user?.userId;
+    return this.orderDiscountService.apply(tenant.schemaName, id, dto.discountId, userId);
+  }
+
+  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER')
+  @Delete(':id/discount')
+  @ApiOperation({ summary: 'Retirar descuento de la orden', operationId: 'orders_removeDiscount' })
+  @ApiResponse({ status: 200, type: OrderResponseDto })
+  @ApiResponse({ status: 400, description: 'No se puede modificar la orden' })
+  removeDiscount(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.id ?? user?.sub ?? user?.userId;
+    return this.orderDiscountService.remove(tenant.schemaName, id, userId);
   }
 
   @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')

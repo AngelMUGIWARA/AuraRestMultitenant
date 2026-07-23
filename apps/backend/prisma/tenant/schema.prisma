@@ -208,11 +208,13 @@ model Order {
   status       OrderStatus      @default(PENDING)
   paymentStatus OrderPaymentStatus @default(UNPAID) @map("payment_status")
   notes        String?
-  subtotal     Decimal     @db.Decimal(10, 2)
-  tax          Decimal     @db.Decimal(10, 2)
-  total        Decimal     @db.Decimal(10, 2)
-  discountId   String?     @map("discount_id")
-  version      Int         @default(0)
+  subtotal         Decimal      @db.Decimal(10, 2)
+  discountAmount   Decimal?     @db.Decimal(10, 2) @map("discount_amount")
+  taxableSubtotal  Decimal?     @db.Decimal(10, 2) @map("taxable_subtotal")
+  tax              Decimal      @db.Decimal(10, 2)
+  total            Decimal      @db.Decimal(10, 2)
+  discountId       String?      @map("discount_id")
+  version          Int          @default(0)
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
@@ -316,19 +318,23 @@ model Reservation {
 model Discount {
   id          String       @id @default(cuid())
   name        String
+  description String?
   code        String?      @unique
   type        DiscountType
-  // Definición del descuento: porcentaje (10 = 10%) si type=PERCENTAGE, o monto fijo si type=FIXED.
-  // El monto aplicado a un pedido en concreto se calcula al vuelo, no se persiste aquí.
   value       Decimal      @db.Decimal(10, 2)
   isActive    Boolean      @default(true) @map("is_active")
-  maxAmount   Decimal?     @map("max_amount") @db.Decimal(10, 2)
+  branchId    String?      @map("branch_id")
+  startsAt    DateTime?    @map("starts_at")
+  endsAt      DateTime?    @map("ends_at")
   minPurchase Decimal?     @map("min_purchase") @db.Decimal(10, 2)
+  maxAmount   Decimal?     @map("max_amount") @db.Decimal(10, 2)
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
+  branch Branch? @relation(fields: [branchId], references: [id])
   orders Order[]
 
+  @@index([branchId])
   @@map("discounts")
 }
 
@@ -382,6 +388,7 @@ model Branch {
   settings   Settings[]
   activities ActivityLog[]
   orders     Order[]
+  discounts  Discount[]
 
   @@map("branches")
 }
