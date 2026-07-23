@@ -57,13 +57,15 @@ export class PaymentsService {
           }
 
           const completedPayments = order.payments.filter(
-            (p) => p.status === $Enums.PaymentStatus.COMPLETED,
+            (p) => p.status === $Enums.PaymentStatus.COMPLETED || p.status === 'PARTIALLY_REFUNDED' || p.status === 'REFUNDED',
           );
 
-          const alreadyPaid = completedPayments.reduce(
+          const completedPaidAmount = completedPayments.reduce(
             (sum, p) => sum + Number(p.amount),
             0,
           );
+
+          const alreadyPaid = completedPaidAmount;
 
           const orderTotal = order.amountDueForPayments ? Number(order.amountDueForPayments) : Number(order.total);
           const pendingAmount = Number((orderTotal - alreadyPaid).toFixed(2));

@@ -64,6 +64,7 @@ enum OrderType {
 enum PaymentStatus {
   PENDING
   COMPLETED
+  PARTIALLY_REFUNDED
   REFUNDED
   FAILED
 }
@@ -123,19 +124,19 @@ enum ReservationStatus {
 // ── Modelos ──────────────────────────────────────────────────
 
 model User {
-  id           String     @id @default(cuid())
-  name         String
-  email        String     @unique
-  passwordHash String     @map("password_hash")
-  role         UserRole   @default(WAITER)
-  status       UserStatus @default(ACTIVE)
-  phone        String?
-  avatarUrl    String?    @map("avatar_url")
-  voiceUsername      String?   @unique @map("voice_username")
-  voiceSeedHash      String?   @map("voice_seed_hash")
-  mustChangePassword Boolean   @default(false) @map("must_change_password")
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
+  id                 String     @id @default(cuid())
+  name               String
+  email              String     @unique
+  passwordHash       String     @map("password_hash")
+  role               UserRole   @default(WAITER)
+  status             UserStatus @default(ACTIVE)
+  phone              String?
+  avatarUrl          String?    @map("avatar_url")
+  voiceUsername      String?    @unique @map("voice_username")
+  voiceSeedHash      String?    @map("voice_seed_hash")
+  mustChangePassword Boolean    @default(false) @map("must_change_password")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
 
   // Relaciones adicionales para gestión por sucursal y auditoría
   userBranches UserBranch[]
@@ -144,6 +145,7 @@ model User {
   orders       Order[]
   reservations Reservation[]
   tips         Tip[]
+  refunds      Refund[]
 
   @@map("users")
 }
@@ -206,21 +208,21 @@ model RestaurantTable {
 }
 
 model Order {
-  id               String             @id @default(cuid())
-  folio            String             @unique
-  tableId          String?            @map("table_id")
-  branchId         String?            @map("branch_id")
-  userId           String             @map("user_id")
-  customerName     String?            @map("customer_name")
-  type             OrderType          @default(DINE_IN)
-  status           OrderStatus        @default(PENDING)
-  paymentStatus    OrderPaymentStatus @default(UNPAID) @map("payment_status")
-  notes            String?
-  subtotal         Decimal            @db.Decimal(10, 2)
-  promotionAmount  Decimal?           @map("promotion_amount") @db.Decimal(10, 2)
-  promotedSubtotal Decimal?           @map("promoted_subtotal") @db.Decimal(10, 2)
-  discountAmount       Decimal?           @db.Decimal(10, 2) @map("discount_amount")
-  taxableSubtotal      Decimal?           @db.Decimal(10, 2) @map("taxable_subtotal")
+  id                   String             @id @default(cuid())
+  folio                String             @unique
+  tableId              String?            @map("table_id")
+  branchId             String?            @map("branch_id")
+  userId               String             @map("user_id")
+  customerName         String?            @map("customer_name")
+  type                 OrderType          @default(DINE_IN)
+  status               OrderStatus        @default(PENDING)
+  paymentStatus        OrderPaymentStatus @default(UNPAID) @map("payment_status")
+  notes                String?
+  subtotal             Decimal            @db.Decimal(10, 2)
+  promotionAmount      Decimal?           @map("promotion_amount") @db.Decimal(10, 2)
+  promotedSubtotal     Decimal?           @map("promoted_subtotal") @db.Decimal(10, 2)
+  discountAmount       Decimal?           @map("discount_amount") @db.Decimal(10, 2)
+  taxableSubtotal      Decimal?           @map("taxable_subtotal") @db.Decimal(10, 2)
   tax                  Decimal            @db.Decimal(10, 2)
   totalBeforeTip       Decimal?           @map("total_before_tip") @db.Decimal(10, 2)
   tipAmount            Decimal?           @map("tip_amount") @db.Decimal(10, 2)
@@ -245,6 +247,7 @@ model Order {
   orderItems      OrderItem[]
   orderPromotions OrderPromotion[]
   payments        Payment[]
+  refunds         Refund[]
   kitchenTicket   KitchenTicket?
 
   @@index([userId])
@@ -297,8 +300,9 @@ model Payment {
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
 
-  order Order @relation(fields: [orderId], references: [id])
-  tip   Tip?
+  order   Order    @relation(fields: [orderId], references: [id])
+  tip     Tip?
+  refunds Refund[]
 
   @@index([orderId])
   @@map("payments")
@@ -429,8 +433,8 @@ model OrderPromotion {
   promotionId     String   @map("promotion_id")
   nameSnapshot    String   @map("name_snapshot")
   typeSnapshot    String   @map("type_snapshot")
-  valueSnapshot   Decimal  @db.Decimal(10, 2) @map("value_snapshot")
-  promotionAmount Decimal  @db.Decimal(10, 2) @map("promotion_amount")
+  valueSnapshot   Decimal  @map("value_snapshot") @db.Decimal(10, 2)
+  promotionAmount Decimal  @map("promotion_amount") @db.Decimal(10, 2)
   createdAt       DateTime @default(now()) @map("created_at")
 
   order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -457,11 +461,45 @@ model Tip {
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
-  order               Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  payment             Payment?  @relation(fields: [paymentId], references: [id])
-  user                User?     @relation(fields: [createdBy], references: [id])
+  order   Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment Payment? @relation(fields: [paymentId], references: [id])
+  user    User?    @relation(fields: [createdBy], references: [id])
 
   @@map("tips")
+}
+
+enum RefundStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model Refund {
+  id                String       @id @default(cuid())
+  paymentId         String       @map("payment_id")
+  orderId           String       @map("order_id")
+  amount            Decimal      @db.Decimal(10, 2)
+  reason            String?
+  status            RefundStatus @default(PENDING)
+  idempotencyKey    String       @unique @map("idempotency_key")
+  requestedBy       String?      @map("requested_by")
+  createdBy         String?      @map("created_by")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  completedAt       DateTime?    @map("completed_at")
+  failedAt          DateTime?    @map("failed_at")
+  externalReference String?      @map("external_reference")
+  metadata          Json?
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  user    User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([paymentId])
+  @@index([orderId])
+  @@index([status])
+  @@map("refunds")
 }
 
 // =========================

@@ -22,6 +22,7 @@ import { TablesModule } from './tables/tables.module';
 import { TenantsModule } from './tenants/tenants.module';
 import { UsersModule } from './users/users.module';
 import { TipsModule } from './tips/tips.module';
+import { RefundsModule } from './refunds/refunds.module';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -63,6 +64,7 @@ import { ReservationsModule } from './reservations/reservations.module';
     ReservationsModule,
     ActivityLogModule,
     TipsModule,
+    RefundsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
