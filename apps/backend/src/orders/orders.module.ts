@@ -6,6 +6,7 @@ import { OrdersController } from './orders.controller';
 import { OrdersRepository } from './orders.repository';
 import { OrdersService } from './orders.service';
 import { DiscountsModule } from '../discounts/discounts.module';
+import { PromotionsModule } from '../promotions/promotions.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { DiscountsModule } from '../discounts/discounts.module';
     ActivityLogModule,
     TaxConfigModule,
     forwardRef(() => DiscountsModule),
+    forwardRef(() => PromotionsModule),
   ],
   controllers: [OrdersController],
   providers: [OrdersService, OrdersRepository],

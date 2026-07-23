@@ -32,6 +32,9 @@ import { OrderDiscountService } from '../discounts/order-discount.service';
 import { ApplyDiscountDto } from '../discounts/dto/apply-discount.dto';
 import { DiscountResponseDto } from '../discounts/dto/create-discount.dto';
 
+import { OrderPromotionService } from '../promotions/order-promotion.service';
+import { PromotionResponseDto } from '../promotions/dto/create-promotion.dto';
+
 @ApiTags('Orders')
 @ApiBearerAuth('JWT')
 @ApiSecurity('TenantSlug')
@@ -41,6 +44,7 @@ export class OrdersController {
   constructor(
     private readonly ordersService: OrdersService,
     private readonly orderDiscountService: OrderDiscountService,
+    private readonly orderPromotionService: OrderPromotionService,
   ) {}
 
   @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
@@ -102,6 +106,30 @@ export class OrdersController {
     @Param('id') id: string,
   ) {
     return this.orderDiscountService.getAvailable(tenant.schemaName, id);
+  }
+
+  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Get(':id/available-promotions')
+  @ApiOperation({ summary: 'Obtener promociones aplicables a la orden', operationId: 'orders_getAvailablePromotions' })
+  @ApiResponse({ status: 200, type: [PromotionResponseDto] })
+  getAvailablePromotions(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+  ) {
+    return this.orderPromotionService.getAvailable(tenant.schemaName, id);
+  }
+
+  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Post(':id/recalculate-promotions')
+  @ApiOperation({ summary: 'Recalcular promociones de la orden', operationId: 'orders_recalculatePromotions' })
+  @ApiResponse({ status: 200, type: OrderResponseDto })
+  recalculatePromotions(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.id ?? user?.sub ?? user?.userId;
+    return this.orderPromotionService.recalculate(tenant.schemaName, id, userId);
   }
 
   @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER')

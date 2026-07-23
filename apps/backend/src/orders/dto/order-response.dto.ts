@@ -7,7 +7,24 @@ export class OrderItemResponseDto {
   @ApiProperty() quantity: number;
   @ApiProperty() unitPrice: number;
   @ApiProperty() totalPrice: number;
+  @ApiPropertyOptional() promotionId?: string | null;
+  @ApiPropertyOptional() promotionNameSnapshot?: string | null;
+  @ApiPropertyOptional() promotionTypeSnapshot?: string | null;
+  @ApiPropertyOptional() promotionValueSnapshot?: number | null;
+  @ApiPropertyOptional() promotionQuantity?: number | null;
+  @ApiPropertyOptional() promotionAmount?: number | null;
+  @ApiPropertyOptional() originalUnitPrice?: number | null;
+  @ApiPropertyOptional() effectiveUnitPrice?: number | null;
   @ApiPropertyOptional() notes?: string | null;
+}
+
+export class OrderPromotionSummaryDto {
+  @ApiProperty() id: string;
+  @ApiProperty() promotionId: string;
+  @ApiProperty() name: string;
+  @ApiProperty() type: string;
+  @ApiProperty() value: number;
+  @ApiProperty() promotionAmount: number;
 }
 
 export class OrderDiscountSummaryDto {
@@ -28,9 +45,12 @@ export class OrderResponseDto {
   items: OrderItemResponseDto[];
   @ApiProperty() itemCount: number;
   @ApiProperty() subtotal: number;
+  @ApiPropertyOptional() promotionAmount?: number | null;
+  @ApiPropertyOptional() promotedSubtotal?: number | null;
   @ApiPropertyOptional() discountId?: string | null;
   @ApiPropertyOptional() discountAmount?: number | null;
   @ApiPropertyOptional() taxableSubtotal?: number | null;
+  @ApiPropertyOptional({ type: [OrderPromotionSummaryDto] }) appliedPromotions?: OrderPromotionSummaryDto[];
   @ApiPropertyOptional({ type: OrderDiscountSummaryDto }) discount?: OrderDiscountSummaryDto | null;
   @ApiProperty() tax: number;
   @ApiProperty() taxRate: number;
