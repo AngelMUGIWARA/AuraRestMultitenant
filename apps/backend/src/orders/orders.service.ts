@@ -450,16 +450,26 @@ export class OrdersService {
     const taxRate = baseForTax > 0 ? taxNum / baseForTax : DEFAULT_TAX_RATE;
 
     const completedPayments = Array.isArray(order.payments)
-      ? order.payments.filter((p: any) => p.status === 'COMPLETED')
+      ? order.payments.filter((p: any) => p.status === 'COMPLETED' || p.status === 'PARTIALLY_REFUNDED' || p.status === 'REFUNDED')
       : [];
-    const paidAmount = completedPayments.reduce(
+    const completedPaidAmount = completedPayments.reduce(
       (sum: number, p: any) => sum + Number(p.amount),
       0,
     );
+
+    const completedRefunds = Array.isArray(order.refunds)
+      ? order.refunds.filter((r: any) => r.status === 'COMPLETED')
+      : [];
+    const completedRefundAmount = completedRefunds.reduce(
+      (sum: number, r: any) => sum + Number(r.amount),
+      0,
+    );
+    const netPaidAmount = Math.max(0, completedPaidAmount - completedRefundAmount);
+
     const totalNum = Number(order.total);
     const totalBeforeTipNum = order.totalBeforeTip ? Number(order.totalBeforeTip) : totalNum;
     const amountDueForPaymentsNum = order.amountDueForPayments ? Number(order.amountDueForPayments) : totalNum;
-    const remainingAmount = Number(Math.max(0, amountDueForPaymentsNum - paidAmount).toFixed(2));
+    const remainingAmount = Number(Math.max(0, amountDueForPaymentsNum - completedPaidAmount).toFixed(2));
     const isFullyPaid = remainingAmount <= 0;
 
     const distinctMethods: string[] = [];
@@ -526,7 +536,10 @@ export class OrdersService {
       chargeableTipAmount: order.chargeableTipAmount ? Number(order.chargeableTipAmount) : 0,
       total: totalNum,
       amountDueForPayments: amountDueForPaymentsNum,
-      paidAmount: Number(paidAmount.toFixed(2)),
+      paidAmount: Number(completedPaidAmount.toFixed(2)), // legacy compatibility
+      completedPaidAmount: Number(completedPaidAmount.toFixed(2)),
+      completedRefundAmount: Number(completedRefundAmount.toFixed(2)),
+      netPaidAmount: Number(netPaidAmount.toFixed(2)),
       remainingAmount,
       isFullyPaid,
       tip: order.tip ? {

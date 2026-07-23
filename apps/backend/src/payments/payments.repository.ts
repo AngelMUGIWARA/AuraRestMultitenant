@@ -32,10 +32,16 @@ export class PaymentsRepository {
     currentVersion: number,
     tx?: Prisma.TransactionClient,
   ) {
-    return this.db(schemaName, tx).order.update({
+    const result = await this.db(schemaName, tx).order.updateMany({
       where: { id: orderId, version: currentVersion },
       data: { paymentStatus, version: { increment: 1 } },
     });
+    if (result.count === 0) {
+      throw { code: 'P2025' };
+    }
+    const resultRecord = await this.db(schemaName, tx).order.findUnique({ where: { id: orderId } });
+    if (!resultRecord) throw new Error('Order not found after update');
+    return resultRecord;
   }
 
   async updateOrderStatus(
@@ -53,7 +59,7 @@ export class PaymentsRepository {
   async findOrderById(schemaName: string, orderId: string, tx?: Prisma.TransactionClient) {
     return this.db(schemaName, tx).order.findUnique({
       where: { id: orderId },
-      include: { table: true, payments: { include: { tip: true } } },
+      include: { table: true, payments: { include: { tip: true } }, refunds: true },
     });
   }
 

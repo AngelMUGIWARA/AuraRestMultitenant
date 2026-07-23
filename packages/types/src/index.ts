@@ -415,7 +415,7 @@ export type OrderStatus =
   | "delivered"
   | "paid"
   | "cancelled";
-export type PaymentStatus = "pending" | "partial" | "paid" | "refunded" | "failed";
+export type PaymentStatus = "pending" | "partial" | "paid" | "partially_refunded" | "refunded" | "failed";
 export type OrderType = "dine_in" | "takeaway" | "delivery";
 
 export interface OrderItem {
@@ -550,6 +550,9 @@ export interface Order {
   paidAmount: number;
   remainingAmount: number;
   isFullyPaid: boolean;
+  completedPaidAmount?: number;
+  completedRefundAmount?: number;
+  netPaidAmount?: number;
   tip?: {
     method: 'NONE' | 'PERCENTAGE' | 'FIXED' | 'CASH';
     percentage?: number | null;
@@ -824,4 +827,23 @@ export interface PeakHoursReport {
   endDate: string;
   totalOrders: number;
   byHour: PeakHour[];
+}
+
+// ─── Refunds ──────────────────────────────────────────────────────────────────
+
+export type RefundStatus = "pending" | "completed" | "failed" | "cancelled";
+
+export interface Refund {
+  id: string;
+  paymentId: string;
+  orderId: string;
+  amount: number;
+  reason?: string | null;
+  status: RefundStatus;
+  idempotencyKey: string;
+  requestedBy?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
+  completedAt?: string | null;
+  failedAt?: string | null;
 }

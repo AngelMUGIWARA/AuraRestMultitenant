@@ -646,5 +646,18 @@ describe('PaymentsService', () => {
         service.processPayment(SCHEMA, makeDto()),
       ).rejects.toThrow('La orden ya fue pagada');
     });
+
+    it('should NOT allow paying debt when order is fully paid but has a completed refund', async () => {
+      txWithOrder(makeOrder({
+        total: '1000.00',
+        amountDueForPayments: '1000.00',
+        payments: [makePayment({ amount: '1000.00' })],
+        refunds: [{ status: 'COMPLETED', amount: '300.00' }]
+      }));
+
+      await expect(
+        service.processPayment(SCHEMA, makeDto({ payments: [{ amount: '300.00', method: 'CASH' as any }] })),
+      ).rejects.toThrow('La orden ya fue pagada');
+    });
   });
 });

@@ -15,7 +15,8 @@ export class OrdersRepository {
     orderItems: { include: { menuItem: true, promotion: true } },
     table: true,
     user: true,
-    payments: true,
+    payments: { include: { refunds: true } },
+    refunds: true,
     discount: true,
     orderPromotions: { include: { promotion: true } },
     tip: true,
@@ -84,11 +85,19 @@ export class OrdersRepository {
     data: Prisma.OrderUpdateInput,
     tx?: Prisma.TransactionClient,
   ) {
-    return this.db(schemaName, tx).order.update({
+    const result = await this.db(schemaName, tx).order.updateMany({
       where: { id, version },
       data: { ...data, version: { increment: 1 } },
+    });
+    if (result.count === 0) {
+      throw { code: 'P2025' };
+    }
+    const resultRecord = await this.db(schemaName, tx).order.findUnique({
+      where: { id },
       include: this.defaultInclude,
     });
+    if (!resultRecord) throw new Error('Order not found after update');
+    return resultRecord;
   }
 
   async updateTableStatus(
