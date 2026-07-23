@@ -4,6 +4,7 @@
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes, createHash } from 'crypto';
 import * as bcrypt from 'bcrypt';
@@ -26,11 +27,18 @@ export class AuthService {
     Number(process.env.BCRYPT_ROUNDS ?? 10),
   );
 
+  private readonly refreshSecret: string;
+  private readonly refreshExpiresIn: string;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantPrisma: TenantPrismaService,
     private readonly jwt: JwtService,
-  ) {}
+    private readonly config: ConfigService,
+  ) {
+    this.refreshSecret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
+    this.refreshExpiresIn = this.config.get<string>('JWT_REFRESH_EXPIRES_IN', '7d');
+  }
 
   static hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
@@ -45,7 +53,7 @@ export class AuthService {
   }
 
   private getRefreshExpiry(): Date {
-    const days = Number(process.env.JWT_REFRESH_EXPIRES_IN?.replace(/\D/g, '') ?? '7');
+    const days = Number(this.refreshExpiresIn.replace(/\D/g, '') ?? '7');
     const expires = new Date();
     expires.setDate(expires.getDate() + days);
     return expires;
@@ -87,7 +95,7 @@ export class AuthService {
     let payload: Record<string, unknown>;
     try {
       payload = this.jwt.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: this.refreshSecret,
       }) as Record<string, unknown>;
     } catch {
       throw new UnauthorizedException('Credenciales inválidas');
@@ -153,8 +161,8 @@ export class AuthService {
     const newRefreshToken = this.jwt.sign(
       { ...newPayload, jti: newJti, familyId: newFamilyId },
       {
-        secret: process.env.JWT_REFRESH_SECRET,
-        expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ?? '7d') as any,
+        secret: this.refreshSecret,
+        expiresIn: this.refreshExpiresIn as any,
       },
     );
     const accessToken = this.jwt.sign(newPayload);
@@ -197,7 +205,7 @@ export class AuthService {
     let payload: Record<string, unknown>;
     try {
       payload = this.jwt.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: this.refreshSecret,
       }) as Record<string, unknown>;
     } catch {
       return { message: 'Sesion cerrada exitosamente' };
@@ -289,8 +297,8 @@ export class AuthService {
     const refreshToken = this.jwt.sign(
       { ...payload, jti, familyId },
       {
-        secret: process.env.JWT_REFRESH_SECRET,
-        expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ?? '7d') as any,
+        secret: this.refreshSecret,
+        expiresIn: this.refreshExpiresIn as any,
       },
     );
     const accessToken = this.jwt.sign(payload);

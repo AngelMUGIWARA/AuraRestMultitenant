@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { validateEnv } from './config/env.validation';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
 import { AuthModule } from './auth/auth.module';
@@ -33,7 +34,7 @@ import { ReservationsModule } from './reservations/reservations.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
 
     ThrottlerModule.forRoot([{
       ttl: 60000,
