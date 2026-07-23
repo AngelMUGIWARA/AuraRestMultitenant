@@ -1,4 +1,5 @@
 import { apiClient } from '@maison/api-client';
+import { AuthClient } from '@maison/auth-client';
 import type { LoginPayload, LoginResponse } from '@maison/types';
 
 export const authService = {
@@ -7,8 +8,10 @@ export const authService = {
       headers: { 'x-tenant-slug': tenantSlug },
     }),
 
-  logout: () =>
-    apiClient.post<void>('/auth/logout', {}),
+  logout: () => {
+    const rt = AuthClient.getRefreshToken();
+    return apiClient.post<void>('/auth/logout', { refreshToken: rt ?? '' });
+  },
 
   refreshToken: (refreshToken: string) =>
     apiClient.post<{ accessToken: string }>('/auth/refresh', { refreshToken }),

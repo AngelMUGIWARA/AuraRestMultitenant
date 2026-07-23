@@ -1,9 +1,11 @@
-import {
+﻿import {
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { randomBytes, createHash } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../database/prisma.service';
 import { TenantPrismaService } from '../database/tenant-prisma.service';
@@ -17,9 +19,8 @@ const VOICE_ROLES = ['OWNER', 'ADMIN'];
 
 @Injectable()
 export class AuthService {
-  // Hash dummy precalculado en el arranque del proceso: se usa para comparar
-  // contra él cuando el voiceUsername no existe, así el tiempo de respuesta
-  // no revela si el usuario existe o no.
+  private readonly logger = new Logger(AuthService.name);
+
   private readonly dummyVoiceHash = bcrypt.hashSync(
     'dummy-seed-word-placeholder',
     Number(process.env.BCRYPT_ROUNDS ?? 10),
@@ -30,6 +31,27 @@ export class AuthService {
     private readonly tenantPrisma: TenantPrismaService,
     private readonly jwt: JwtService,
   ) {}
+
+  static hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private generateJti(): string {
+    return randomBytes(16).toString('hex');
+  }
+
+  private generateFamilyId(): string {
+    return randomBytes(16).toString('hex');
+  }
+
+  private getRefreshExpiry(): Date {
+    const days = Number(process.env.JWT_REFRESH_EXPIRES_IN?.replace(/\D/g, '') ?? '7');
+    const expires = new Date();
+    expires.setDate(expires.getDate() + days);
+    return expires;
+  }
+
+  /* ── Login ───────────────────────────────────────────────────── */
 
   async login(dto: LoginDto, tenantSchemaName: string): Promise<AuthResponseDto> {
     const db = this.tenantPrisma.getClient(tenantSchemaName);
@@ -44,7 +66,6 @@ export class AuthService {
       throw new UnauthorizedException('Usuario inactivo o suspendido');
     }
 
-    // Obtener el slug del tenant a partir del schemaName
     const tenant = await this.prisma.tenant.findUnique({
       where: { schemaName: tenantSchemaName },
     });
@@ -57,8 +78,10 @@ export class AuthService {
       tenantSchemaName,
     };
 
-    return this.buildAuthResponse(user, payload);
+    return this.createSessionAndTokens(user, payload);
   }
+
+  /* ── Refresh ─────────────────────────────────────────────────── */
 
   async refreshToken(refreshToken: string): Promise<AuthResponseDto> {
     let payload: Record<string, unknown>;
@@ -67,24 +90,51 @@ export class AuthService {
         secret: process.env.JWT_REFRESH_SECRET,
       }) as Record<string, unknown>;
     } catch {
-      throw new UnauthorizedException('Refresh token inválido o expirado');
+      throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const { sub, email, role, tenantSchemaName } = payload as {
+    const { sub, tenantSchemaName, jti, familyId } = payload as {
       sub: string;
-      email: string;
-      role: string;
       tenantSchemaName: string;
+      jti: string;
+      familyId: string;
     };
 
-    if (!tenantSchemaName) {
-      throw new UnauthorizedException('Refresh token inválido');
+    if (!tenantSchemaName || !jti) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    const session = await this.prisma.refreshSession.findUnique({
+      where: { jti },
+    });
+
+    if (!session) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    const tokenHash = AuthService.hashToken(refreshToken);
+    if (session.tokenHash !== tokenHash) {
+      if (familyId) await this.revokeFamily(familyId).catch(() => {});
+      this.logger.warn('Replay detectado');
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    if (session.revokedAt) {
+      if (familyId) await this.revokeFamily(familyId).catch(() => {});
+      this.logger.warn('Reutilizacion detectada');
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    if (session.expiresAt < new Date()) {
+      throw new UnauthorizedException('Credenciales inválidas');
     }
 
     const db = this.tenantPrisma.getClient(tenantSchemaName);
     const user = await db.user.findUnique({ where: { id: sub } });
-    if (!user) throw new UnauthorizedException('Usuario no encontrado');
-    if (user.status !== 'ACTIVE') throw new UnauthorizedException('Usuario inactivo o suspendido');
+    if (!user) throw new UnauthorizedException('Credenciales inválidas');
+    if (user.status !== 'ACTIVE') {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
 
     const tenant = await this.prisma.tenant.findUnique({
       where: { schemaName: tenantSchemaName },
@@ -98,12 +148,75 @@ export class AuthService {
       tenantSchemaName,
     };
 
-    return this.buildAuthResponse(user, newPayload);
+    const newJti = this.generateJti();
+    const newFamilyId = familyId || this.generateFamilyId();
+    const newRefreshToken = this.jwt.sign(
+      { ...newPayload, jti: newJti, familyId: newFamilyId },
+      {
+        secret: process.env.JWT_REFRESH_SECRET,
+        expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ?? '7d') as any,
+      },
+    );
+    const accessToken = this.jwt.sign(newPayload);
+    const newTokenHash = AuthService.hashToken(newRefreshToken);
+    const newExpiresAt = this.getRefreshExpiry();
+
+    const newSession = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.refreshSession.create({
+        data: {
+          userId: user.id,
+          tenantSchemaName,
+          tokenHash: newTokenHash,
+          jti: newJti,
+          familyId: newFamilyId,
+          expiresAt: newExpiresAt,
+        },
+      });
+
+      await tx.refreshSession.update({
+        where: { id: session.id },
+        data: {
+          revokedAt: new Date(),
+          replacedBySessionId: created.id,
+        },
+      });
+
+      return created;
+    });
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    };
   }
 
-  async logout(): Promise<{ message: string }> {
-    return { message: 'Sesión cerrada exitosamente' };
+  /* ── Logout ──────────────────────────────────────────────────── */
+
+  async logout(refreshToken: string): Promise<{ message: string }> {
+    let payload: Record<string, unknown>;
+    try {
+      payload = this.jwt.verify(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      }) as Record<string, unknown>;
+    } catch {
+      return { message: 'Sesion cerrada exitosamente' };
+    }
+
+    const { jti } = payload as { jti: string };
+    if (!jti) return { message: 'Sesion cerrada exitosamente' };
+
+    await this.prisma.refreshSession
+      .updateMany({
+        where: { jti, revokedAt: null },
+        data: { revokedAt: new Date() },
+      })
+      .catch(() => {});
+
+    return { message: 'Sesion cerrada exitosamente' };
   }
+
+  /* ── Voice Seed ──────────────────────────────────────────────── */
 
   async setVoiceSeed(
     userId: string,
@@ -118,7 +231,7 @@ export class AuthService {
     });
     if (existing && existing.id !== userId) {
       throw new ConflictException(
-        'Ese nombre de voz ya está en uso por otro usuario',
+        'Ese nombre de voz ya esta en uso por otro usuario',
       );
     }
 
@@ -134,6 +247,8 @@ export class AuthService {
 
     return { voiceUsername };
   }
+
+  /* ── Voice Login ─────────────────────────────────────────────── */
 
   async voiceLogin(
     dto: VoiceLoginDto,
@@ -161,18 +276,49 @@ export class AuthService {
     return { valid: true, name: user.name, role: user.role };
   }
 
-  private buildAuthResponse(
+  /* ── Internal helpers ────────────────────────────────────────── */
+
+  private async createSessionAndTokens(
     user: { id: string; name: string; email: string; role: string },
     payload: Record<string, unknown>,
-  ): AuthResponseDto {
-    return {
-      accessToken: this.jwt.sign(payload),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      refreshToken: this.jwt.sign(payload, {
+  ): Promise<AuthResponseDto> {
+    const jti = this.generateJti();
+    const familyId = this.generateFamilyId();
+    const tenantSchemaName = payload.tenantSchemaName as string;
+
+    const refreshToken = this.jwt.sign(
+      { ...payload, jti, familyId },
+      {
         secret: process.env.JWT_REFRESH_SECRET,
         expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ?? '7d') as any,
-      }),
+      },
+    );
+    const accessToken = this.jwt.sign(payload);
+    const tokenHash = AuthService.hashToken(refreshToken);
+    const expiresAt = this.getRefreshExpiry();
+
+    await this.prisma.refreshSession.create({
+      data: {
+        userId: user.id,
+        tenantSchemaName,
+        tokenHash,
+        jti,
+        familyId,
+        expiresAt,
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
     };
+  }
+
+  private async revokeFamily(familyId: string): Promise<void> {
+    await this.prisma.refreshSession.updateMany({
+      where: { familyId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   }
 }

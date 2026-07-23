@@ -102,7 +102,8 @@ function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: SidebarCon
   const pathname = usePathname();
 
   function handleLogout() {
-    apiClient.post('/auth/logout', {}).catch(() => {});
+    const rt = AuthClient.getRefreshToken();
+    apiClient.post('/auth/logout', { refreshToken: rt ?? '' }).catch(() => {});
     AuthClient.clearTokens();
     emit('auth:logout', undefined);
   }

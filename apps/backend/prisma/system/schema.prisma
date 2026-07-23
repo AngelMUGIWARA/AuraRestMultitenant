@@ -43,3 +43,22 @@ model Tenant {
 
   @@map("tenants")
 }
+
+model RefreshSession {
+  id                  String    @id @default(cuid())
+  userId              String    @map("user_id")
+  tenantSchemaName    String    @map("tenant_schema_name")
+  tokenHash           String    @unique @map("token_hash")
+  jti                 String    @unique
+  familyId            String    @map("family_id")
+  expiresAt           DateTime  @map("expires_at")
+  revokedAt           DateTime? @map("revoked_at")
+  replacedBySessionId String?   @map("replaced_by_session_id")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt      @map("updated_at")
+
+  @@index([userId, tenantSchemaName])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("refresh_sessions")
+}
