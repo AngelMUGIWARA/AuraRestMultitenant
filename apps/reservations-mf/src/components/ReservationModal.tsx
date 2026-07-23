@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { reservationsService } from '../services/reservations.service';
 import { branchesService } from '../services/branches.service';
-import { tablesService } from '../../../tables-mf/src/services/tables.service';
+import { tablesService } from '../services/tables.service';
 
 import type { Branch, CreateReservationPayload, RestaurantTable } from '@maison/types';
 
