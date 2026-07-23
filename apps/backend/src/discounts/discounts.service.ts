@@ -6,6 +6,7 @@ import {
 import { $Enums } from '../generated/prisma-tenant';
 import { DiscountsRepository } from './discounts.repository';
 import { CreateDiscountDto } from './dto/create-discount.dto';
+import { UpdateDiscountDto } from './dto/update-discount.dto';
 
 @Injectable()
 export class DiscountsService {
@@ -47,7 +48,7 @@ export class DiscountsService {
     return this.toResponse(discount);
   }
 
-  async update(schemaName: string, id: string, dto: Partial<CreateDiscountDto>) {
+  async update(schemaName: string, id: string, dto: UpdateDiscountDto) {
     const discount = await this.discountsRepo.findById(schemaName, id);
     if (!discount) throw new NotFoundException('Descuento no encontrado');
 

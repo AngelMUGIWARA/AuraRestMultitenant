@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { $Enums } from '../generated/prisma-tenant';
 import { PromotionsRepository } from './promotions.repository';
 import { CreatePromotionDto } from './dto/create-promotion.dto';
+import { UpdatePromotionDto } from './dto/update-promotion.dto';
 
 @Injectable()
 export class PromotionsService {
@@ -38,7 +39,7 @@ export class PromotionsService {
     return this.toResponse(promotion);
   }
 
-  async update(schemaName: string, id: string, dto: Partial<CreatePromotionDto>) {
+  async update(schemaName: string, id: string, dto: UpdatePromotionDto) {
     const promotion = await this.promotionsRepo.findById(schemaName, id);
     if (!promotion) throw new NotFoundException('Promoción no encontrada');
 

@@ -16,6 +16,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentTenant, TenantContext } from '../common/decorators/current-tenant.decorator';
 import { DiscountsService } from './discounts.service';
 import { CreateDiscountDto, DiscountResponseDto } from './dto/create-discount.dto';
+import { UpdateDiscountDto } from './dto/update-discount.dto';
 
 @ApiTags('Discounts')
 @ApiBearerAuth('JWT')
@@ -75,7 +76,7 @@ export class DiscountsController {
   update(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,
-    @Body() dto: Partial<CreateDiscountDto>,
+    @Body() dto: UpdateDiscountDto,
   ) {
     return this.discountsService.update(tenant.schemaName, id, dto);
   }

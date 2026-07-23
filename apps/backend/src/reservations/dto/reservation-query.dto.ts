@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt, Min } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ReservationQueryDto {
@@ -8,12 +8,15 @@ export class ReservationQueryDto {
     @IsOptional()
     @Type(() => Number)
     @IsInt()
+    @Min(1)
     page?: number;
 
-    @ApiPropertyOptional({ default: 20, minimum: 1 })
+    @ApiPropertyOptional({ default: 20, minimum: 1, maximum: 100 })
     @IsOptional()
     @Type(() => Number) 
     @IsInt()
+    @Min(1)
+    @Max(100)
     limit?: number; 
 
     @ApiPropertyOptional({ description: 'Filtrar por estado' })

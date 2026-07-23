@@ -1,9 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateBranchDto {
   @ApiProperty({ example: 'Sucursal Centro' })
   @IsString()
+  @IsNotEmpty()
   name: string;
 
   @ApiPropertyOptional()
