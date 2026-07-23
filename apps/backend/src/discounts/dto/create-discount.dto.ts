@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsDecimal, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 enum DiscountTypeDto {
   PERCENTAGE = 'PERCENTAGE',
@@ -9,6 +9,7 @@ enum DiscountTypeDto {
 export class CreateDiscountDto {
   @ApiProperty()
   @IsString()
+  @IsNotEmpty()
   name: string;
 
   @ApiPropertyOptional()
@@ -22,6 +23,7 @@ export class CreateDiscountDto {
 
   @ApiProperty({ description: 'Value: percentage (10 = 10%) or fixed amount' })
   @IsString()
+  @IsNotEmpty()
   value: string;
 
   @ApiPropertyOptional({ default: true })

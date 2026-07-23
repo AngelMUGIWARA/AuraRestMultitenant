@@ -16,6 +16,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentTenant, TenantContext } from '../common/decorators/current-tenant.decorator';
 import { PromotionsService } from './promotions.service';
 import { CreatePromotionDto, PromotionResponseDto } from './dto/create-promotion.dto';
+import { UpdatePromotionDto } from './dto/update-promotion.dto';
 
 @ApiTags('Promotions')
 @ApiBearerAuth('JWT')
@@ -71,7 +72,7 @@ export class PromotionsController {
   update(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,
-    @Body() dto: Partial<CreatePromotionDto>,
+    @Body() dto: UpdatePromotionDto,
   ) {
     return this.promotionsService.update(tenant.schemaName, id, dto);
   }
