@@ -4,9 +4,10 @@ import {
   NestModule,
   RequestMethod,
 } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD, Reflector } from '@nestjs/core';
 import { validateEnv } from './config/env.validation';
+import { createThrottlerOptions } from './config/throttler.config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
 import { AuthModule } from './auth/auth.module';
@@ -36,10 +37,11 @@ import { ReservationsModule } from './reservations/reservations.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
 
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 60,
-    }]),
+    ThrottlerModule.forRootAsync({
+      useFactory: (config: ConfigService, reflector: Reflector) =>
+        createThrottlerOptions(config, reflector),
+      inject: [ConfigService, Reflector],
+    }),
 
     DatabaseModule,
 

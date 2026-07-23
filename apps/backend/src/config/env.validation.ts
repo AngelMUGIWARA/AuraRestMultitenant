@@ -126,6 +126,32 @@ export function validateEnv(config: Record<string, unknown>): Record<string, unk
     config.JWT_REFRESH_EXPIRES_IN = '7d';
   }
 
+  // ── AUTH_REFRESH_THROTTLE_LIMIT ───────────────────────────
+  const refreshThrottleLimitRaw = config.AUTH_REFRESH_THROTTLE_LIMIT;
+  if (refreshThrottleLimitRaw !== undefined && refreshThrottleLimitRaw !== null) {
+    const limit = Number(String(refreshThrottleLimitRaw).trim());
+    if (Number.isNaN(limit) || !Number.isInteger(limit) || limit <= 0) {
+      errors.push('AUTH_REFRESH_THROTTLE_LIMIT must be a positive integer');
+    } else {
+      config.AUTH_REFRESH_THROTTLE_LIMIT = limit;
+    }
+  } else {
+    config.AUTH_REFRESH_THROTTLE_LIMIT = 10;
+  }
+
+  // ── AUTH_REFRESH_THROTTLE_TTL_MS ──────────────────────────
+  const refreshThrottleTtlRaw = config.AUTH_REFRESH_THROTTLE_TTL_MS;
+  if (refreshThrottleTtlRaw !== undefined && refreshThrottleTtlRaw !== null) {
+    const ttl = Number(String(refreshThrottleTtlRaw).trim());
+    if (Number.isNaN(ttl) || !Number.isInteger(ttl) || ttl <= 0) {
+      errors.push('AUTH_REFRESH_THROTTLE_TTL_MS must be a positive integer');
+    } else {
+      config.AUTH_REFRESH_THROTTLE_TTL_MS = ttl;
+    }
+  } else {
+    config.AUTH_REFRESH_THROTTLE_TTL_MS = 60000;
+  }
+
   if (errors.length > 0) {
     throw new InvalidEnvironmentError(
       `Environment validation failed:\n  - ${errors.join('\n  - ')}`,

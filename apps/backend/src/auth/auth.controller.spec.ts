@@ -1,6 +1,7 @@
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AUTH_REFRESH_THROTTLE_KEY } from '../common/decorators/auth-refresh-throttle.decorator';
 
 function mockAuthService() {
   return {
@@ -86,6 +87,53 @@ describe('AuthController', () => {
           { currentPassword: 'same', newPassword: 'same' },
         ),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('auth-refresh throttle metadata', () => {
+    it('refresh has AUTH_REFRESH_THROTTLE_KEY metadata', () => {
+      expect(
+        Reflect.hasMetadata(AUTH_REFRESH_THROTTLE_KEY, AuthController.prototype.refresh),
+      ).toBe(true);
+    });
+
+    it('login does NOT have AUTH_REFRESH_THROTTLE_KEY metadata', () => {
+      expect(
+        Reflect.hasMetadata(AUTH_REFRESH_THROTTLE_KEY, AuthController.prototype.login),
+      ).toBe(false);
+    });
+
+    it('logout does NOT have AUTH_REFRESH_THROTTLE_KEY metadata', () => {
+      expect(
+        Reflect.hasMetadata(AUTH_REFRESH_THROTTLE_KEY, AuthController.prototype.logout),
+      ).toBe(false);
+    });
+
+    it('changePassword does NOT have AUTH_REFRESH_THROTTLE_KEY metadata', () => {
+      expect(
+        Reflect.hasMetadata(AUTH_REFRESH_THROTTLE_KEY, AuthController.prototype.changePassword),
+      ).toBe(false);
+    });
+
+    it('voiceLogin does NOT have AUTH_REFRESH_THROTTLE_KEY metadata', () => {
+      expect(
+        Reflect.hasMetadata(AUTH_REFRESH_THROTTLE_KEY, AuthController.prototype.voiceLogin),
+      ).toBe(false);
+    });
+
+    it('setVoiceSeed does NOT have AUTH_REFRESH_THROTTLE_KEY metadata', () => {
+      expect(
+        Reflect.hasMetadata(AUTH_REFRESH_THROTTLE_KEY, AuthController.prototype.setVoiceSeed),
+      ).toBe(false);
+    });
+
+    it('refresh also has @Throttle({ auth-refresh: {} }) metadata', () => {
+      expect(
+        Reflect.hasMetadata('THROTTLER:LIMITauth-refresh', AuthController.prototype.refresh),
+      ).toBe(true);
+      expect(
+        Reflect.hasMetadata('THROTTLER:TTLauth-refresh', AuthController.prototype.refresh),
+      ).toBe(true);
     });
   });
 });
