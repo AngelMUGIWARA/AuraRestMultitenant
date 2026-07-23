@@ -66,3 +66,12 @@ export function mapPaymentStatusFromDb(status: string): string {
   };
   return map[status] ?? status;
 }
+
+export function mapOrderPaymentStatusFromDb(status: string): string {
+  const map: Record<string, string> = {
+    UNPAID: 'unpaid',
+    PARTIALLY_PAID: 'partial',
+    PAID: 'paid',
+  };
+  return map[status] ?? status;
+}

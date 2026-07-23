@@ -170,6 +170,7 @@ export const mockConfirmedOrder = {
 export const mockPaidOrder = {
   ...mockCreatedOrder,
   status: 'PAID',
+  paymentStatus: 'PAID',
   version: 3,
   payments: [
     {
@@ -181,6 +182,24 @@ export const mockPaidOrder = {
       reference: null,
       tip: null,
       createdAt: new Date('2026-07-10T10:05:00Z'),
+    },
+  ],
+};
+
+export const mockPartiallyPaidOrder = {
+  ...mockCreatedOrder,
+  paymentStatus: 'PARTIALLY_PAID',
+  version: 2,
+  payments: [
+    {
+      id: 'pay-partial-001',
+      orderId: ORDER_ID,
+      amount: 50.00,
+      method: 'CASH',
+      status: 'COMPLETED',
+      reference: null,
+      tip: null,
+      createdAt: new Date('2026-07-10T10:03:00Z'),
     },
   ],
 };

@@ -16,6 +16,9 @@ export const cashierService = {
     apiClient.get<RestaurantTable[]>('/tables'),
 
   // Orders
+  getOrderById: (orderId: string) =>
+    apiClient.get<Order>(`/orders/${orderId}`),
+
   createOrder: (payload: CreateOrderPayload) =>
     apiClient.post<Order>('/orders', payload),
 

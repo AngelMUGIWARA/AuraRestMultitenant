@@ -103,6 +103,7 @@ export function usePOS() {
     setIsSubmitting(true);
     setError(null);
     try {
+      const totalPayment = payments.reduce((sum, p) => sum + p.amount, 0);
       await cashierService.processPayment({
         orderId: completedOrder.id,
         payments: payments.map((p) => ({
@@ -111,26 +112,39 @@ export function usePOS() {
           reference: p.reference || undefined,
         })),
       });
+
+      const updatedOrder = await cashierService.getOrderById(completedOrder.id);
+      setCompletedOrder(updatedOrder);
+
       emit('payment:completed', {
         orderId: completedOrder.id,
         orderNumber: completedOrder.orderNumber,
-        method: payments.length === 1 ? payments[0].method : 'multiple',
-        amount: completedOrder.total,
+        methods: payments.map((p) => p.method),
+        amount: totalPayment,
+        paidAmount: updatedOrder.paidAmount,
+        remainingAmount: updatedOrder.remainingAmount,
+        isFullyPaid: updatedOrder.isFullyPaid,
       });
-      clearCart();
-      refreshTables();
+
+      if (updatedOrder.isFullyPaid) {
+        refreshTables();
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al procesar el pago');
     } finally {
       setIsSubmitting(false);
     }
-  }, [completedOrder, clearCart, refreshTables]);
+  }, [completedOrder, refreshTables]);
+
+  const newOrder = useCallback(() => {
+    clearCart();
+  }, [clearCart]);
 
   return {
     menuItems, tables, cart, selectedTable, setSelectedTable,
     cartTotal,
     isLoading, isSubmitting, error, completedOrder,
     addToCart, removeFromCart, clearCart, submitOrder, processPayment,
-    refreshTables,
+    refreshTables, newOrder,
   };
 }

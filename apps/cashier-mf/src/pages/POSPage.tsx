@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { usePOS } from '../hooks/usePOS';
-import type { MenuItem, RestaurantTable, PaymentMethod } from '@maison/types';
+import type { MenuItem, PaymentMethod } from '@maison/types';
 import { TableCard, TABLE_STATUS_CONFIG, IconTable } from '@maison/ui';
 
 function formatCurrency(value: number) {
@@ -126,14 +126,16 @@ export default function POSPage() {
   const lineIdRef = useRef(2);
 
   const capturedTotal = paymentLines.reduce((sum, l) => sum + (l.amount || 0), 0);
-  const pendingTotal = completedOrder ? Math.max(0, completedOrder.total - capturedTotal) : 0;
+  const remainingAmount = completedOrder?.remainingAmount ?? 0;
+  const alreadyPaid = completedOrder?.paidAmount ?? 0;
   const canPay =
     !isSubmitting &&
     completedOrder &&
     completedOrder.paymentStatus !== 'paid' &&
     paymentLines.length > 0 &&
     paymentLines.every((l) => l.amount > 0) &&
-    Math.abs(capturedTotal - completedOrder.total) < 0.01;
+    capturedTotal > 0 &&
+    capturedTotal <= remainingAmount + 0.01;
 
   const addPaymentLine = useCallback(() => {
     const newId = lineIdRef.current++;
@@ -156,7 +158,7 @@ export default function POSPage() {
     setPaymentSuccess(false);
   }, []);
 
-  const categories = ['all', ...Array.from(new Set(menuItems.map((i) => i.categoryName)))];
+  const categories = ['all', ...Array.from(new Set(menuItems.map((i) => i.categoryName).filter(Boolean))) as string[]];
   const filteredItems = menuItems.filter((i) => {
     const matchesSearch = i.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || i.categoryName === selectedCategory;
@@ -170,7 +172,7 @@ export default function POSPage() {
   }
 
   async function handlePayment() {
-    if (!completedOrder || completedOrder.paymentStatus === 'paid') return;
+    if (!completedOrder || completedOrder.isFullyPaid) return;
     await processPayment(paymentLines.map((l) => ({ method: l.method, amount: l.amount, reference: l.reference || undefined })));
     setPaymentSuccess(true);
     setCustomerName('');
@@ -303,7 +305,7 @@ export default function POSPage() {
                   {tables.map((t) => (
                     <TableCard
                       key={t.id}
-                      name={t.name}
+                      name={t.name ?? `Mesa ${t.number ?? ''}`}
                       capacity={t.capacity}
                       status={t.status}
                       isSelected={selectedTable?.id === t.id}
@@ -416,7 +418,7 @@ export default function POSPage() {
             <div className="max-w-lg mx-auto space-y-4">
 
               {completedOrder ? (
-                completedOrder.paymentStatus === 'paid' ? (
+                completedOrder.isFullyPaid ? (
                   /* Already paid */
                   <div className="rounded-2xl border border-maison-border bg-surface-1 p-8 text-center space-y-4">
                     <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-maison-sage/10 border-2 border-maison-sage/30">
@@ -448,20 +450,53 @@ export default function POSPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-xl font-bold text-maison-cream">¡Cobro exitoso!</p>
-                      <p className="text-sm text-maison-cream-muted mt-1">Orden #{completedOrder.orderNumber} pagada correctamente.</p>
+                      <p className="text-xl font-bold text-maison-cream">
+                        {completedOrder.isFullyPaid ? '¡Cobro exitoso!' : '¡Pago parcial registrado!'}
+                      </p>
+                      <p className="text-sm text-maison-cream-muted mt-1">
+                        Orden #{completedOrder.orderNumber}
+                      </p>
                     </div>
-                    <div className="rounded-xl bg-maison-sage/10 border border-maison-sage/30 px-4 py-3">
-                      <p className="text-xs text-maison-sage font-medium mb-0.5">Total cobrado</p>
-                      <p className="font-mono text-2xl font-bold text-maison-sage">{formatCurrency(completedOrder.total)}</p>
+                    <div className="rounded-xl bg-maison-sage/10 border border-maison-sage/30 px-4 py-3 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-maison-sage font-medium">Total cobrado</span>
+                        <span className="font-mono font-bold text-maison-sage">{formatCurrency(completedOrder.paidAmount)}</span>
+                      </div>
+                      {!completedOrder.isFullyPaid && (
+                        <>
+                          <div className="border-t border-maison-sage/20 pt-2 flex justify-between text-sm">
+                            <span className="text-maison-cream-muted">Pendiente</span>
+                            <span className="font-mono font-bold text-maison-ruby">{formatCurrency(completedOrder.remainingAmount)}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => { clearCart(); resetPaymentLines(); setView('tables'); }}
-                      className="w-full rounded-xl bg-maison-amber text-surface-0 px-6 py-3 text-sm font-semibold hover:bg-maison-amber/90 transition shadow-lg shadow-maison-amber/20"
-                    >
-                      Nueva orden
-                    </button>
+                    {completedOrder.isFullyPaid ? (
+                      <button
+                        type="button"
+                        onClick={() => { clearCart(); resetPaymentLines(); setView('tables'); }}
+                        className="w-full rounded-xl bg-maison-amber text-surface-0 px-6 py-3 text-sm font-semibold hover:bg-maison-amber/90 transition shadow-lg shadow-maison-amber/20"
+                      >
+                        Nueva orden
+                      </button>
+                    ) : (
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => { resetPaymentLines(); setPaymentSuccess(false); }}
+                          className="w-full rounded-xl bg-maison-amber text-surface-0 px-6 py-3 text-sm font-semibold hover:bg-maison-amber/90 transition shadow-lg shadow-maison-amber/20"
+                        >
+                          Cobrar restante ({formatCurrency(completedOrder.remainingAmount)})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { clearCart(); resetPaymentLines(); setView('tables'); }}
+                          className="w-full rounded-xl border border-maison-border bg-surface-2 text-maison-cream-muted px-6 py-2.5 text-xs font-semibold hover:text-maison-cream hover:bg-surface-3 transition"
+                        >
+                          Dejar como pago parcial
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                 ) : (
@@ -474,7 +509,7 @@ export default function POSPage() {
                           Cobrar orden <span className="text-maison-amber">#{completedOrder.orderNumber}</span>
                         </h2>
                         <span className="text-xs text-maison-cream-dim rounded-full border border-maison-border px-2.5 py-1 font-medium">
-                          {completedOrder.paymentStatus === 'pending' ? 'Pendiente' : completedOrder.paymentStatus}
+                          {completedOrder.paymentStatus === 'paid' ? 'Pagada' : completedOrder.paymentStatus === 'partial' ? 'Parcial' : 'Pendiente'}
                         </span>
                       </div>
 
@@ -492,6 +527,12 @@ export default function POSPage() {
                           <span>Total</span>
                           <span className="font-mono text-maison-amber text-lg">{formatCurrency(completedOrder.total)}</span>
                         </div>
+                        {alreadyPaid > 0 && (
+                          <div className="flex justify-between text-sm text-maison-sage">
+                            <span>Ya pagado</span>
+                            <span className="font-mono">-{formatCurrency(alreadyPaid)}</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Split payment */}
@@ -559,17 +600,17 @@ export default function POSPage() {
                       {/* Payment status mini-cards */}
                       <div className="grid grid-cols-3 gap-2">
                         <div className="rounded-xl bg-surface-2 border border-maison-border p-3 text-center">
-                          <p className="text-[10px] font-medium text-maison-cream-dim uppercase tracking-wider mb-1">Total</p>
-                          <p className="font-mono text-sm font-bold text-maison-cream">{formatCurrency(completedOrder.total)}</p>
+                          <p className="text-[10px] font-medium text-maison-cream-dim uppercase tracking-wider mb-1">Pendiente</p>
+                          <p className="font-mono text-sm font-bold text-maison-cream">{formatCurrency(remainingAmount)}</p>
                         </div>
                         <div className="rounded-xl bg-surface-2 border border-maison-border p-3 text-center">
                           <p className="text-[10px] font-medium text-maison-cream-dim uppercase tracking-wider mb-1">Capturado</p>
                           <p className="font-mono text-sm font-bold text-maison-amber">{formatCurrency(capturedTotal)}</p>
                         </div>
-                        <div className={`rounded-xl border p-3 text-center ${pendingTotal === 0 ? 'bg-maison-sage/10 border-maison-sage/30' : 'bg-maison-ruby/10 border-maison-ruby/30'}`}>
-                          <p className="text-[10px] font-medium text-maison-cream-dim uppercase tracking-wider mb-1">Pendiente</p>
-                          <p className={`font-mono text-sm font-bold ${pendingTotal === 0 ? 'text-maison-sage' : 'text-maison-ruby'}`}>
-                            {pendingTotal === 0 ? '✓ OK' : formatCurrency(pendingTotal)}
+                        <div className={`rounded-xl border p-3 text-center ${capturedTotal <= remainingAmount + 0.01 ? 'bg-maison-sage/10 border-maison-sage/30' : 'bg-maison-ruby/10 border-maison-ruby/30'}`}>
+                          <p className="text-[10px] font-medium text-maison-cream-dim uppercase tracking-wider mb-1">Restante</p>
+                          <p className={`font-mono text-sm font-bold ${capturedTotal <= remainingAmount + 0.01 ? 'text-maison-sage' : 'text-maison-ruby'}`}>
+                            {formatCurrency(Math.max(0, remainingAmount - capturedTotal))}
                           </p>
                         </div>
                       </div>
@@ -589,7 +630,10 @@ export default function POSPage() {
                         ) : (
                           <>
                             <IconCheck className="h-4 w-4" />
-                            Cobrar {formatCurrency(completedOrder.total)}
+                            {capturedTotal >= remainingAmount - 0.01
+                              ? `Cobrar ${formatCurrency(remainingAmount)}`
+                              : `Cobrar ${formatCurrency(capturedTotal)} (parcial)`
+                            }
                           </>
                         )}
                       </button>

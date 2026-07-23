@@ -415,7 +415,7 @@ export type OrderStatus =
   | "delivered"
   | "paid"
   | "cancelled";
-export type PaymentStatus = "pending" | "paid" | "refunded" | "failed";
+export type PaymentStatus = "pending" | "partial" | "paid" | "refunded" | "failed";
 export type OrderType = "dine_in" | "takeaway" | "delivery";
 
 export interface OrderItem {
@@ -440,6 +440,10 @@ export interface Order {
   tax: number;
   taxRate: number;
   total: number;
+  paidAmount: number;
+  remainingAmount: number;
+  isFullyPaid: boolean;
+  paymentMethods: PaymentMethod[];
   customerName: string;
   tableNumber?: string;
   deliveryAddress?: string;

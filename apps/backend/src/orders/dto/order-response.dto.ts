@@ -14,7 +14,8 @@ export class OrderResponseDto {
   @ApiProperty() id: string;
   @ApiProperty() orderNumber: string;
   @ApiProperty() status: string;
-  @ApiProperty() paymentStatus: string;
+  @ApiProperty({ enum: ['unpaid', 'partial', 'paid'] })
+  paymentStatus: string;
   @ApiProperty() type: string;
   @ApiProperty({ type: [OrderItemResponseDto] })
   items: OrderItemResponseDto[];
@@ -23,6 +24,10 @@ export class OrderResponseDto {
   @ApiProperty() tax: number;
   @ApiProperty() taxRate: number;
   @ApiProperty() total: number;
+  @ApiProperty() paidAmount: number;
+  @ApiProperty() remainingAmount: number;
+  @ApiProperty() isFullyPaid: boolean;
+  @ApiProperty({ type: [String] }) paymentMethods: string[];
   @ApiProperty() customerName: string;
   @ApiPropertyOptional() tableNumber?: string | null;
   @ApiPropertyOptional() tableId?: string | null;

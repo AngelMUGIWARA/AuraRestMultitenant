@@ -30,8 +30,8 @@ export interface MaisonEventMap {
   'order:updated': { orderId: string };
 
   // ── Payment ───────────────────────────────────────────────────────────────
-  /** cashier-mf completó un cobro. */
-  'payment:completed': { orderId: string; orderNumber: string; method: PaymentMethod; amount: number };
+  /** cashier-mf completó un cobro. Evento local de UI (browser bus). */
+  'payment:completed': { orderId: string; orderNumber: string; methods: PaymentMethod[]; amount: number; paidAmount: number; remainingAmount: number; isFullyPaid: boolean };
 
   // ── Menu ─────────────────────────────────────────────────────────────────
   /** menu-mf modificó o publicó cambios al catálogo. */
