@@ -317,4 +317,91 @@ describe('validateEnv', () => {
       expect(result.NODE_ENV).toBe('development');
     });
   });
+
+  describe('AUTH_REFRESH_THROTTLE_LIMIT', () => {
+    it('defaults to 10 when undefined', () => {
+      const cfg = baseValid();
+      delete cfg.AUTH_REFRESH_THROTTLE_LIMIT;
+      const result = validateEnv(cfg);
+      expect(result.AUTH_REFRESH_THROTTLE_LIMIT).toBe(10);
+    });
+
+    it('accepts a valid positive integer', () => {
+      const result = validateEnv(baseValid({ AUTH_REFRESH_THROTTLE_LIMIT: '5' }));
+      expect(result.AUTH_REFRESH_THROTTLE_LIMIT).toBe(5);
+    });
+
+    it('rejects zero', () => {
+      expect(() =>
+        validateEnv(baseValid({ AUTH_REFRESH_THROTTLE_LIMIT: '0' })),
+      ).toThrow('AUTH_REFRESH_THROTTLE_LIMIT must be a positive integer');
+    });
+
+    it('rejects negative values', () => {
+      expect(() =>
+        validateEnv(baseValid({ AUTH_REFRESH_THROTTLE_LIMIT: '-1' })),
+      ).toThrow('AUTH_REFRESH_THROTTLE_LIMIT must be a positive integer');
+    });
+
+    it('rejects decimals', () => {
+      expect(() =>
+        validateEnv(baseValid({ AUTH_REFRESH_THROTTLE_LIMIT: '10.5' })),
+      ).toThrow('AUTH_REFRESH_THROTTLE_LIMIT must be a positive integer');
+    });
+
+    it('rejects non-numeric strings', () => {
+      expect(() =>
+        validateEnv(baseValid({ AUTH_REFRESH_THROTTLE_LIMIT: 'abc' })),
+      ).toThrow('AUTH_REFRESH_THROTTLE_LIMIT must be a positive integer');
+    });
+
+    it('rejects empty string', () => {
+      expect(() =>
+        validateEnv(baseValid({ AUTH_REFRESH_THROTTLE_LIMIT: '' })),
+      ).toThrow('AUTH_REFRESH_THROTTLE_LIMIT must be a positive integer');
+    });
+
+    it('trims whitespace before validation', () => {
+      const result = validateEnv(baseValid({ AUTH_REFRESH_THROTTLE_LIMIT: '  15  ' }));
+      expect(result.AUTH_REFRESH_THROTTLE_LIMIT).toBe(15);
+    });
+  });
+
+  describe('AUTH_REFRESH_THROTTLE_TTL_MS', () => {
+    it('defaults to 60000 when undefined', () => {
+      const cfg = baseValid();
+      delete cfg.AUTH_REFRESH_THROTTLE_TTL_MS;
+      const result = validateEnv(cfg);
+      expect(result.AUTH_REFRESH_THROTTLE_TTL_MS).toBe(60000);
+    });
+
+    it('accepts a valid positive integer', () => {
+      const result = validateEnv(baseValid({ AUTH_REFRESH_THROTTLE_TTL_MS: '30000' }));
+      expect(result.AUTH_REFRESH_THROTTLE_TTL_MS).toBe(30000);
+    });
+
+    it('rejects zero', () => {
+      expect(() =>
+        validateEnv(baseValid({ AUTH_REFRESH_THROTTLE_TTL_MS: '0' })),
+      ).toThrow('AUTH_REFRESH_THROTTLE_TTL_MS must be a positive integer');
+    });
+
+    it('rejects negative values', () => {
+      expect(() =>
+        validateEnv(baseValid({ AUTH_REFRESH_THROTTLE_TTL_MS: '-5000' })),
+      ).toThrow('AUTH_REFRESH_THROTTLE_TTL_MS must be a positive integer');
+    });
+
+    it('rejects decimals', () => {
+      expect(() =>
+        validateEnv(baseValid({ AUTH_REFRESH_THROTTLE_TTL_MS: '1000.5' })),
+      ).toThrow('AUTH_REFRESH_THROTTLE_TTL_MS must be a positive integer');
+    });
+
+    it('rejects non-numeric strings', () => {
+      expect(() =>
+        validateEnv(baseValid({ AUTH_REFRESH_THROTTLE_TTL_MS: 'not_a_number' })),
+      ).toThrow('AUTH_REFRESH_THROTTLE_TTL_MS must be a positive integer');
+    });
+  });
 });

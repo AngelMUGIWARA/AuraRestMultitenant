@@ -20,6 +20,7 @@ import { VoiceLoginDto } from './dto/voice-login.dto';
 import { VoiceLoginResponseDto } from './dto/voice-login-response.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
+import { AuthRefreshThrottle } from '../common/decorators/auth-refresh-throttle.decorator';
 import { CurrentTenant, TenantContext } from '../common/decorators/current-tenant.decorator';
 import { CurrentUser, AuthenticatedUser } from '../common/decorators/current-user.decorator';
 
@@ -49,6 +50,8 @@ export class AuthController {
   }
 
   @Public()
+  @AuthRefreshThrottle()
+  @Throttle({ 'auth-refresh': {} })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Renovar access token usando refresh token', operationId: 'auth_refresh' })
