@@ -65,7 +65,7 @@ export class PaymentsService {
             0,
           );
 
-          const orderTotal = Number(order.total);
+          const orderTotal = order.amountDueForPayments ? Number(order.amountDueForPayments) : Number(order.total);
           const pendingAmount = Number((orderTotal - alreadyPaid).toFixed(2));
 
           if (pendingAmount <= 0) {
@@ -127,23 +127,6 @@ export class PaymentsService {
             paymentRecords.push(payment);
           }
 
-          if (dto.tip) {
-            const lastPayment = paymentRecords[paymentRecords.length - 1];
-
-            await this.paymentsRepo.createTip(
-              schemaName,
-              {
-                amount: dto.tip.amount,
-                method:
-                  dto.tip.method === 'PERCENTAGE'
-                    ? $Enums.TipMethod.PERCENTAGE
-                    : $Enums.TipMethod.FIXED,
-                payment: { connect: { id: lastPayment.id } },
-              },
-              tx,
-            );
-          }
-
           const newAlreadyPaid = Number((alreadyPaid + normalizedIncomingAmount).toFixed(2));
           const newRemaining = Number((orderTotal - newAlreadyPaid).toFixed(2));
           const isFullyPaid = newRemaining <= 0;
@@ -189,7 +172,6 @@ export class PaymentsService {
               changes: JSON.stringify({
                 amount: normalizedIncomingAmount,
                 methods: dto.payments.map((p) => p.method),
-                hasTip: !!dto.tip,
                 isFullyPaid,
                 remainingAmount: newRemaining,
               }),
@@ -203,7 +185,6 @@ export class PaymentsService {
             method: mapPaymentMethodFromDb(p.method),
             status: mapPaymentStatusFromDb(p.status),
             reference: p.reference || null,
-            tipAmount: dto.tip ? parseFloat(dto.tip.amount) : null,
             createdAt: p.createdAt?.toISOString(),
           }));
         },
@@ -240,7 +221,6 @@ export class PaymentsService {
       method: mapPaymentMethodFromDb(p.method),
       status: mapPaymentStatusFromDb(p.status),
       reference: p.reference || null,
-      tipAmount: p.tip ? Number(p.tip.amount) : null,
       createdAt: p.createdAt?.toISOString(),
     }));
   }
@@ -254,7 +234,6 @@ export class PaymentsService {
         method: mapPaymentMethodFromDb(payment.method),
         status: mapPaymentStatusFromDb(payment.status),
         reference: payment.reference || null,
-        tipAmount: payment.tip ? Number(payment.tip.amount) : null,
         createdAt: payment.createdAt?.toISOString(),
       },
     ];

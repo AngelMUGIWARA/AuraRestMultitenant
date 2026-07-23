@@ -180,24 +180,6 @@ describe('PaymentsService', () => {
       );
     });
 
-    it('should attach a tip to the last payment', async () => {
-      txWithOrder(makeOrder());
-
-      await service.processPayment(
-        SCHEMA,
-        makeDto({
-          payments: [{ amount: '97.75', method: 'CASH' as any }],
-          tip: { amount: '15.00', method: 'FIXED' },
-        }),
-        USER_ID,
-      );
-
-      expect(repo.createTip).toHaveBeenCalledWith(
-        SCHEMA,
-        expect.objectContaining({ amount: '15.00', method: 'FIXED' }),
-        'tx',
-      );
-    });
   });
 
   describe('processPayment - validation errors', () => {

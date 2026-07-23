@@ -34,15 +34,7 @@ class SplitPaymentDto {
   reference?: string;
 }
 
-class TipDto {
-  @ApiProperty({ example: '30.00' })
-  @IsString()
-  amount: string;
 
-  @ApiProperty({ enum: ['PERCENTAGE', 'FIXED'], default: 'FIXED' })
-  @IsEnum(['PERCENTAGE', 'FIXED'])
-  method: 'PERCENTAGE' | 'FIXED';
-}
 
 export class ProcessPaymentDto {
   @ApiProperty({ example: 'clx...' })
@@ -55,12 +47,6 @@ export class ProcessPaymentDto {
   @ValidateNested({ each: true })
   @Type(() => SplitPaymentDto)
   payments: SplitPaymentDto[];
-
-  @ApiPropertyOptional({ type: TipDto })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => TipDto)
-  tip?: TipDto;
 
   @ApiPropertyOptional({ description: 'Idempotency key to prevent duplicate charges' })
   @IsOptional()

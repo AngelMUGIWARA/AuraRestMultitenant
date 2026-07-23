@@ -92,8 +92,10 @@ enum PromotionType {
 }
 
 enum TipMethod {
+  NONE
   PERCENTAGE
   FIXED
+  CASH
 }
 
 enum OrderPaymentStatus {
@@ -141,6 +143,7 @@ model User {
 
   orders       Order[]
   reservations Reservation[]
+  tips         Tip[]
 
   @@map("users")
 }
@@ -216,14 +219,19 @@ model Order {
   subtotal         Decimal            @db.Decimal(10, 2)
   promotionAmount  Decimal?           @map("promotion_amount") @db.Decimal(10, 2)
   promotedSubtotal Decimal?           @map("promoted_subtotal") @db.Decimal(10, 2)
-  discountAmount   Decimal?           @db.Decimal(10, 2) @map("discount_amount")
-  taxableSubtotal  Decimal?           @db.Decimal(10, 2) @map("taxable_subtotal")
-  tax              Decimal            @db.Decimal(10, 2)
-  total            Decimal            @db.Decimal(10, 2)
-  discountId       String?            @map("discount_id")
-  version          Int                @default(0)
-  createdAt        DateTime           @default(now()) @map("created_at")
-  updatedAt        DateTime           @updatedAt @map("updated_at")
+  discountAmount       Decimal?           @db.Decimal(10, 2) @map("discount_amount")
+  taxableSubtotal      Decimal?           @db.Decimal(10, 2) @map("taxable_subtotal")
+  tax                  Decimal            @db.Decimal(10, 2)
+  totalBeforeTip       Decimal?           @map("total_before_tip") @db.Decimal(10, 2)
+  tipAmount            Decimal?           @map("tip_amount") @db.Decimal(10, 2)
+  cashTipAmount        Decimal?           @map("cash_tip_amount") @db.Decimal(10, 2)
+  chargeableTipAmount  Decimal?           @map("chargeable_tip_amount") @db.Decimal(10, 2)
+  total                Decimal            @db.Decimal(10, 2)
+  amountDueForPayments Decimal?           @map("amount_due_for_payments") @db.Decimal(10, 2)
+  discountId           String?            @map("discount_id")
+  version              Int                @default(0)
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
 
   /// @deprecated Order.promotionId is deprecated; use OrderPromotion relation for order promotions.
   promotionId String? @map("promotion_id")
@@ -233,6 +241,7 @@ model Order {
   user            User             @relation(fields: [userId], references: [id])
   discount        Discount?        @relation(fields: [discountId], references: [id])
   promotion       Promotion?       @relation(fields: [promotionId], references: [id])
+  tip             Tip?
   orderItems      OrderItem[]
   orderPromotions OrderPromotion[]
   payments        Payment[]
@@ -433,13 +442,24 @@ model OrderPromotion {
 }
 
 model Tip {
-  id        String    @id @default(cuid())
-  paymentId String    @unique @map("payment_id")
-  amount    Decimal   @db.Decimal(10, 2)
-  method    TipMethod @default(FIXED)
-  createdAt DateTime  @default(now()) @map("created_at")
+  id                  String    @id @default(cuid())
+  orderId             String?   @unique @map("order_id")
+  paymentId           String?   @unique @map("payment_id")
+  amount              Decimal   @db.Decimal(10, 2)
+  method              TipMethod @default(FIXED)
+  percentage          Decimal?  @db.Decimal(10, 2)
+  requestedAmount     Decimal?  @map("requested_amount") @db.Decimal(10, 2)
+  tipAmount           Decimal?  @map("tip_amount") @db.Decimal(10, 2)
+  cashTipAmount       Decimal?  @map("cash_tip_amount") @db.Decimal(10, 2)
+  chargeableTipAmount Decimal?  @map("chargeable_tip_amount") @db.Decimal(10, 2)
+  baseAmount          Decimal?  @map("base_amount") @db.Decimal(10, 2)
+  createdBy           String?   @map("created_by")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
-  payment Payment @relation(fields: [paymentId], references: [id])
+  order               Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment             Payment?  @relation(fields: [paymentId], references: [id])
+  user                User?     @relation(fields: [createdBy], references: [id])
 
   @@map("tips")
 }
