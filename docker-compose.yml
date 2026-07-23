@@ -24,8 +24,8 @@ services:
       PORT: 4000
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/aura_rest}
       TENANT_DATABASE_URL: ${TENANT_DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/aura_rest?schema=tenant_ejemplo}
-      JWT_SECRET: ${JWT_SECRET:-cambia_este_secreto_por_uno_seguro_en_produccion}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-cambia_este_secreto_por_otro_seguro_en_produccion}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
       postgres:

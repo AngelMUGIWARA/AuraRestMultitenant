@@ -64,12 +64,32 @@ function mockJwt(): JwtService {
   } as unknown as JwtService;
 }
 
-function buildService() {
+function mockConfig(overrides?: Record<string, string>) {
+  const defaults: Record<string, string> = {
+    JWT_REFRESH_SECRET: 'test-refresh-secret',
+    JWT_REFRESH_EXPIRES_IN: '7d',
+    JWT_SECRET: 'test-access-secret',
+    JWT_EXPIRES_IN: '8h',
+    ...overrides,
+  };
+  return {
+    getOrThrow: jest.fn((key: string) => {
+      if (!(key in defaults)) throw new Error(`Missing config: ${key}`);
+      return defaults[key];
+    }),
+    get: jest.fn((key: string, defaultValue?: string) => {
+      return defaults[key] ?? defaultValue;
+    }),
+  };
+}
+
+function buildService(configOverrides?: Record<string, string>) {
   const tenantPrisma = { getClient: jest.fn() } as unknown as TenantPrismaService;
   const prisma = mockPrisma() as unknown as PrismaService;
   const jwt = mockJwt();
-  const svc = new AuthService(prisma, tenantPrisma, jwt);
-  return { svc, tenantPrisma, prisma, jwt };
+  const config = mockConfig(configOverrides);
+  const svc = new AuthService(prisma, tenantPrisma, jwt, config as any);
+  return { svc, tenantPrisma, prisma, jwt, config };
 }
 
 describe('AuthService', () => {
@@ -179,9 +199,6 @@ describe('AuthService', () => {
         jti: 'jti-1',
         familyId: 'fam-1',
       });
-
-      process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
-      process.env.JWT_REFRESH_EXPIRES_IN = '7d';
 
       return { svc, prisma, jwt, db };
     }
@@ -361,8 +378,6 @@ describe('AuthService', () => {
       (jwt.verify as jest.Mock).mockReturnValue({
         sub: 'u1', tenantSchemaName: SCHEMA, jti: 'jti-1', familyId: 'fam-1',
       });
-      process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
-      process.env.JWT_REFRESH_EXPIRES_IN = '7d';
 
       await svc.refreshToken('my-refresh-token');
 
