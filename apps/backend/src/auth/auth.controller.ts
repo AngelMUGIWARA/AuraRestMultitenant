@@ -12,6 +12,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
+import { LogoutDto } from './dto/logout.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { VoiceSeedDto } from './dto/voice-seed.dto';
 import { VoiceLoginDto } from './dto/voice-login.dto';
@@ -59,10 +60,10 @@ export class AuthController {
   @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cerrar sesión (stateless — solo limpia tokens del cliente)', operationId: 'auth_logout' })
-  @ApiResponse({ status: 200, description: 'Sesión cerrada' })
-  logout(): Promise<{ message: string }> {
-    return this.authService.logout();
+  @ApiOperation({ summary: 'Cerrar sesion y revocar refresh token', operationId: 'auth_logout' })
+  @ApiResponse({ status: 200, description: 'Sesion cerrada' })
+  logout(@Body() dto: LogoutDto): Promise<{ message: string }> {
+    return this.authService.logout(dto.refreshToken);
   }
 
   @ApiBearerAuth('JWT')
