@@ -46,28 +46,34 @@ describe('reservationsService', () => {
     expect(mockPost).toHaveBeenCalledWith('/admin/reservations', payload);
   });
 
-  it('confirm calls PATCH /admin/reservations/:id/confirm', async () => {
+  it('confirm calls PATCH /admin/reservations/:id/status with CONFIRMED', async () => {
     mockPatch.mockResolvedValueOnce({} as never);
     await reservationsService.confirm('r-1');
-    expect(mockPatch).toHaveBeenCalledWith('/admin/reservations/r-1/confirm', {});
+    expect(mockPatch).toHaveBeenCalledWith('/admin/reservations/r-1/status', { status: 'CONFIRMED' });
   });
 
-  it('cancel calls PATCH with reason', async () => {
-    mockPatch.mockResolvedValueOnce({} as never);
-    await reservationsService.cancel('r-1', 'Cambio de planes');
-    expect(mockPatch).toHaveBeenCalledWith('/admin/reservations/r-1/cancel', { reason: 'Cambio de planes' });
-  });
-
-  it('cancel without reason', async () => {
+  it('cancel calls PATCH /admin/reservations/:id/status with CANCELLED', async () => {
     mockPatch.mockResolvedValueOnce({} as never);
     await reservationsService.cancel('r-1');
-    expect(mockPatch).toHaveBeenCalledWith('/admin/reservations/r-1/cancel', { reason: undefined });
+    expect(mockPatch).toHaveBeenCalledWith('/admin/reservations/r-1/status', { status: 'CANCELLED' });
   });
 
-  it('arrived calls PATCH /admin/reservations/:id/arrived', async () => {
+  it('arrived calls PATCH /admin/reservations/:id/status with ARRIVED', async () => {
     mockPatch.mockResolvedValueOnce({} as never);
     await reservationsService.arrived('r-1');
-    expect(mockPatch).toHaveBeenCalledWith('/admin/reservations/r-1/arrived', {});
+    expect(mockPatch).toHaveBeenCalledWith('/admin/reservations/r-1/status', { status: 'ARRIVED' });
+  });
+
+  it('complete calls PATCH /admin/reservations/:id/status with COMPLETED', async () => {
+    mockPatch.mockResolvedValueOnce({} as never);
+    await reservationsService.complete('r-1');
+    expect(mockPatch).toHaveBeenCalledWith('/admin/reservations/r-1/status', { status: 'COMPLETED' });
+  });
+
+  it('markNoShow calls PATCH /admin/reservations/:id/status with NO_SHOW', async () => {
+    mockPatch.mockResolvedValueOnce({} as never);
+    await reservationsService.markNoShow('r-1');
+    expect(mockPatch).toHaveBeenCalledWith('/admin/reservations/r-1/status', { status: 'NO_SHOW' });
   });
 
   it('updateStatus calls PATCH /admin/reservations/:id/status', async () => {

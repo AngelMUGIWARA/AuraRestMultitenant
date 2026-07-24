@@ -36,12 +36,23 @@ const EMPTY_FORM: FormState = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * Devuelve fecha en formato YYYY-MM-DD UTC
+ * Invariante: siempre UTC, nunca local
+ */
 function todayDateString(): string {
     return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * Devuelve hora en formato HH:MM UTC
+ * Invariante: siempre UTC, nunca local
+ *
+ * IMPORTANTE: JavaScript Date.toTimeString() devuelve hora LOCAL.
+ * Este método devuelve hora UTC usando toISOString().
+ */
 function nowTimeString(): string {
-    return new Date().toTimeString().slice(0, 5);
+    return new Date().toISOString().slice(11, 16);
 }
 
 export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: ReservationModalProps) {

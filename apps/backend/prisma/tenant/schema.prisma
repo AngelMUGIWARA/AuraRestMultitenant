@@ -398,19 +398,20 @@ model KitchenTicketItem {
 }
 
 model Reservation {
-  id          String            @id @default(cuid())
-  branchId    String            @map("branch_id")
-  tableId     String            @map("table_id")
-  userId      String?           @map("user_id")
-  guestName   String            @map("guest_name")
-  guestPhone  String?           @map("guest_phone")
-  guestEmail  String?           @map("guest_email")
-  partySize   Int               @map("party_size")
-  scheduledAt DateTime          @map("scheduled_at")
-  status      ReservationStatus @default(PENDING)
-  notes       String?
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
+  id              String            @id @default(cuid())
+  branchId        String            @map("branch_id")
+  tableId         String            @map("table_id")
+  userId          String?           @map("user_id")
+  guestName       String            @map("guest_name")
+  guestPhone      String?           @map("guest_phone")
+  guestEmail      String?           @map("guest_email")
+  partySize       Int               @map("party_size")
+  scheduledAt     DateTime          @map("scheduled_at")
+  durationMinutes Int               @default(60) @map("duration_minutes")
+  status          ReservationStatus @default(PENDING)
+  notes           String?
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
 
   table RestaurantTable @relation(fields: [tableId], references: [id])
   user  User?           @relation(fields: [userId], references: [id])
@@ -418,6 +419,9 @@ model Reservation {
   @@index([branchId])
   @@index([tableId])
   @@index([userId])
+  @@index([scheduledAt])
+  @@index([branchId, tableId, scheduledAt])
+  @@index([branchId, status, scheduledAt])
   @@map("reservations")
 }
 

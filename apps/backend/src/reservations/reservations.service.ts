@@ -1,19 +1,88 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ReservationRepository } from './reservations.repository';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { ReservationQueryDto } from './dto/reservation-query.dto';
 import { ReservationStatus } from '../generated/prisma-tenant';
+import { TenantPrismaService } from '../database/tenant-prisma.service';
+
+interface AuthenticatedUser {
+  id?: string;
+  sub?: string;
+  userId?: string;
+  role?: string;
+  branchId?: string;
+}
 
 @Injectable()
 export class ReservationsService {
   constructor(
     private readonly reservationRepo: ReservationRepository,
     private readonly activityLog: ActivityLogService,
+    private readonly tenantPrisma: TenantPrismaService,
   ) {}
 
-  async create(data: CreateReservationDto, schema: string, userId?: string) {
-    const reservation = await this.reservationRepo.create(data, schema);
+  /**
+   * Valida que el usuario tiene permisos para operar en la rama
+   * OWNER y ADMIN pueden acceder a cualquier rama
+   * MANAGER, CASHIER, WAITER solo a su rama
+   */
+  private validateBranchAccess(
+    user: AuthenticatedUser | undefined,
+    branchId: string,
+    actionName: string,
+  ) {
+    if (!user) {
+      throw new ForbiddenException('Usuario no autenticado');
+    }
+
+    const userRole = user.role?.toUpperCase() || 'WAITER';
+
+    // OWNER y ADMIN pueden acceder a cualquier rama
+    if (userRole === 'OWNER' || userRole === 'ADMIN') {
+      return true;
+    }
+
+    // Otros roles solo acceden su rama
+    if (userRole === 'MANAGER' || userRole === 'CASHIER' || userRole === 'WAITER') {
+      if (!user.branchId) {
+        throw new ForbiddenException(
+          `Usuario sin rama asignada no puede ${actionName}`,
+        );
+      }
+
+      if (user.branchId !== branchId) {
+        throw new ForbiddenException(
+          `Usuario solo puede ${actionName} en su rama`,
+        );
+      }
+
+      return true;
+    }
+
+    throw new ForbiddenException(`Rol no reconocido: ${userRole}`);
+  }
+
+  /**
+   * Crea una nueva reserva con validaciones y scope por rama
+   */
+  async create(
+    data: CreateReservationDto,
+    schema: string,
+    userId?: string,
+    user?: AuthenticatedUser,
+  ) {
+    // Validar acceso a la rama
+    this.validateBranchAccess(user, data.branchId, 'crear reservas');
+
+    const reservation = await this.reservationRepo.create(data, schema, userId);
+
+    // Registrar en activity log
     if (data.branchId && userId) {
       this.activityLog.log(schema, {
         branchId: data.branchId,
@@ -26,32 +95,117 @@ export class ReservationsService {
           time: data.time,
           partySize: data.partySize,
           guestName: data.guestName,
+          durationMinutes: data.durationMinutes || 60,
         }),
       });
     }
-    return reservation;
+
+    return this.transformReservation(reservation);
   }
 
-  async findAll(schema: string, query: ReservationQueryDto) {
-    // El repo recibe los filtros limpios
+  /**
+   * Lista todas las reservas con filtros y scope por rama
+   */
+  async findAll(
+    schema: string,
+    query: ReservationQueryDto,
+    user?: AuthenticatedUser,
+  ) {
+    const userRole = user?.role?.toUpperCase() || 'WAITER';
+
+    // Aplicar scope automático para roles limitados
     const filters: any = {};
+
     if (query.status) filters.status = query.status;
-    if (query.branchId) filters.branchId = query.branchId;
     if (query.search) filters.search = query.search;
 
+    // Si el usuario tiene role limitado, forzar su branchId
+    if (userRole === 'MANAGER' || userRole === 'CASHIER' || userRole === 'WAITER') {
+      if (!user?.branchId) {
+        throw new ForbiddenException(
+          'Usuario sin rama asignada no puede listar reservas',
+        );
+      }
+      filters.branchId = user.branchId;
+    } else {
+      // OWNER y ADMIN pueden filtrar por rama si lo especifican
+      if (query.branchId) filters.branchId = query.branchId;
+    }
+
     const reservations = await this.reservationRepo.findAll(schema, filters);
-    return { data: reservations, meta: { total: reservations.length } };
+
+    return {
+      data: reservations.map((r) => this.transformReservation(r)),
+      meta: { total: reservations.length },
+    };
   }
 
-  async findOne(id: string, schema: string) {
+  /**
+   * Obtiene una reserva específica con validación de scope
+   */
+  async findOne(
+    id: string,
+    schema: string,
+    user?: AuthenticatedUser,
+  ) {
     const reservation = await this.reservationRepo.findById(id, schema);
-    if (!reservation) throw new NotFoundException(`Reservación con ID ${id} no encontrada`);
-    return reservation;
+
+    if (!reservation) {
+      throw new NotFoundException(`Reservación con ID ${id} no encontrada`);
+    }
+
+    // Validar acceso a la rama si el usuario tiene role limitado
+    const userRole = user?.role?.toUpperCase() || 'WAITER';
+    if (
+      userRole === 'MANAGER' ||
+      userRole === 'CASHIER' ||
+      userRole === 'WAITER'
+    ) {
+      this.validateBranchAccess(user, reservation.branchId, 'consultar esta reserva');
+    }
+
+    return this.transformReservation(reservation);
   }
 
-  async updateStatus(id: string, status: ReservationStatus, schema: string, userId?: string) {
-    const reservation = await this.findOne(id, schema);
-    const updated = await this.reservationRepo.updateStatus(id, status, schema);
+  /**
+   * Actualiza el estado de una reserva con validación de scope
+   */
+  async updateStatus(
+    id: string,
+    status: ReservationStatus,
+    schema: string,
+    userId?: string,
+    user?: AuthenticatedUser,
+  ) {
+    // Obtener la reserva actual para validar permisos
+    const reservation = await this.reservationRepo.findById(id, schema);
+
+    if (!reservation) {
+      throw new NotFoundException(`Reservación con ID ${id} no encontrada`);
+    }
+
+    // Validar acceso a la rama
+    const userRole = user?.role?.toUpperCase() || 'WAITER';
+    if (
+      userRole === 'MANAGER' ||
+      userRole === 'CASHIER' ||
+      userRole === 'WAITER'
+    ) {
+      this.validateBranchAccess(
+        user,
+        reservation.branchId,
+        'cambiar estado de reserva',
+      );
+    }
+
+    // Actualizar estado
+    const updated = await this.reservationRepo.updateStatus(
+      id,
+      status,
+      schema,
+    );
+
+    // Registrar en activity log
     if (reservation.branchId && userId) {
       this.activityLog.log(schema, {
         branchId: reservation.branchId,
@@ -59,40 +213,73 @@ export class ReservationsService {
         action: 'RESERVATION_STATUS_CHANGED',
         entity: 'RESERVATION',
         entityId: id,
-        changes: JSON.stringify({ from: reservation.status, to: status }),
+        changes: JSON.stringify({
+          from: reservation.status,
+          to: status,
+        }),
       });
     }
-    return updated;
+
+    return this.transformReservation(updated);
   }
 
-  async getStats(schema: string, branchId?: string) {
-    // 1. Definir los filtros base respetando el multitenancy y la sucursal activa
-    const filter: any = {};
-    if (branchId) {
-      filter.branchId = branchId;
+  /**
+   * Obtiene estadísticas de reservas
+   */
+  async getStats(schema: string, branchId?: string, user?: AuthenticatedUser) {
+    const client = this.tenantPrisma.getClient(schema);
+
+    // Aplicar scope automático para roles limitados
+    const userRole = user?.role?.toUpperCase() || 'WAITER';
+    let effectiveBranchId = branchId;
+
+    if (userRole === 'MANAGER' || userRole === 'CASHIER' || userRole === 'WAITER') {
+      if (!user?.branchId) {
+        throw new ForbiddenException(
+          'Usuario sin rama asignada no puede ver estadísticas',
+        );
+      }
+      effectiveBranchId = user.branchId;
     }
-  
-    // 2. Obtener todas las reservaciones mediante el repositorio
+
+    const filter: any = {};
+    if (effectiveBranchId) {
+      filter.branchId = effectiveBranchId;
+    }
+
     const reservations = await this.reservationRepo.findAll(schema, filter);
-  
-    // 3. Calcular los agregados mapeando CONTRA EL ENUM REAL DE PRISMA (Mayúsculas)
+
     const totalToday = reservations.length;
-    
-    // CORREGIDO: Usamos el enum ReservationStatus importado de Prisma
-    const confirmedToday = reservations.filter(r => r.status === ReservationStatus.CONFIRMED).length;
-    const pendingConfirmation = reservations.filter(r => r.status === ReservationStatus.PENDING).length;
-    const completedToday = reservations.filter(r => r.status === ReservationStatus.COMPLETED).length;
-    const arrivedToday = reservations.filter(r => r.status === ReservationStatus.ARRIVED).length;
-    const cancelledToday = reservations.filter(r => r.status === ReservationStatus.CANCELLED).length;
-  
-    // Métricas calculadas para proteger la vista de errores 'toFixed'
-    const totalGuests = reservations.reduce((sum, r) => sum + (r.partySize || 0), 0);
+    const confirmedToday = reservations.filter(
+      (r) => r.status === 'CONFIRMED',
+    ).length;
+    const pendingConfirmation = reservations.filter(
+      (r) => r.status === 'PENDING',
+    ).length;
+    const completedToday = reservations.filter(
+      (r) => r.status === 'COMPLETED',
+    ).length;
+    const arrivedToday = reservations.filter(
+      (r) => r.status === 'ARRIVED',
+    ).length;
+    const cancelledToday = reservations.filter(
+      (r) => r.status === 'CANCELLED',
+    ).length;
+    const noShowToday = reservations.filter(
+      (r) => r.status === 'NO_SHOW',
+    ).length;
+
+    const totalGuests = reservations.reduce(
+      (sum, r) => sum + (r.partySize || 0),
+      0,
+    );
     const averagePartySize = totalToday > 0 ? totalGuests / totalToday : 0;
-  
-    // Tasa de ocupación calculada de forma dinámica
-    const occupancyRate = totalToday > 0 ? ((confirmedToday + arrivedToday) / totalToday) * 100 : 0;
-  
-    // 4. Retornar la estructura exacta mapeada limpia en minúsculas al front
+
+    const occupancyRate =
+      totalToday > 0
+        ? ((confirmedToday + arrivedToday) / totalToday) * 100
+        : 0;
+
     return {
       data: {
         totalToday,
@@ -101,9 +288,40 @@ export class ReservationsService {
         completedToday,
         arrivedToday,
         cancelledToday,
+        noShowToday,
         averagePartySize,
-        occupancyRate
-      }
+        occupancyRate,
+      },
+    };
+  }
+
+  /**
+   * Transforma una reserva de Prisma a DTO
+   * Convierte scheduledAt en date y time (usando UTC para consistencia)
+   */
+  private transformReservation(reservation: any) {
+    const scheduledAt = new Date(reservation.scheduledAt);
+
+    // Formatear date (YYYY-MM-DD) y time (HH:MM) usando UTC
+    const isoString = scheduledAt.toISOString();
+    const date = isoString.split('T')[0];
+    const time = isoString.split('T')[1].slice(0, 5);
+
+    return {
+      id: reservation.id,
+      guestName: reservation.guestName,
+      guestPhone: reservation.guestPhone,
+      guestEmail: reservation.guestEmail,
+      date,
+      time,
+      partySize: reservation.partySize,
+      durationMinutes: reservation.durationMinutes,
+      status: reservation.status,
+      tableId: reservation.tableId,
+      branchId: reservation.branchId,
+      notes: reservation.notes,
+      createdAt: reservation.createdAt,
+      updatedAt: reservation.updatedAt,
     };
   }
 }
