@@ -953,3 +953,119 @@ export interface UpdateKitchenItemStatusPayload {
   version: number;
   reason?: string;
 }
+
+// ─── Cash Register Engine Types ──────────────────────────────────────────────
+
+export type CashRegisterStatus = 'ACTIVE' | 'INACTIVE';
+export type CashSessionStatus = 'OPEN' | 'CLOSED';
+export type CashMovementType =
+  | 'OPENING_FLOAT'
+  | 'CASH_PAYMENT'
+  | 'CASH_REFUND'
+  | 'CASH_IN'
+  | 'CASH_OUT'
+  | 'ADJUSTMENT';
+
+export interface CashRegisterEntity {
+  id: string;
+  branchId: string;
+  name: string;
+  status: CashRegisterStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CashSessionEntity {
+  id: string;
+  registerId: string;
+  openedBy: string;
+  closedBy: string | null;
+  status: CashSessionStatus;
+  openingFloat: number;
+  expectedCash: number;
+  countedCash: number | null;
+  difference: number | null;
+  totalPayments: number;
+  cashPayments: number;
+  refunds: number;
+  manualMovements: number;
+  openedAt: string;
+  closedAt: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CashSessionWithRelations extends CashSessionEntity {
+  register?: CashRegisterEntity;
+  opener?: { id: string; name: string; email: string };
+  closer?: { id: string; name: string; email: string } | null;
+  movements?: CashMovementEntity[];
+  counts?: CashCountEntity[];
+}
+
+export interface CashMovementEntity {
+  id: string;
+  sessionId: string;
+  type: CashMovementType;
+  amount: number;
+  reason: string;
+  referenceId: string | null;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface CashCountEntity {
+  id: string;
+  sessionId: string;
+  countedCash: number;
+  difference: number;
+  notes: string | null;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface CreateCashRegisterPayload {
+  branchId: string;
+  name: string;
+  status?: CashRegisterStatus;
+}
+
+export interface OpenCashSessionPayload {
+  registerId: string;
+  openingFloat: number;
+}
+
+export interface CloseCashSessionPayload {
+  countedCash: number | string;
+  version: number;
+}
+
+export interface CreateCashMovementPayload {
+  type: Extract<CashMovementType, 'CASH_IN' | 'CASH_OUT' | 'ADJUSTMENT'>;
+  amount: number | string;
+  reason: string;
+}
+
+export interface CreateCashCountPayload {
+  countedCash: number | string;
+  notes?: string;
+}
+
+export interface PaginatedCashSessionsResponse {
+  data: CashSessionWithRelations[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ListCashSessionsQuery {
+  registerId?: string;
+  branchId?: string;
+  status?: CashSessionStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  limit?: number;
+}

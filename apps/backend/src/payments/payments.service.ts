@@ -39,7 +39,7 @@ export class PaymentsService {
     }
 
     try {
-      return await this.paymentsRepo.runTransaction(
+      const txResult = await this.paymentsRepo.runTransaction(
         schemaName,
         async (tx) => {
           const order = await this.paymentsRepo.findOrderById(
@@ -75,7 +75,7 @@ export class PaymentsService {
               ? await this.paymentsRepo.findPaymentByIdempotencyKey(schemaName, idempotencyKey, tx)
               : null;
             if (idempotent) {
-              return this.toPaymentResponse(idempotent, dto);
+              return { paymentRecords: [idempotent], order, alreadyPaid: completedPaidAmount, orderTotal, normalizedIncomingAmount: 0, isFullyPaid: true };
             }
             throw new BadRequestException('La orden ya fue pagada.');
           }
@@ -153,16 +153,6 @@ export class PaymentsService {
             );
           }
 
-          this.eventBus.emit('payment:completed', {
-            orderId: dto.orderId,
-            orderNumber: order.folio,
-            methods: dto.payments.map((p) => mapPaymentMethodFromDb(p.method as any)),
-            amount: normalizedIncomingAmount,
-            paidAmount: newAlreadyPaid,
-            remainingAmount: newRemaining,
-            isFullyPaid,
-          });
-
           const branchId = order.table?.branchId;
           if (branchId && userId) {
             this.activityLog.log(schemaName, {
@@ -180,17 +170,44 @@ export class PaymentsService {
             }, tx);
           }
 
-          return paymentRecords.map((p: any) => ({
-            id: p.id,
-            orderId: p.orderId,
-            amount: Number(p.amount),
-            method: mapPaymentMethodFromDb(p.method),
-            status: mapPaymentStatusFromDb(p.status),
-            reference: p.reference || null,
-            createdAt: p.createdAt?.toISOString(),
-          }));
+          return {
+            paymentRecords,
+            order,
+            alreadyPaid: newAlreadyPaid,
+            orderTotal,
+            normalizedIncomingAmount,
+            isFullyPaid,
+          };
         },
       );
+
+      this.eventBus.emit('payment:completed', {
+        schemaName,
+        orderId: dto.orderId,
+        orderNumber: txResult.order.folio,
+        payments: txResult.paymentRecords.map((p: any) => ({
+          id: p.id,
+          amount: p.amount,
+          method: p.method as string,
+          status: p.status as string,
+        })),
+        amount: txResult.normalizedIncomingAmount,
+        paidAmount: txResult.alreadyPaid,
+        remainingAmount: Number((txResult.orderTotal - txResult.alreadyPaid).toFixed(2)),
+        isFullyPaid: txResult.isFullyPaid,
+        branchId: txResult.order.table?.branchId ?? null,
+        userId: userId ?? null,
+      });
+
+      return txResult.paymentRecords.map((p: any) => ({
+        id: p.id,
+        orderId: p.orderId,
+        amount: Number(p.amount),
+        method: mapPaymentMethodFromDb(p.method),
+        status: mapPaymentStatusFromDb(p.status),
+        reference: p.reference || null,
+        createdAt: p.createdAt?.toISOString(),
+      }));
     } catch (err: any) {
       if (err?.code === 'P2002' && idempotencyKey) {
         const existing = await this.paymentsRepo.findPaymentByIdempotencyKey(

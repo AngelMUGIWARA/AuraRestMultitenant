@@ -363,7 +363,7 @@ describe('PaymentsService', () => {
   });
 
   describe('processPayment - event emission', () => {
-    it('should emit payment:completed with methods array for single CASH payment', async () => {
+    it('should emit payment:completed with payments array for single CASH payment', async () => {
       txWithOrder(makeOrder());
 
       await service.processPayment(SCHEMA, makeDto(), USER_ID);
@@ -373,15 +373,20 @@ describe('PaymentsService', () => {
         expect.objectContaining({
           orderId: ORDER_ID,
           orderNumber: 'ORD-001',
-          methods: ['cash'],
+          payments: expect.arrayContaining([
+            expect.objectContaining({ method: 'CASH', status: 'COMPLETED' }),
+          ]),
           amount: 97.75,
           isFullyPaid: true,
           remainingAmount: 0,
+          schemaName: SCHEMA,
+          branchId: 'branch-001',
+          userId: USER_ID,
         }),
       );
     });
 
-    it('should emit payment:completed with methods array for single CARD payment', async () => {
+    it('should emit payment:completed with payments array for single CARD payment', async () => {
       repo.runTransaction.mockImplementation(async (_schema: string, fn: any) => {
         repo.findOrderById.mockResolvedValue(makeOrder());
         repo.createPayment.mockResolvedValue(makePayment({ method: $Enums.PaymentMethod.CARD }));
@@ -398,11 +403,15 @@ describe('PaymentsService', () => {
 
       expect(eventBus.emit).toHaveBeenCalledWith(
         'payment:completed',
-        expect.objectContaining({ methods: ['card'] }),
+        expect.objectContaining({
+          payments: expect.arrayContaining([
+            expect.objectContaining({ method: 'CARD', status: 'COMPLETED' }),
+          ]),
+        }),
       );
     });
 
-    it('should emit payment:completed with methods array for single QR payment', async () => {
+    it('should emit payment:completed with payments array for single QR payment', async () => {
       repo.runTransaction.mockImplementation(async (_schema: string, fn: any) => {
         repo.findOrderById.mockResolvedValue(makeOrder());
         repo.createPayment.mockResolvedValue(makePayment({ method: $Enums.PaymentMethod.QR }));
@@ -419,11 +428,15 @@ describe('PaymentsService', () => {
 
       expect(eventBus.emit).toHaveBeenCalledWith(
         'payment:completed',
-        expect.objectContaining({ methods: ['qr'] }),
+        expect.objectContaining({
+          payments: expect.arrayContaining([
+            expect.objectContaining({ method: 'QR', status: 'COMPLETED' }),
+          ]),
+        }),
       );
     });
 
-    it('should emit payment:completed with methods=["cash","card"] for CASH+CARD split', async () => {
+    it('should emit payment:completed with individual payment records for CASH+CARD split', async () => {
       txWithOrder(makeOrder(), [
         makePayment({ amount: '50.00', id: 'pay-1' }),
         makePayment({ amount: '47.75', id: 'pay-2' }),
@@ -442,11 +455,16 @@ describe('PaymentsService', () => {
 
       expect(eventBus.emit).toHaveBeenCalledWith(
         'payment:completed',
-        expect.objectContaining({ methods: ['cash', 'card'] }),
+        expect.objectContaining({
+          payments: [
+            expect.objectContaining({ id: 'pay-1', method: 'CASH', amount: '50.00' }),
+            expect.objectContaining({ id: 'pay-2', method: 'CARD', amount: '47.75' }),
+          ],
+        }),
       );
     });
 
-    it('should emit payment:completed with methods=["cash","card","qr"] for three-way split', async () => {
+    it('should emit payment:completed with individual payment records for three-way split', async () => {
       txWithOrder(makeOrder(), [
         makePayment({ amount: '50.00', id: 'pay-1' }),
         makePayment({ amount: '30.00', id: 'pay-2' }),
@@ -467,7 +485,13 @@ describe('PaymentsService', () => {
 
       expect(eventBus.emit).toHaveBeenCalledWith(
         'payment:completed',
-        expect.objectContaining({ methods: ['cash', 'card', 'qr'] }),
+        expect.objectContaining({
+          payments: [
+            expect.objectContaining({ id: 'pay-1', method: 'CASH' }),
+            expect.objectContaining({ id: 'pay-2', method: 'CARD' }),
+            expect.objectContaining({ id: 'pay-3', method: 'QR' }),
+          ],
+        }),
       );
     });
 
@@ -490,7 +514,7 @@ describe('PaymentsService', () => {
       );
     });
 
-    it('event should NEVER contain method="multiple"', async () => {
+    it('event should contain payments array with individual records', async () => {
       txWithOrder(makeOrder(), [
         makePayment({ amount: '50.00', id: 'pay-1' }),
         makePayment({ amount: '47.75', id: 'pay-2' }),
@@ -512,10 +536,25 @@ describe('PaymentsService', () => {
       )?.[1];
 
       expect(emittedPayload).toBeDefined();
-      expect(emittedPayload.method).toBeUndefined();
-      expect(emittedPayload.methods).toBeDefined();
-      expect(Array.isArray(emittedPayload.methods)).toBe(true);
-      expect(emittedPayload.methods).not.toContain('multiple');
+      expect(emittedPayload.payments).toBeDefined();
+      expect(Array.isArray(emittedPayload.payments)).toBe(true);
+      expect(emittedPayload.payments).toHaveLength(2);
+      expect(emittedPayload.payments[0]).toHaveProperty('id');
+      expect(emittedPayload.payments[0]).toHaveProperty('amount');
+      expect(emittedPayload.payments[0]).toHaveProperty('method');
+      expect(emittedPayload.payments[0]).toHaveProperty('status');
+    });
+  });
+
+  describe('processPayment - transaction rollback prevents emission', () => {
+    it('should NOT emit payment:completed when transaction throws', async () => {
+      repo.runTransaction.mockRejectedValue(new Error('Simulated tx failure'));
+
+      await expect(
+        service.processPayment(SCHEMA, makeDto(), USER_ID),
+      ).rejects.toThrow('Simulated tx failure');
+
+      expect(eventBus.emit).not.toHaveBeenCalled();
     });
   });
 
