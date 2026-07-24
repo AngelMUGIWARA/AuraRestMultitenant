@@ -7,8 +7,16 @@ import { emit } from '@maison/event-bus';
 
 export { emit };
 
+function resolveInitialPath(pathname: string) {
+  if (pathname.endsWith('/inventario')) return '/inventario';
+  if (pathname.endsWith('/categorias')) return '/categorias';
+  return '/menus';
+}
+
 export default function MenuApp() {
-  const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/menus';
+  const initialPath = typeof window !== 'undefined'
+    ? resolveInitialPath(window.location.pathname)
+    : '/menus';
   return (
     <BranchProvider>
       <MemoryRouter initialEntries={[initialPath]} initialIndex={0}>

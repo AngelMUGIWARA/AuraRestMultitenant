@@ -3,16 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthClient } from '@maison/auth-client';
-
-const ROLE_ROUTES: Record<string, string> = {
-  OWNER:         '/dashboard',
-  ADMIN:         '/admin',
-  MANAGER:       '/waiter-orders',
-  WAITER:        '/waiter/tables',
-  CASHIER:       '/cashier',
-  CHEF:          '/kitchen',
-  KITCHEN_STAFF: '/kitchen',
-};
+import { ROLE_ROUTES } from '@/lib/constants';
 
 export default function RootPage() {
   const router = useRouter();

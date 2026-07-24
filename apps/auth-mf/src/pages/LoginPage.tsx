@@ -8,8 +8,8 @@ const ROLE_ROUTES: Record<string, string> = {
   MANAGER:       '/waiter-orders',
   WAITER:        '/waiter/tables',
   CASHIER:       '/cashier',
-  CHEF:          '/kitchen',
-  KITCHEN_STAFF: '/kitchen',
+  CHEF:          '/chef/dashboard',
+  KITCHEN_STAFF: '/chef/dashboard',
 };
 
 export default function LoginPage() {
