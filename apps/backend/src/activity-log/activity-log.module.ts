@@ -6,6 +6,6 @@ import { ActivityLogController } from './activity-log.controller';
 @Module({
   controllers: [ActivityLogController],
   providers: [ActivityLogService, ActivityLogRepository],
-  exports: [ActivityLogService],
+  exports: [ActivityLogService, ActivityLogRepository],
 })
 export class ActivityLogModule {}
