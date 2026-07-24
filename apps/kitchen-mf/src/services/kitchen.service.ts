@@ -7,7 +7,7 @@ import type {
 
 export const kitchenService = {
   getQueue: (branchId?: string) =>
-    apiClient.get<KitchenTicket[]>("/kitchen/queue", { params: { branchId } }),
+    apiClient.get<KitchenTicket[]>("/kitchen/tickets", { params: { branchId } }),
   updateTicketStatus: (ticketId: string, status: KitchenTicketStatus) =>
     apiClient.patch<ApiResponse<KitchenTicket>>(
       `/kitchen/tickets/${ticketId}/status`,

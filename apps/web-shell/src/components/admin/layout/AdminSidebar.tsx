@@ -6,7 +6,7 @@ import { AuthClient } from '@maison/auth-client';
 import { apiClient } from '@maison/api-client';
 import { emit } from '@maison/event-bus';
 import { cn } from '@/lib/utils';
-import { ADMIN_NAV } from '@/lib/constants';
+import { ADMIN_NAV, OWNER_NAV } from '@/lib/constants';
 import { useSidebar } from '@/context/SidebarContext';
 import {
   IconDashboard, IconAnalytics,
@@ -100,6 +100,8 @@ interface SidebarContentProps {
 
 function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: SidebarContentProps) {
   const pathname = usePathname();
+  const isOwner = AuthClient.getRole() === 'OWNER';
+  const nav = isOwner ? OWNER_NAV : ADMIN_NAV;
 
   function handleLogout() {
     const rt = AuthClient.getRefreshToken();
@@ -124,7 +126,7 @@ function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: SidebarCon
               Maison
             </span>
             <span className="text-2xs font-semibold uppercase tracking-widest text-maison-cream-dim">
-              Admin
+              {isOwner ? 'Owner' : 'Admin'}
             </span>
           </div>
         )}
@@ -147,7 +149,7 @@ function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: SidebarCon
         aria-label="Secciones"
       >
         <div className={cn('space-y-4', isCollapsed ? 'px-1.5' : 'px-2')}>
-          {ADMIN_NAV.map((group) => (
+          {nav.map((group) => (
             <div key={group.label}>
               {/* Group header */}
               {isCollapsed ? (

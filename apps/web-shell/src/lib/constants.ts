@@ -4,11 +4,21 @@ export const APP_VERSION = '1.0.0';
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
+export const ROLE_ROUTES: Record<string, string> = {
+  OWNER:         '/dashboard',
+  ADMIN:         '/admin',
+  MANAGER:       '/waiter-orders',
+  WAITER:        '/waiter/tables',
+  CASHIER:       '/cashier',
+  CHEF:          '/chef/dashboard',
+  KITCHEN_STAFF: '/chef/dashboard',
+};
+
 export const ADMIN_NAV = [
   {
     label: 'Visión General',
     items: [
-      { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { href: '/dashboard-admin', label: 'Dashboard', icon: 'dashboard' },
       { href: '/reportes', label: 'Reportes', icon: 'analytics' },
     ],
   },
@@ -35,6 +45,24 @@ export const ADMIN_NAV = [
       { href: '/admin/settings', label: 'Configuración', icon: 'settings' },
       { href: '/integrations', label: 'Integraciones', icon: 'integrations' },
       { href: '/logs', label: 'Registros', icon: 'logs' },
+    ],
+  },
+] as const;
+
+export const OWNER_NAV = [
+  {
+    label: 'Visión General',
+    items: [
+      { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { href: '/reportes', label: 'Reportes', icon: 'analytics' },
+      { href: '/reservaciones', label: 'Reservaciones', icon: 'reservations' },
+    ],
+  },
+  {
+    label: 'Gestión',
+    items: [
+      { href: '/sucursales', label: 'Sucursales', icon: 'branches' },
+      { href: '/settings', label: 'Configuración', icon: 'settings' },
     ],
   },
 ] as const;
