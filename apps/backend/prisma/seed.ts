@@ -130,6 +130,18 @@ async function main() {
         status: 'ACTIVE',
       },
     }),
+    tenantDb.user.upsert({
+      where: { email: 'gerente@demo.com' },
+      update: {},
+      create: {
+        name: 'Sofía Gerente',
+        email: 'gerente@demo.com',
+        passwordHash: await hash('Gerente123'),
+        role: 'MANAGER',
+        status: 'ACTIVE',
+        phone: '+52 55 1111 0003',
+      },
+    }),
   ]);
   console.log(`✅  Usuarios:  ${users.map((u) => u.role).join(', ')}`);
 
@@ -170,6 +182,29 @@ async function main() {
       where: { userId_branchId: { userId: users[1].id, branchId: branch.id } },
       update: {},
       create: { userId: users[1].id, branchId: branch.id, roleId: adminRole.id },
+    });
+  }
+
+  // Gerente y chef asignados a la sucursal central — el módulo de inventario
+  // usa UserBranch para limitar a MANAGER/CHEF a sus sucursales autorizadas
+  const managerRole = await tenantDb.role.findUnique({ where: { name: 'MANAGER' } });
+  const chefRole = await tenantDb.role.findUnique({ where: { name: 'CHEF' } });
+  const gerente = users.find((u) => u.role === 'MANAGER')!;
+  const chefUser = users.find((u) => u.role === 'CHEF')!;
+
+  if (managerRole) {
+    await tenantDb.userBranch.upsert({
+      where: { userId_branchId: { userId: gerente.id, branchId: branch.id } },
+      update: {},
+      create: { userId: gerente.id, branchId: branch.id, roleId: managerRole.id },
+    });
+  }
+
+  if (chefRole) {
+    await tenantDb.userBranch.upsert({
+      where: { userId_branchId: { userId: chefUser.id, branchId: branch.id } },
+      update: {},
+      create: { userId: chefUser.id, branchId: branch.id, roleId: chefRole.id },
     });
   }
 
@@ -725,6 +760,7 @@ async function main() {
 ╠══════════════════════════════════════════════════════════════╣
 ║  OWNER    owner@demo.com    / Owner123                       ║
 ║  ADMIN    admin@demo.com    / Admin123                       ║
+║  MANAGER  gerente@demo.com  / Gerente123                     ║
 ║  WAITER   mesero@demo.com   / Mesero123                      ║
 ║  CASHIER  cajero@demo.com   / Cajero123                      ║
 ║  CHEF     chef@demo.com     / Chef1234                       ║
