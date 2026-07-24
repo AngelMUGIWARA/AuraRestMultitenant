@@ -1069,3 +1069,47 @@ export interface ListCashSessionsQuery {
   page?: number;
   limit?: number;
 }
+
+// ─── Public Menu API ──────────────────────────────────────────────────────────
+
+export interface PublicMenuItemDto {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  imageUrl?: string | null;
+  isAvailable: boolean;
+  status?: string;
+  categoryId?: string;
+}
+
+export interface PublicCategoryDto {
+  id: string;
+  name: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  sortOrder: number;
+  items: PublicMenuItemDto[];
+}
+
+export interface PublicBranchDto {
+  id: string;
+  name: string;
+  slug: string;
+  address?: string | null;
+  phone?: string | null;
+  isActive: boolean;
+}
+
+export interface PublicTenantDto {
+  slug: string;
+  name: string;
+  logoUrl?: string | null;
+}
+
+export interface PublicMenuResponseDto {
+  tenant: PublicTenantDto;
+  branch: PublicBranchDto;
+  categories: PublicCategoryDto[];
+  updatedAt: string;
+}

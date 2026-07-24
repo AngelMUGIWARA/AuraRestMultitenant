@@ -31,6 +31,7 @@ import { ActivityLogModule } from './activity-log/activity-log.module';
 import { MenusModule } from './menus/menus.module';
 
 import { CategoriesModule } from './categories/categories.module';
+import { PublicModule } from './public/public.module';
 import { HealthModule } from './health/health.module';
 import { KitchenModule } from './kitchen/kitchen.module';
 import { ReservationsModule } from './reservations/reservations.module';
@@ -69,6 +70,7 @@ import { CashRegisterModule } from './cash-register/cash-register.module';
     RefundsModule,
     ReceiptsModule,
     CashRegisterModule,
+    PublicModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
