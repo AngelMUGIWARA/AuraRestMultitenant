@@ -364,45 +364,161 @@ export interface CreateCategoryPayload {
 }
 
 // ─── Inventory ────────────────────────────────────────────────────────────────
+// Tipos alineados a la API real: /admin/inventory/* (backend NestJS).
+// CHEF/KITCHEN_STAFF reciben los objetos SIN costPerUnit/supplier — por eso
+// esos campos son opcionales.
 
-export type StockStatus = "ok" | "low" | "critical" | "out_of_stock";
+export type InventoryUnit = "KG" | "G" | "L" | "ML" | "PIECE" | "PACKAGE" | "BOX";
+
+export type InventoryMovementType =
+  | "PURCHASE"
+  | "CONSUMPTION"
+  | "ADJUSTMENT"
+  | "WASTE"
+  | "TRANSFER_IN"
+  | "TRANSFER_OUT";
+
+export interface Supplier {
+  id: string;
+  name: string;
+  contactName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  isActive: boolean;
+  itemCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventoryStockEntry {
+  id: string;
+  itemId: string;
+  branchId: string;
+  quantity: string | number;
+  updatedAt: string;
+}
 
 export interface InventoryItem {
   id: string;
   name: string;
-  sku: string;
-  categoryId: string;
-  categoryName: string;
-  unit: string;
-  currentStock: number;
-  minStock: number;
-  maxStock: number;
-  unitCost: number;
-  totalValue: number;
-  status: StockStatus;
-  lastRestocked: string;
+  sku?: string | null;
+  description?: string | null;
+  unit: InventoryUnit;
+  /** Ausente para CHEF/KITCHEN_STAFF */
+  costPerUnit?: string | number;
+  minStock: string | number;
+  maxStock?: string | number | null;
+  imageUrl?: string | null;
+  isActive: boolean;
+  /** Ausente para CHEF/KITCHEN_STAFF */
+  supplierId?: string | null;
+  /** Ausente para CHEF/KITCHEN_STAFF */
+  supplier?: { id: string; name: string } | null;
+  stocks: InventoryStockEntry[];
+  totalStock?: number;
+  belowMinimum?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventoryStockRow {
+  id: string;
+  itemId: string;
   branchId: string;
+  quantity: string | number;
+  belowMinimum: boolean;
+  item: InventoryItem;
+  branch: { id: string; name: string; slug: string };
+  updatedAt: string;
 }
 
-export interface InventoryStats {
-  totalProducts: number;
-  totalActive: number;
-  lowStockItems: number;
-  criticalItems: number;
-  outOfStockItems: number;
-  totalInventoryValue: number;
-  categoriesCount: number;
+export interface StockAlert {
+  itemId: string;
+  itemName: string;
+  unit: InventoryUnit;
+  branchId: string;
+  branchName: string;
+  quantity: number;
+  minStock: number;
+  deficit: number;
 }
 
-export interface InventoryFilters {
-  status?: StockStatus;
-  categoryId?: string;
-  search?: string;
-  branchId?: string;
-  page?: number;
-  limit?: number;
-  sortBy?: "name" | "currentStock" | "totalValue" | "lastRestocked";
-  sortOrder?: "asc" | "desc";
+export interface InventoryMovement {
+  id: string;
+  itemId: string;
+  branchId: string;
+  type: InventoryMovementType;
+  quantity: string | number;
+  unitCost?: string | number | null;
+  totalCost?: string | number | null;
+  reason?: string | null;
+  reference?: string | null;
+  supplierId?: string | null;
+  createdBy: string;
+  createdAt: string;
+  item?: { id: string; name: string; unit: InventoryUnit };
+  branch?: { id: string; name: string; slug: string };
+  supplier?: { id: string; name: string } | null;
+  user?: { id: string; name: string; role: string };
+}
+
+export interface RecipeIngredientEntry {
+  inventoryItemId: string;
+  quantity: number;
+  notes?: string | null;
+  item: InventoryItem;
+}
+
+export interface MenuItemRecipe {
+  menuItemId: string;
+  menuItemName: string;
+  ingredients: RecipeIngredientEntry[];
+}
+
+export interface MenuAvailability {
+  menuItemId: string;
+  name: string;
+  available: boolean;
+}
+
+export interface CreateInventoryItemPayload {
+  name: string;
+  sku?: string;
+  description?: string;
+  unit: InventoryUnit;
+  costPerUnit?: number;
+  minStock?: number;
+  maxStock?: number;
+  supplierId?: string;
+  isActive?: boolean;
+}
+
+export interface CreateSupplierPayload {
+  name: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  notes?: string;
+  isActive?: boolean;
+}
+
+export interface CreateMovementPayload {
+  itemId: string;
+  branchId: string;
+  type: InventoryMovementType;
+  quantity: number;
+  direction?: "IN" | "OUT";
+  unitCost?: number;
+  reason?: string;
+  reference?: string;
+  supplierId?: string;
+}
+
+export interface UpsertRecipePayload {
+  ingredients: Array<{ inventoryItemId: string; quantity: number; notes?: string }>;
 }
 
 // ─── Order ────────────────────────────────────────────────────────────────────
