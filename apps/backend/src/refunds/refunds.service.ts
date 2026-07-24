@@ -5,6 +5,7 @@ import { CreateRefundDto } from './dto/create-refund.dto';
 import { RefundValidationService } from './refund-validation.service';
 import { RefundCalculator } from './refund-calculator';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import { EventBusService } from '../event-bus/event-bus.service';
 
 @Injectable()
 export class RefundsService {
@@ -14,6 +15,7 @@ export class RefundsService {
     private readonly refundsRepo: RefundsRepository,
     private readonly validationService: RefundValidationService,
     private readonly activityLog: ActivityLogService,
+    private readonly eventBus: EventBusService,
   ) {}
 
   async createRefund(
@@ -44,7 +46,7 @@ export class RefundsService {
     }
 
     try {
-      return await this.refundsRepo.runTransaction(schemaName, async (tx) => {
+      const txResult = await this.refundsRepo.runTransaction(schemaName, async (tx) => {
         const order = await this.refundsRepo.findOrderById(schemaName, orderId, tx);
         if (!order) {
           throw new BadRequestException('La orden no existe.');
@@ -129,8 +131,22 @@ export class RefundsService {
 
         // Fetch order again to return fully updated calculations
         const latestOrder = await this.refundsRepo.findOrderById(schemaName, orderId, tx);
-        return this.toRefundResponse(refund, latestOrder);
+        return { refund, payment, branchId, latestOrder };
       });
+
+      this.eventBus.emit('refund:completed', {
+        schemaName,
+        refundId: txResult.refund.id,
+        paymentId: txResult.payment.id,
+        amount: dto.amount,
+        paymentMethod: txResult.payment.method as string,
+        status: txResult.refund.status as string,
+        branchId: txResult.branchId ?? null,
+        userId: userId ?? null,
+        orderId,
+      });
+
+      return this.toRefundResponse(txResult.refund, txResult.latestOrder);
     } catch (err: any) {
       if (err?.code === 'P2002' && dto.idempotencyKey) {
         const existing = await this.refundsRepo.findRefundByIdempotencyKey(

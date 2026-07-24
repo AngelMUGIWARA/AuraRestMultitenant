@@ -35,6 +35,7 @@ import { HealthModule } from './health/health.module';
 import { KitchenModule } from './kitchen/kitchen.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { ReceiptsModule } from './receipts/receipts.module';
+import { CashRegisterModule } from './cash-register/cash-register.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { ReceiptsModule } from './receipts/receipts.module';
     TipsModule,
     RefundsModule,
     ReceiptsModule,
+    CashRegisterModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
