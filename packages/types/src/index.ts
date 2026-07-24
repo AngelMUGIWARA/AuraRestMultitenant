@@ -605,27 +605,6 @@ export interface CreateOrderPayload {
 
 // ─── Kitchen ──────────────────────────────────────────────────────────────────
 
-export type KitchenTicketStatus = 'PENDING' | 'IN_PROGRESS' | 'READY' | 'DELIVERED';
-
-export interface KitchenTicket {
-  id: string;
-  orderId: string;
-  orderNumber: string;
-  tableNumber?: string;
-  type: OrderType;
-  items: OrderItem[];
-  status: KitchenTicketStatus;
-  customerName: string;
-  notes?: string;
-  branchId: string;
-  priority: number;
-  startedAt: string | null;
-  completedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  elapsedSeconds: number;
-}
-
 // ─── Payment ──────────────────────────────────────────────────────────────────
 
 export type PaymentMethod = "cash" | "card" | "qr" | "transfer";
@@ -925,4 +904,52 @@ export interface Receipt {
 export interface CreateReceiptPayload {
   orderId: string;
   idempotencyKey: string;
+}
+
+// ── Kitchen Display Engine ──────────────────────────────────
+
+export type KitchenTicketStatus = 'PENDING' | 'PREPARING' | 'READY' | 'DELIVERED' | 'CANCELLED';
+export type KitchenItemStatus = 'PENDING' | 'PREPARING' | 'READY' | 'CANCELLED';
+export type KitchenPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+
+export interface KitchenTicketItem {
+  id: string;
+  orderItemId: string;
+  menuItemName: string;
+  quantity: number;
+  notes: string | null;
+  status: KitchenItemStatus;
+  version: number;
+  startedAt: string | null;
+  readyAt: string | null;
+}
+
+export interface KitchenTicket {
+  id: string;
+  orderId: string;
+  orderNumber: string | null;
+  branchId: string | null;
+  status: KitchenTicketStatus;
+  priority: KitchenPriority;
+  version: number;
+  items: KitchenTicketItem[];
+  customerName: string | null;
+  tableNumber: string | null;
+  notes: string | null;
+  startedAt: string | null;
+  readyAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateKitchenTicketPayload {
+  orderId: string;
+  priority?: KitchenPriority;
+}
+
+export interface UpdateKitchenItemStatusPayload {
+  status: KitchenItemStatus;
+  version: number;
+  reason?: string;
 }

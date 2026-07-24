@@ -111,47 +111,47 @@ describe('DTO Validation', () => {
   });
 
   describe('Kitchen — IsEnum validation', () => {
-    it('accepts IN_PROGRESS', async () => {
-      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: 'IN_PROGRESS' });
+    it('accepts PREPARING', async () => {
+      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: 'PREPARING', version: 1 });
       expect(errors.length).toBe(0);
     });
 
     it('accepts READY', async () => {
-      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: 'READY' });
+      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: 'READY', version: 1 });
       expect(errors.length).toBe(0);
     });
 
     it('accepts DELIVERED', async () => {
-      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: 'DELIVERED' });
+      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: 'DELIVERED', version: 1 });
       expect(errors.length).toBe(0);
     });
 
     it('accepts PENDING', async () => {
-      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: 'PENDING' });
+      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: 'PENDING', version: 1 });
       expect(errors.length).toBe(0);
     });
 
     it('rejects free text string', async () => {
-      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: 'done' });
+      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: 'done', version: 1 });
       expect(errors.length).toBeGreaterThan(0);
       const statusErrors = errors.filter(e => e.property === 'status');
       expect(statusErrors.length).toBeGreaterThan(0);
     });
 
     it('rejects INVALID_STATUS', async () => {
-      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: 'INVALID_STATUS' });
+      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: 'INVALID_STATUS', version: 1 });
       expect(errors.length).toBeGreaterThan(0);
     });
 
     it('rejects empty string', async () => {
-      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: '' });
+      const errors = await validateDto(UpdateKitchenTicketStatusDto, { status: '', version: 1 });
       expect(errors.length).toBeGreaterThan(0);
     });
 
-    it('KitchenTicketStatus enum has exactly 4 values matching Prisma schema', () => {
+    it('KitchenTicketStatus enum has exactly 5 values matching Prisma schema', () => {
       const values = Object.values(KitchenTicketStatus);
-      expect(values).toEqual(['PENDING', 'IN_PROGRESS', 'READY', 'DELIVERED']);
-      expect(values).toHaveLength(4);
+      expect(values).toEqual(['PENDING', 'PREPARING', 'READY', 'DELIVERED', 'CANCELLED']);
+      expect(values).toHaveLength(5);
     });
   });
 
