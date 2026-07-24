@@ -1,0 +1,19 @@
+{
+  "name": "dev-cli",
+  "version": "1.0.0",
+  "description": "Panel de arranque (CLI) para levantar los servicios de AuraRestMultitenant",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "aura-dev": "dev.mjs"
+  },
+  "scripts": {
+    "dev": "node dev.mjs",
+    "start": "node dev.mjs"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.5.2",
+    "chalk": "^5.6.2",
+    "figlet": "^1.11.2"
+  }
+}
