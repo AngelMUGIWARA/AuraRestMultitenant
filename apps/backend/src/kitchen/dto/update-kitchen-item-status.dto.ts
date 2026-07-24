@@ -1,19 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
-import { KitchenTicketStatus } from '../../generated/prisma-tenant';
+import { KitchenItemStatus } from '../../generated/prisma-tenant';
 
-export class UpdateKitchenTicketStatusDto {
+export class UpdateKitchenItemStatusDto {
   @ApiProperty({
-    enum: KitchenTicketStatus,
-    example: KitchenTicketStatus.PREPARING,
-    description: 'Nuevo estado del ticket de cocina',
+    enum: KitchenItemStatus,
+    example: KitchenItemStatus.PREPARING,
+    description: 'Nuevo estado del item de cocina',
   })
-  @IsEnum(KitchenTicketStatus)
+  @IsEnum(KitchenItemStatus)
   @IsNotEmpty()
-  status!: KitchenTicketStatus;
+  status!: KitchenItemStatus;
 
   @ApiProperty({
-    description: 'Versión actual del ticket (optimistic locking)',
+    description: 'Versión actual del item (optimistic locking)',
     example: 1,
   })
   @IsInt()
@@ -22,7 +22,7 @@ export class UpdateKitchenTicketStatusDto {
 
   @ApiPropertyOptional({
     description: 'Motivo del cambio (requerido para CANCELLED)',
-    example: 'Ingrediente no disponible',
+    example: 'Ingrediente agotado',
   })
   @IsOptional()
   @IsString()

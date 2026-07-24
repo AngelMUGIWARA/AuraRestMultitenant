@@ -107,9 +107,24 @@ enum OrderPaymentStatus {
 
 enum KitchenTicketStatus {
   PENDING
-  IN_PROGRESS
+  PREPARING
   READY
   DELIVERED
+  CANCELLED
+}
+
+enum KitchenItemStatus {
+  PENDING
+  PREPARING
+  READY
+  CANCELLED
+}
+
+enum KitchenPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
 }
 
 enum ReservationStatus {
@@ -278,9 +293,10 @@ model OrderItem {
   notes                  String?
   createdAt              DateTime @default(now()) @map("created_at")
 
-  order     Order      @relation(fields: [orderId], references: [id])
-  menuItem  MenuItem   @relation(fields: [menuItemId], references: [id])
-  promotion Promotion? @relation(fields: [promotionId], references: [id])
+  order        Order               @relation(fields: [orderId], references: [id])
+  menuItem     MenuItem            @relation(fields: [menuItemId], references: [id])
+  promotion    Promotion?          @relation(fields: [promotionId], references: [id])
+  kitchenItems KitchenTicketItem[]
 
   @@index([orderId])
   @@index([menuItemId])
@@ -313,16 +329,46 @@ model Payment {
 model KitchenTicket {
   id          String              @id @default(cuid())
   orderId     String              @unique @map("order_id")
+  branchId    String?             @map("branch_id")
   status      KitchenTicketStatus @default(PENDING)
-  priority    Int                 @default(0)
+  priority    KitchenPriority     @default(NORMAL)
+  version     Int                 @default(1)
   startedAt   DateTime?           @map("started_at")
-  completedAt DateTime?           @map("completed_at")
+  readyAt     DateTime?           @map("ready_at")
+  deliveredAt DateTime?           @map("delivered_at")
   createdAt   DateTime            @default(now()) @map("created_at")
   updatedAt   DateTime            @updatedAt @map("updated_at")
 
-  order Order @relation(fields: [orderId], references: [id])
+  order  Order               @relation(fields: [orderId], references: [id])
+  branch Branch?             @relation(fields: [branchId], references: [id])
+  items  KitchenTicketItem[]
 
+  @@index([branchId])
+  @@index([status])
+  @@index([createdAt])
   @@map("kitchen_tickets")
+}
+
+model KitchenTicketItem {
+  id           String            @id @default(cuid())
+  ticketId     String            @map("ticket_id")
+  orderItemId  String            @map("order_item_id")
+  menuItemName String            @map("menu_item_name")
+  quantity     Int
+  notes        String?
+  status       KitchenItemStatus @default(PENDING)
+  version      Int               @default(1)
+  startedAt    DateTime?         @map("started_at")
+  readyAt      DateTime?         @map("ready_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  ticket    KitchenTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  orderItem OrderItem     @relation(fields: [orderItemId], references: [id])
+
+  @@index([ticketId])
+  @@index([orderItemId])
+  @@map("kitchen_ticket_items")
 }
 
 model Reservation {
@@ -520,13 +566,14 @@ model Branch {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users      UserBranch[]
-  settings   Settings[]
-  activities ActivityLog[]
-  orders     Order[]
-  discounts  Discount[]
-  promotions Promotion[]
-  receipts   Receipt[]
+  users          UserBranch[]
+  settings       Settings[]
+  activities     ActivityLog[]
+  orders         Order[]
+  discounts      Discount[]
+  promotions     Promotion[]
+  receipts       Receipt[]
+  kitchenTickets KitchenTicket[]
 
   @@map("branches")
 }
