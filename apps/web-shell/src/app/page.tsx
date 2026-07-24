@@ -1,22 +1,28 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthClient } from '@maison/auth-client';
 import { ROLE_ROUTES } from '@/lib/constants';
+import { LandingPage } from '@/components/landing/LandingPage';
 
 export default function RootPage() {
   const router = useRouter();
+  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
-    if (!AuthClient.isAuthenticated()) {
-      router.replace('/auth/login');
+    if (AuthClient.isAuthenticated()) {
+      const role = AuthClient.getRole();
+      const route = (role && ROLE_ROUTES[role]) ?? '/dashboard';
+      router.replace(route);
       return;
     }
-    const role = AuthClient.getRole();
-    const route = (role && ROLE_ROUTES[role]) ?? '/dashboard';
-    router.replace(route);
+    setCheckingSession(false);
   }, [router]);
 
-  return null;
+  // Mientras se confirma la sesión no se renderiza nada, para no mostrar
+  // la landing por un instante a un usuario que ya tiene sesión iniciada.
+  if (checkingSession) return null;
+
+  return <LandingPage />;
 }

@@ -37,6 +37,7 @@ import { KitchenModule } from './kitchen/kitchen.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { ReceiptsModule } from './receipts/receipts.module';
 import { CashRegisterModule } from './cash-register/cash-register.module';
+import { InventoryModule } from './inventory/inventory.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { CashRegisterModule } from './cash-register/cash-register.module';
     RefundsModule,
     ReceiptsModule,
     CashRegisterModule,
+    InventoryModule,
     PublicModule,
   ],
   providers: [

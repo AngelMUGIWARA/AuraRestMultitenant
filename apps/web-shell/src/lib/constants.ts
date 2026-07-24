@@ -59,6 +59,12 @@ export const OWNER_NAV = [
     ],
   },
   {
+    label: 'Operaciones',
+    items: [
+      { href: '/inventario', label: 'Inventario', icon: 'inventory' },
+    ],
+  },
+  {
     label: 'Gestión',
     items: [
       { href: '/sucursales', label: 'Sucursales', icon: 'branches' },

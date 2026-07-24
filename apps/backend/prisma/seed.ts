@@ -11,6 +11,9 @@
  *    pico), repartidas en los últimos 7 días, el resto del mes actual y
  *    meses anteriores del año — todas con fechas relativas a "hoy" para
  *    seguir siendo válidas sin importar cuándo se corra el seed.
+ *  - Inventario: 3 proveedores, 15 insumos, stock en sucursal central,
+ *    movimientos de compra/consumo/merma/ajuste (auditados por owner,
+ *    admin y chef) y recetas platillo→insumo.
  *
  * Uso:
  *   pnpm --filter backend exec ts-node prisma/seed.ts
@@ -127,6 +130,18 @@ async function main() {
         status: 'ACTIVE',
       },
     }),
+    tenantDb.user.upsert({
+      where: { email: 'gerente@demo.com' },
+      update: {},
+      create: {
+        name: 'Sofía Gerente',
+        email: 'gerente@demo.com',
+        passwordHash: await hash('Gerente123'),
+        role: 'MANAGER',
+        status: 'ACTIVE',
+        phone: '+52 55 1111 0003',
+      },
+    }),
   ]);
   console.log(`✅  Usuarios:  ${users.map((u) => u.role).join(', ')}`);
 
@@ -167,6 +182,29 @@ async function main() {
       where: { userId_branchId: { userId: users[1].id, branchId: branch.id } },
       update: {},
       create: { userId: users[1].id, branchId: branch.id, roleId: adminRole.id },
+    });
+  }
+
+  // Gerente y chef asignados a la sucursal central — el módulo de inventario
+  // usa UserBranch para limitar a MANAGER/CHEF a sus sucursales autorizadas
+  const managerRole = await tenantDb.role.findUnique({ where: { name: 'MANAGER' } });
+  const chefRole = await tenantDb.role.findUnique({ where: { name: 'CHEF' } });
+  const gerente = users.find((u) => u.role === 'MANAGER')!;
+  const chefUser = users.find((u) => u.role === 'CHEF')!;
+
+  if (managerRole) {
+    await tenantDb.userBranch.upsert({
+      where: { userId_branchId: { userId: gerente.id, branchId: branch.id } },
+      update: {},
+      create: { userId: gerente.id, branchId: branch.id, roleId: managerRole.id },
+    });
+  }
+
+  if (chefRole) {
+    await tenantDb.userBranch.upsert({
+      where: { userId_branchId: { userId: chefUser.id, branchId: branch.id } },
+      update: {},
+      create: { userId: chefUser.id, branchId: branch.id, roleId: chefRole.id },
     });
   }
 
@@ -322,7 +360,7 @@ async function main() {
           ],
         },
         kitchenTicket: {
-          create: { status: 'IN_PROGRESS', priority: 1 },
+          create: { status: 'PREPARING', priority: 'NORMAL' },
         },
       },
     });
@@ -456,6 +494,263 @@ async function main() {
     console.log('⏭️   Órdenes demo: se omitieron (faltan platillos o mesas base)');
   }
 
+  // ── 8. Inventario ─────────────────────────────────────────────────────────
+  // Proveedores, insumos, stock por sucursal, movimientos auditados por
+  // usuario (owner/admin/chef) y recetas que vinculan platillos con insumos.
+  const owner = users.find((u) => u.role === 'OWNER')!;
+  const admin = users.find((u) => u.role === 'ADMIN')!;
+  const chef = users.find((u) => u.role === 'CHEF')!;
+
+  // 8.a Proveedores
+  const [provCarnes, provAbarrotes, provBebidas] = await Promise.all([
+    tenantDb.supplier.upsert({
+      where: { name: 'Carnes del Norte' },
+      update: {},
+      create: {
+        name: 'Carnes del Norte',
+        contactName: 'Raúl Treviño',
+        email: 'ventas@carnesdelnorte.mx',
+        phone: '+52 81 2222 0001',
+        address: 'Mercado de Abastos, Local 12',
+      },
+    }),
+    tenantDb.supplier.upsert({
+      where: { name: 'Abarrotes La Central' },
+      update: {},
+      create: {
+        name: 'Abarrotes La Central',
+        contactName: 'María Gómez',
+        email: 'pedidos@lacentral.mx',
+        phone: '+52 55 3333 0002',
+        address: 'Central de Abasto, Nave 4',
+      },
+    }),
+    tenantDb.supplier.upsert({
+      where: { name: 'Bebidas y Más' },
+      update: {},
+      create: {
+        name: 'Bebidas y Más',
+        contactName: 'Jorge Salinas',
+        email: 'contacto@bebidasymas.mx',
+        phone: '+52 55 4444 0003',
+        address: 'Av. Industrial 45',
+      },
+    }),
+  ]);
+  console.log('✅  Proveedores: Carnes del Norte, Abarrotes La Central, Bebidas y Más');
+
+  // 8.b Insumos — initialStock alimenta la compra inicial (movimiento PURCHASE)
+  const inventorySpecs = [
+    { name: 'Arrachera',        sku: 'CAR-001', unit: 'KG',      costPerUnit: 220, minStock: 10, initialStock: 25,  supplierId: provCarnes.id },
+    { name: 'Pechuga de Pollo', sku: 'CAR-002', unit: 'KG',      costPerUnit: 95,  minStock: 8,  initialStock: 20,  supplierId: provCarnes.id },
+    { name: 'Huachinango',      sku: 'CAR-003', unit: 'KG',      costPerUnit: 185, minStock: 5,  initialStock: 12,  supplierId: provCarnes.id },
+    { name: 'Chorizo',          sku: 'CAR-004', unit: 'KG',      costPerUnit: 120, minStock: 3,  initialStock: 6,   supplierId: provCarnes.id },
+    { name: 'Aguacate Hass',    sku: 'ABA-001', unit: 'KG',      costPerUnit: 65,  minStock: 6,  initialStock: 15,  supplierId: provAbarrotes.id },
+    { name: 'Queso Chihuahua',  sku: 'ABA-002', unit: 'KG',      costPerUnit: 145, minStock: 4,  initialStock: 10,  supplierId: provAbarrotes.id },
+    { name: 'Mole Negro',       sku: 'ABA-003', unit: 'KG',      costPerUnit: 160, minStock: 3,  initialStock: 8,   supplierId: provAbarrotes.id },
+    { name: 'Limón',            sku: 'ABA-004', unit: 'KG',      costPerUnit: 42,  minStock: 5,  initialStock: 10,  supplierId: provAbarrotes.id },
+    { name: 'Totopos',          sku: 'ABA-005', unit: 'PACKAGE', costPerUnit: 28,  minStock: 10, initialStock: 30,  supplierId: provAbarrotes.id },
+    { name: 'Café de Grano',    sku: 'ABA-006', unit: 'KG',      costPerUnit: 260, minStock: 2,  initialStock: 5,   supplierId: provAbarrotes.id },
+    { name: 'Piloncillo',       sku: 'ABA-007', unit: 'KG',      costPerUnit: 38,  minStock: 2,  initialStock: 4,   supplierId: provAbarrotes.id },
+    { name: 'Huevo',            sku: 'ABA-008', unit: 'PIECE',   costPerUnit: 4,   minStock: 60, initialStock: 180, supplierId: provAbarrotes.id },
+    { name: 'Leche Entera',     sku: 'BEB-001', unit: 'L',       costPerUnit: 26,  minStock: 10, initialStock: 24,  supplierId: provBebidas.id },
+    { name: 'Agua Mineral',     sku: 'BEB-002', unit: 'BOX',     costPerUnit: 130, minStock: 3,  initialStock: 8,   supplierId: provBebidas.id },
+    { name: 'Arroz',            sku: 'ABA-009', unit: 'KG',      costPerUnit: 32,  minStock: 8,  initialStock: 20,  supplierId: provAbarrotes.id },
+  ] as const;
+
+  const inventoryItems = new Map<string, { id: string }>();
+  for (const spec of inventorySpecs) {
+    const item = await tenantDb.inventoryItem.upsert({
+      where: { name: spec.name },
+      update: {},
+      create: {
+        name: spec.name,
+        sku: spec.sku,
+        unit: spec.unit,
+        costPerUnit: spec.costPerUnit,
+        minStock: spec.minStock,
+        supplierId: spec.supplierId,
+      },
+    });
+    inventoryItems.set(spec.name, item);
+  }
+  console.log(`✅  Insumos:   ${inventorySpecs.length} items de inventario`);
+
+  // 8.c Movimientos — solo en la primera corrida para no duplicar el kardex
+  const existingMovements = await tenantDb.inventoryMovement.count();
+  if (existingMovements === 0) {
+    // Compra inicial registrada por la ADMIN (Laura)
+    for (const spec of inventorySpecs) {
+      const item = inventoryItems.get(spec.name)!;
+      await tenantDb.inventoryMovement.create({
+        data: {
+          itemId: item.id,
+          branchId: branch.id,
+          type: 'PURCHASE',
+          quantity: spec.initialStock,
+          unitCost: spec.costPerUnit,
+          totalCost: +(spec.initialStock * spec.costPerUnit).toFixed(2),
+          reason: 'Compra inicial de apertura',
+          reference: 'FAC-2026-001',
+          supplierId: spec.supplierId,
+          createdBy: admin.id,
+        },
+      });
+    }
+
+    // Consumos del servicio registrados por el CHEF (Marco)
+    const consumptions = [
+      { name: 'Arrachera', quantity: 4.5, reference: 'ORD-0001' },
+      { name: 'Mole Negro', quantity: 1.2, reference: 'ORD-0003' },
+      { name: 'Aguacate Hass', quantity: 2.0, reference: 'ORD-0011' },
+      { name: 'Huevo', quantity: 36, reference: 'ORD-0004' },
+      { name: 'Leche Entera', quantity: 4.0, reference: 'ORD-0004' },
+    ];
+    for (const c of consumptions) {
+      const item = inventoryItems.get(c.name)!;
+      await tenantDb.inventoryMovement.create({
+        data: {
+          itemId: item.id,
+          branchId: branch.id,
+          type: 'CONSUMPTION',
+          quantity: c.quantity,
+          reason: 'Consumo de servicio',
+          reference: c.reference,
+          createdBy: chef.id,
+        },
+      });
+    }
+
+    // Merma registrada por el CHEF
+    await tenantDb.inventoryMovement.create({
+      data: {
+        itemId: inventoryItems.get('Huachinango')!.id,
+        branchId: branch.id,
+        type: 'WASTE',
+        quantity: 1.5,
+        reason: 'Producto en mal estado al recibir',
+        createdBy: chef.id,
+      },
+    });
+
+    // Ajuste por conteo físico registrado por el OWNER (Carlos)
+    await tenantDb.inventoryMovement.create({
+      data: {
+        itemId: inventoryItems.get('Totopos')!.id,
+        branchId: branch.id,
+        type: 'ADJUSTMENT',
+        quantity: 2,
+        reason: 'Diferencia en conteo físico semanal',
+        createdBy: owner.id,
+      },
+    });
+
+    console.log(`✅  Movimientos: ${inventorySpecs.length} compras + 5 consumos + 1 merma + 1 ajuste`);
+  } else {
+    console.log('⏭️   Movimientos: ya existen, se omitieron');
+  }
+
+  // 8.d Stock por sucursal — cantidad final coherente con el kardex anterior.
+  // "Huachinango" y "Café de Grano" quedan cerca/debajo de minStock para
+  // demostrar alertas de reabastecimiento en las vistas.
+  const stockDeltas: Record<string, number> = {
+    Arrachera: -4.5,
+    'Mole Negro': -1.2,
+    'Aguacate Hass': -2.0,
+    Huevo: -36,
+    'Leche Entera': -4.0,
+    Huachinango: -8.5, // 1.5 de merma + consumo acumulado → queda bajo minStock
+    'Café de Grano': -3.5, // queda bajo minStock
+    Totopos: -2,
+  };
+  for (const spec of inventorySpecs) {
+    const item = inventoryItems.get(spec.name)!;
+    const quantity = +(spec.initialStock + (stockDeltas[spec.name] ?? 0)).toFixed(3);
+    await tenantDb.inventoryStock.upsert({
+      where: { itemId_branchId: { itemId: item.id, branchId: branch.id } },
+      update: {},
+      create: { itemId: item.id, branchId: branch.id, quantity },
+    });
+  }
+  console.log(`✅  Stock:     ${inventorySpecs.length} items en sucursal ${branch.slug} (2 bajo mínimo)`);
+
+  // 8.e Recetas — vinculan platillos del menú con insumos (visibilidad CHEF)
+  const recipes: Array<{ dish: string; ingredients: Array<{ item: string; quantity: number; notes?: string }> }> = [
+    {
+      dish: 'Arrachera a las Brasas',
+      ingredients: [
+        { item: 'Arrachera', quantity: 0.3, notes: '300g por porción' },
+        { item: 'Limón', quantity: 0.05 },
+      ],
+    },
+    {
+      dish: 'Pollo en Mole Negro',
+      ingredients: [
+        { item: 'Pechuga de Pollo', quantity: 0.25 },
+        { item: 'Mole Negro', quantity: 0.1 },
+        { item: 'Arroz', quantity: 0.08 },
+      ],
+    },
+    {
+      dish: 'Pescado a la Veracruzana',
+      ingredients: [
+        { item: 'Huachinango', quantity: 0.25 },
+        { item: 'Limón', quantity: 0.03 },
+      ],
+    },
+    {
+      dish: 'Guacamole con Totopos',
+      ingredients: [
+        { item: 'Aguacate Hass', quantity: 0.2 },
+        { item: 'Limón', quantity: 0.03 },
+        { item: 'Totopos', quantity: 1, notes: '1 paquete por orden' },
+      ],
+    },
+    {
+      dish: 'Queso Fundido',
+      ingredients: [
+        { item: 'Queso Chihuahua', quantity: 0.15 },
+        { item: 'Chorizo', quantity: 0.08 },
+      ],
+    },
+    {
+      dish: 'Café de Olla',
+      ingredients: [
+        { item: 'Café de Grano', quantity: 0.02 },
+        { item: 'Piloncillo', quantity: 0.03 },
+      ],
+    },
+    {
+      dish: 'Flan Napolitano',
+      ingredients: [
+        { item: 'Huevo', quantity: 3 },
+        { item: 'Leche Entera', quantity: 0.2 },
+      ],
+    },
+  ];
+
+  let recipeLinks = 0;
+  for (const recipe of recipes) {
+    const dish = await tenantDb.menuItem.findFirst({ where: { name: recipe.dish } });
+    if (!dish) continue;
+    for (const ing of recipe.ingredients) {
+      const item = inventoryItems.get(ing.item);
+      if (!item) continue;
+      await tenantDb.recipeIngredient.upsert({
+        where: { menuItemId_inventoryItemId: { menuItemId: dish.id, inventoryItemId: item.id } },
+        update: {},
+        create: {
+          menuItemId: dish.id,
+          inventoryItemId: item.id,
+          quantity: ing.quantity,
+          notes: ing.notes,
+        },
+      });
+      recipeLinks++;
+    }
+  }
+  console.log(`✅  Recetas:   ${recipes.length} platillos con ${recipeLinks} ingredientes vinculados`);
+
   // ─── Resumen de credenciales ──────────────────────────────────────────────
   console.log(`
 ╔══════════════════════════════════════════════════════════════╗
@@ -465,6 +760,7 @@ async function main() {
 ╠══════════════════════════════════════════════════════════════╣
 ║  OWNER    owner@demo.com    / Owner123                       ║
 ║  ADMIN    admin@demo.com    / Admin123                       ║
+║  MANAGER  gerente@demo.com  / Gerente123                     ║
 ║  WAITER   mesero@demo.com   / Mesero123                      ║
 ║  CASHIER  cajero@demo.com   / Cajero123                      ║
 ║  CHEF     chef@demo.com     / Chef1234                       ║
