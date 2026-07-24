@@ -12,6 +12,7 @@ packages:
   - 'apps/tables-mf'
 
   - 'packages/*'
+  - 'dev-cli'
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
