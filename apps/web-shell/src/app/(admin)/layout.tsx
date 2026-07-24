@@ -5,7 +5,7 @@ import { AuthGuard } from '@/components/shell/AuthGuard';
 import { AdminShell } from '@/components/admin/layout/AdminShell';
 import { BranchProvider } from '@maison/ui';
 
-const SELF_SHELLED_PREFIXES = ['/dashboard', '/sucursales', '/settings', '/users', '/admin'];
+const SELF_SHELLED_PREFIXES = ['/dashboard', '/sucursales', '/settings', '/users'];
 
 function hasOwnShell(pathname: string) {
   return SELF_SHELLED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
