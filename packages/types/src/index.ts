@@ -847,3 +847,82 @@ export interface Refund {
   completedAt?: string | null;
   failedAt?: string | null;
 }
+
+// ─── Receipts ────────────────────────────────────────────────────────────────
+
+export interface ReceiptSnapshot {
+  receipt: {
+    folio: string;
+    issuedAt: string;
+  };
+  restaurant: {
+    name: string;
+    branchName: string | null;
+    address: string | null;
+  };
+  order: {
+    id: string;
+    folio: string;
+    customerName: string | null;
+    createdAt: string;
+    paidAt: string | null;
+  };
+  table: {
+    number: string | null;
+  };
+  items: Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    unitPrice: string;
+    subtotal: string;
+    notes: string | null;
+  }>;
+  totals: {
+    grossSubtotal: string;
+    promotionAmount: string;
+    promotedSubtotal: string;
+    manualDiscountAmount: string;
+    taxableSubtotal: string;
+    taxAmount: string;
+    tipAmount: string;
+    amountDueForPayments: string;
+    total: string;
+  };
+  payments: Array<{
+    id: string;
+    method: string;
+    amount: string;
+    status: string;
+    paidAt: string | null;
+  }>;
+  refunds: Array<{
+    id: string;
+    amount: string;
+    status: string;
+    createdAt: string;
+  }>;
+}
+
+export interface Receipt {
+  id: string;
+  orderId: string;
+  folio: string;
+  branchId?: string | null;
+  userId: string | null;
+  subtotal: string;
+  promotionAmount: string;
+  discountAmount: string;
+  taxAmount: string;
+  tipAmount: string;
+  total: string;
+  snapshot: ReceiptSnapshot;
+  issuedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateReceiptPayload {
+  orderId: string;
+  idempotencyKey: string;
+}
