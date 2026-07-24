@@ -16,8 +16,10 @@
     "@maison/event-bus": "workspace:*",
     "@maison/types": "workspace:*",
     "@maison/ui": "workspace:*",
+    "konva": "^10.3.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-konva": "^19.2.5",
     "react-router-dom": "^7.0.0"
   },
   "devDependencies": {
