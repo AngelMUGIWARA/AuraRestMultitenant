@@ -9,19 +9,6 @@ export type NavGroup = {
 };
 export type NavConfig = ReadonlyArray<NavGroup>;
 
-// Navegación de ADMIN — acordada en equipo: Menú, Usuarios, Reportes, Configuración
-export const ADMIN_NAV: NavConfig = [
-  {
-    label: 'General',
-    items: [
-      { href: '/menus',          label: 'Menú',          icon: 'menus' },
-      { href: '/admin/users',    label: 'Usuarios',      icon: 'users' },
-      { href: '/reportes',       label: 'Reportes',      icon: 'analytics' },
-      { href: '/admin/settings', label: 'Configuración', icon: 'settings' },
-    ],
-  },
-];
-
 // Owner navigation — only revenue / branches / settings, no operational sections
 export const OWNER_NAV: NavConfig = [
   {

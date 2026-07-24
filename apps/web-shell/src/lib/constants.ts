@@ -24,7 +24,7 @@ export const ADMIN_NAV = [
     label: 'Gestión',
     items: [
       { href: '/sucursales', label: 'Sucursales', icon: 'branches' },
-      { href: '/users', label: 'Usuarios', icon: 'users' },
+      { href: '/admin/users', label: 'Usuarios', icon: 'users' },
       { href: '/menus', label: 'Menús', icon: 'menus' },
       { href: '/orders', label: 'Pedidos', icon: 'orders' },
     ],
@@ -32,7 +32,7 @@ export const ADMIN_NAV = [
   {
     label: 'Sistema',
     items: [
-      { href: '/settings', label: 'Configuración', icon: 'settings' },
+      { href: '/admin/settings', label: 'Configuración', icon: 'settings' },
       { href: '/integrations', label: 'Integraciones', icon: 'integrations' },
       { href: '/logs', label: 'Registros', icon: 'logs' },
     ],
