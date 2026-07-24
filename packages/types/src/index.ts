@@ -748,31 +748,28 @@ export interface ProcessPaymentPayload {
 // ─── Reservation ──────────────────────────────────────────────────────────────
 
 export type ReservationStatus =
-  | 'pending'
-  | 'confirmed'
-  | 'arrived'
-  | 'completed'
-  | 'cancelled'
-  | 'no_show';
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'ARRIVED'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'NO_SHOW';
 
 export interface Reservation {
   id: string;
-  confirmationCode: string;
   guestName: string;
   guestPhone: string;
-  guestEmail?: string;
+  guestEmail?: string | null;
   partySize: number;
   date: string;
   time: string;
   durationMinutes: number;
   status: ReservationStatus;
-  tableId?: string;
-  tableName?: string;
-  notes?: string;
-  specialRequests?: string;
+  tableId: string;
   branchId: string;
-  createdAt: string;
-  updatedAt: string;
+  notes?: string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export interface ReservationStats {
@@ -803,9 +800,10 @@ export interface CreateReservationPayload {
   partySize: number;
   date: string;
   time: string;
+  durationMinutes?: number;
   notes?: string;
   branchId: string;
-  tableId?: string;
+  tableId: string;
 }
 
 

@@ -26,9 +26,10 @@ export class ReservationsController {
   @ApiResponse({ status: 200, description: 'Estadísticas de reservaciones' })
   getStats(
     @CurrentTenant() tenant: TenantContext,
+    @CurrentUser() user: any,
     @Query('branchId') branchId?: string
   ) {
-    return this.reservationsService.getStats(tenant.schemaName, branchId);
+    return this.reservationsService.getStats(tenant.schemaName, branchId, user);
   }
 
   @Post()
@@ -41,7 +42,7 @@ export class ReservationsController {
     @CurrentUser() user: any,
   ) {
     const userId = user?.id ?? user?.sub ?? user?.userId;
-    return this.reservationsService.create(createDto, tenant.schemaName, userId);
+    return this.reservationsService.create(createDto, tenant.schemaName, userId, user);
   }
 
   @Get()
@@ -50,9 +51,10 @@ export class ReservationsController {
   @ApiResponse({ status: 200, description: 'Lista de reservaciones' })
   findAll(
     @CurrentTenant() tenant: TenantContext,
+    @CurrentUser() user: any,
     @Query() query: ReservationQueryDto
   ) {
-    return this.reservationsService.findAll(tenant.schemaName, query);
+    return this.reservationsService.findAll(tenant.schemaName, query, user);
   }
 
   @Get(':id')
@@ -60,25 +62,36 @@ export class ReservationsController {
   @ApiOperation({ summary: 'Obtener una reservación por ID', operationId: 'reservations_findOne' })
   @ApiResponse({ status: 200, type: ReservationResponseDto })
   @ApiResponse({ status: 404, description: 'Reservación no encontrada' })
+  @ApiResponse({ status: 403, description: 'Acceso denegado a esta reservación' })
   findOne(
     @CurrentTenant() tenant: TenantContext,
+    @CurrentUser() user: any,
     @Param('id') id: string
   ) {
-    return this.reservationsService.findOne(id, tenant.schemaName);
+    return this.reservationsService.findOne(id, tenant.schemaName, user);
   }
 
   @Patch(':id/status')
   @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER')
   @ApiOperation({ summary: 'Actualizar el estado de una reservación', operationId: 'reservations_updateStatus' })
   @ApiResponse({ status: 200, type: ReservationResponseDto })
+  @ApiResponse({ status: 400, description: 'Transición de estado inválida' })
+  @ApiResponse({ status: 403, description: 'Acceso denegado a esta reservación' })
   @ApiResponse({ status: 404, description: 'Reservación no encontrada' })
+  @ApiResponse({ status: 409, description: 'Conflicto de negocio' })
   updateStatus(
     @CurrentTenant() tenant: TenantContext,
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Body() statusDto: UpdateReservationStatusDto,
     @CurrentUser() user: any,
   ) {
     const userId = user?.id ?? user?.sub ?? user?.userId;
-    return this.reservationsService.updateStatus(id, statusDto.status, tenant.schemaName, userId);
+    return this.reservationsService.updateStatus(
+      id,
+      statusDto.status,
+      tenant.schemaName,
+      userId,
+      user,
+    );
   }
 }

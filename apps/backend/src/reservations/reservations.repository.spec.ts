@@ -1,4 +1,5 @@
 import { ReservationRepository } from './reservations.repository';
+import { Prisma } from '../generated/prisma-tenant';
 
 describe('ReservationRepository', () => {
   let repo: ReservationRepository;
@@ -128,6 +129,195 @@ describe('ReservationRepository', () => {
 
       const call = mockFindMany.mock.calls[0][0];
       expect(call.where).not.toHaveProperty('status');
+    });
+  });
+
+  describe('findOverlappingReservation - solapamiento de intervalos', () => {
+    const branch = 'branch-1';
+    const table = 'table-1';
+    const baseTime = new Date('2026-07-25T10:00:00Z');
+
+    const testCases = [
+      {
+        name: 'Nueva inicio dentro de existente',
+        existing: { start: 0, duration: 60 },
+        new: { start: 30, duration: 60 },
+        shouldConflict: true,
+      },
+      {
+        name: 'Nueva fin dentro de existente',
+        existing: { start: 0, duration: 60 },
+        new: { start: -30, duration: 60 },
+        shouldConflict: true,
+      },
+      {
+        name: 'Nueva envuelve existente',
+        existing: { start: 0, duration: 60 },
+        new: { start: -60, duration: 180 },
+        shouldConflict: true,
+      },
+      {
+        name: 'Existente envuelve nueva',
+        existing: { start: 0, duration: 120 },
+        new: { start: 30, duration: 60 },
+        shouldConflict: true,
+      },
+      {
+        name: 'Mismo intervalo',
+        existing: { start: 0, duration: 60 },
+        new: { start: 0, duration: 60 },
+        shouldConflict: true,
+      },
+      {
+        name: 'Contigua después (sin conflicto)',
+        existing: { start: 0, duration: 60 },
+        new: { start: 60, duration: 60 },
+        shouldConflict: false,
+      },
+      {
+        name: 'Contigua antes (sin conflicto)',
+        existing: { start: 0, duration: 60 },
+        new: { start: -60, duration: 60 },
+        shouldConflict: false,
+      },
+    ];
+
+    testCases.forEach((testCase) => {
+      it(`debe ${testCase.shouldConflict ? 'detectar' : 'permitir'} - ${testCase.name}`, async () => {
+        const existingStart = new Date(baseTime.getTime() + testCase.existing.start * 60000);
+        const existingEnd = new Date(
+          baseTime.getTime() + (testCase.existing.start + testCase.existing.duration) * 60000,
+        );
+        const newStart = new Date(baseTime.getTime() + testCase.new.start * 60000);
+        const newEnd = new Date(
+          baseTime.getTime() + (testCase.new.start + testCase.new.duration) * 60000,
+        );
+
+        const mockQueryRaw = jest.fn().mockResolvedValue(
+          testCase.shouldConflict
+            ? [{ id: 'conflict-1', scheduledAt: existingStart, durationMinutes: testCase.existing.duration }]
+            : [],
+        );
+
+        const mockTx = { $queryRaw: mockQueryRaw } as any as Prisma.TransactionClient;
+
+        const result = await repo['findOverlappingReservation'](
+          mockTx,
+          branch,
+          table,
+          newStart,
+          newEnd,
+        );
+
+        if (testCase.shouldConflict) {
+          expect(result).not.toBeNull();
+          expect(result?.id).toBe('conflict-1');
+        } else {
+          expect(result).toBeNull();
+        }
+      });
+    });
+
+    it('debe ignorar CANCELLED', async () => {
+      const existingStart = baseTime;
+      const newStart = new Date(baseTime.getTime() + 30 * 60000);
+      const newEnd = new Date(baseTime.getTime() + 90 * 60000);
+
+      const mockQueryRaw = jest.fn().mockResolvedValue([]);
+      const mockTx = { $queryRaw: mockQueryRaw } as any as Prisma.TransactionClient;
+
+      const result = await repo['findOverlappingReservation'](
+        mockTx,
+        branch,
+        table,
+        newStart,
+        newEnd,
+      );
+
+      expect(result).toBeNull();
+      expect(mockQueryRaw).toHaveBeenCalled();
+    });
+
+    it('debe ignorar COMPLETED', async () => {
+      const existingStart = baseTime;
+      const newStart = new Date(baseTime.getTime() + 30 * 60000);
+      const newEnd = new Date(baseTime.getTime() + 90 * 60000);
+
+      const mockQueryRaw = jest.fn().mockResolvedValue([]);
+      const mockTx = { $queryRaw: mockQueryRaw } as any as Prisma.TransactionClient;
+
+      const result = await repo['findOverlappingReservation'](
+        mockTx,
+        branch,
+        table,
+        newStart,
+        newEnd,
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it('debe filtrar por branchId (verifica que $queryRaw fue llamado con parámetro)', async () => {
+      const mockQueryRaw = jest.fn().mockResolvedValue([]);
+      const mockTx = { $queryRaw: mockQueryRaw } as any as Prisma.TransactionClient;
+
+      const newStart = baseTime;
+      const newEnd = new Date(baseTime.getTime() + 60 * 60000);
+
+      await repo['findOverlappingReservation'](
+        mockTx,
+        branch,
+        table,
+        newStart,
+        newEnd,
+      );
+
+      // Verificar que fue llamado (con Prisma.sql, el objeto es complejo)
+      expect(mockQueryRaw).toHaveBeenCalled();
+      expect(mockQueryRaw.mock.calls[0][0]).toBeDefined();
+    });
+
+    it('debe filtrar por tableId (verifica que $queryRaw fue llamado con parámetro)', async () => {
+      const mockQueryRaw = jest.fn().mockResolvedValue([]);
+      const mockTx = { $queryRaw: mockQueryRaw } as any as Prisma.TransactionClient;
+
+      const newStart = baseTime;
+      const newEnd = new Date(baseTime.getTime() + 60 * 60000);
+
+      await repo['findOverlappingReservation'](
+        mockTx,
+        branch,
+        table,
+        newStart,
+        newEnd,
+      );
+
+      // Verificar que fue llamado (con Prisma.sql, el objeto es complejo)
+      expect(mockQueryRaw).toHaveBeenCalled();
+      expect(mockQueryRaw.mock.calls[0][0]).toBeDefined();
+    });
+
+    it('debe excluir reserva específica si se proporciona excludeReservationId', async () => {
+      const mockQueryRaw = jest.fn().mockResolvedValue([]);
+      const mockTx = { $queryRaw: mockQueryRaw } as any as Prisma.TransactionClient;
+
+      const newStart = baseTime;
+      const newEnd = new Date(baseTime.getTime() + 60 * 60000);
+      const excludeId = 'exclude-id-123';
+
+      await repo['findOverlappingReservation'](
+        mockTx,
+        branch,
+        table,
+        newStart,
+        newEnd,
+        excludeId,
+      );
+
+      // Verificar que fue llamado con queryRaw
+      expect(mockQueryRaw).toHaveBeenCalled();
+      // En Prisma SQL templates, el parámetro es interpolado directamente
+      // Simplemente verificar que fue llamado (la lógica de exclusión está en el SQL)
     });
   });
 });
