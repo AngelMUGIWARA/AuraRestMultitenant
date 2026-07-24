@@ -82,6 +82,12 @@
     overflow-x: hidden;
   }
 
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
   body {
     height: 100%;
     background-color: rgb(var(--color-bg));
@@ -213,5 +219,22 @@
     @apply inline-flex items-center gap-2 rounded border border-maison-border bg-surface-2;
     @apply px-3 py-1.5 text-sm font-medium text-maison-cream-muted transition-all;
     @apply hover:bg-surface-3 hover:text-maison-cream;
+  }
+
+  /* Fine paper-grain texture — used behind landing hero for warmth/depth */
+  .grain-overlay {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .grain-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 }
