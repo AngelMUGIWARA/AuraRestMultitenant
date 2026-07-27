@@ -311,6 +311,7 @@ export interface CreateMenuItemPayload {
   description?: string;
   categoryId: string;
   price: number;
+  file?: File;
   imageUrl?: string;
   isAvailable?: boolean;
 }
@@ -318,6 +319,16 @@ export interface CreateMenuItemPayload {
 export interface UpdateMenuItemPricePayload {
   price: number;
   reason?: string;
+}
+
+export interface UpdateMenuItemPayload {
+  name?: string;
+  description?: string;
+  categoryId?: string;
+  price?: number;
+  file?: File;
+  imageUrl?: string;
+  isAvailable?: boolean;
 }
 
 // ─── Category ─────────────────────────────────────────────────────────────────

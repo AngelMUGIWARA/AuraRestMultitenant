@@ -76,11 +76,19 @@ export class MenusService {
         throw new BadRequestException('El archivo debe ser una imagen');
       }
 
-      await this.uploadService.deleteImageByUrl(item.imageUrl);
+      const oldImage = item.imageUrl;
 
       const image = await this.uploadService.uploadImage(file, 'menu-items');
 
       dto.imageUrl = image.secure_url;
+
+      const updated = await this.repo.update(schemaName, id, dto);
+
+      if (oldImage) {
+        await this.uploadService.deleteImageByUrl(oldImage);
+      }
+
+      return updated;
     }
 
     return this.repo.update(schemaName, id, dto);
@@ -103,9 +111,7 @@ export class MenusService {
   }
 
   async remove(schemaName: string, id: string) {
-    const item = await this.findOne(schemaName, id);
-
-    await this.uploadService.deleteImageByUrl(item.imageUrl);
+    await this.findOne(schemaName, id);
 
     return this.repo.remove(schemaName, id);
   }
