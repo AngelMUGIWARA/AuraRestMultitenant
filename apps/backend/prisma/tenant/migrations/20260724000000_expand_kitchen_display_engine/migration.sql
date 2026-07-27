@@ -22,6 +22,9 @@ CREATE TYPE "KitchenPriority" AS ENUM ('LOW', 'NORMAL', 'HIGH', 'URGENT');
 CREATE TYPE "KitchenTicketStatus_new" AS ENUM ('PENDING', 'PREPARING', 'READY', 'DELIVERED', 'CANCELLED');
 
 ALTER TABLE "kitchen_tickets"
+  ALTER COLUMN "status" DROP DEFAULT;
+
+ALTER TABLE "kitchen_tickets"
   ALTER COLUMN "status" TYPE "KitchenTicketStatus_new"
   USING (
     CASE "status"::text
@@ -33,10 +36,16 @@ ALTER TABLE "kitchen_tickets"
     END
   )::"KitchenTicketStatus_new";
 
+ALTER TABLE "kitchen_tickets"
+  ALTER COLUMN "status" SET DEFAULT 'PENDING'::"KitchenTicketStatus_new";
+
 DROP TYPE "KitchenTicketStatus";
 ALTER TYPE "KitchenTicketStatus_new" RENAME TO "KitchenTicketStatus";
 
 -- ── 3. Migrar priority: INTEGER → KitchenPriority enum ──────
+ALTER TABLE "kitchen_tickets"
+  ALTER COLUMN "priority" DROP DEFAULT;
+
 ALTER TABLE "kitchen_tickets"
   ALTER COLUMN "priority" TYPE "KitchenPriority"
   USING (
