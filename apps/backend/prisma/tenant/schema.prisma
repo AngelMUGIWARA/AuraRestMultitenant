@@ -237,6 +237,7 @@ model MenuItem {
   description String?
   price       Decimal        @db.Decimal(10, 2)
   imageUrl    String?        @map("image_url")
+  imagePublicId String?      @map("image_public_id")
   status      MenuItemStatus @default(AVAILABLE)
   isAvailable Boolean        @default(true) @map("is_available")
   categoryId  String         @map("category_id")

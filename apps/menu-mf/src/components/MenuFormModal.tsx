@@ -33,10 +33,12 @@ export function MenuFormModal({ open, item, onClose, onSubmit }: MenuFormModalPr
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setError(null);
+    setSelectedFile(null);
     setForm(
       item
         ? {
@@ -78,7 +80,8 @@ export function MenuFormModal({ open, item, onClose, onSubmit }: MenuFormModalPr
         description: form.description.trim() || undefined,
         categoryId: form.categoryId,
         price,
-        imageUrl: form.imageUrl.trim() || undefined,
+        file: selectedFile ?? undefined,
+        imageUrl: item?.imageUrl ?? undefined,
         isAvailable: form.isAvailable,
       });
       onClose();
@@ -167,15 +170,35 @@ export function MenuFormModal({ open, item, onClose, onSubmit }: MenuFormModalPr
           </label>
         </div>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-maison-cream-muted">URL de imagen</span>
+        <label className="flex flex-col gap-2">
+          <span className="text-xs font-medium text-maison-cream-muted">
+            Imagen
+          </span>
+
           <input
-            type="text"
-            value={form.imageUrl}
-            onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
+            type="file"
+            accept="image/*"
+            onChange={(e) =>
+              setSelectedFile(e.target.files?.[0] ?? null)
+            }
             className="input-base w-full"
-            placeholder="https://..."
           />
+
+          {item?.imageUrl && !selectedFile && (
+            <img
+              src={item.imageUrl}
+              alt={item.name}
+              className="h-32 w-32 rounded-lg object-cover border border-maison-border"
+            />
+          )}
+
+          {selectedFile && (
+            <img
+              src={URL.createObjectURL(selectedFile)}
+              alt="Vista previa"
+              className="h-32 w-32 rounded-lg object-cover border border-maison-border"
+            />
+          )}
         </label>
 
         <label className="flex items-center gap-2">

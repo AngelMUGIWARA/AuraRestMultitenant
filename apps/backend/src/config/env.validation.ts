@@ -152,6 +152,48 @@ export function validateEnv(config: Record<string, unknown>): Record<string, unk
     config.AUTH_REFRESH_THROTTLE_TTL_MS = 60000;
   }
 
+    // ── CLOUDINARY_CLOUD_NAME ──────────────────────────
+  const cloudNameRaw = config.CLOUDINARY_CLOUD_NAME;
+  if (cloudNameRaw === undefined || cloudNameRaw === null) {
+    errors.push('CLOUDINARY_CLOUD_NAME is required');
+  } else {
+    const cloudName = String(cloudNameRaw).trim();
+    config.CLOUDINARY_CLOUD_NAME = cloudName;
+
+    if (cloudName.length === 0) {
+      errors.push('CLOUDINARY_CLOUD_NAME must not be empty');
+    }
+  }
+
+  // ── CLOUDINARY_API_KEY ─────────────────────────────
+  const cloudinaryApiKeyRaw = config.CLOUDINARY_API_KEY;
+  if (cloudinaryApiKeyRaw === undefined || cloudinaryApiKeyRaw === null) {
+    errors.push('CLOUDINARY_API_KEY is required');
+  } else {
+    const cloudinaryApiKey = String(cloudinaryApiKeyRaw).trim();
+    config.CLOUDINARY_API_KEY = cloudinaryApiKey;
+
+    if (cloudinaryApiKey.length === 0) {
+      errors.push('CLOUDINARY_API_KEY must not be empty');
+    }
+  }
+
+  // ── CLOUDINARY_API_SECRET ──────────────────────────
+  const cloudinaryApiSecretRaw = config.CLOUDINARY_API_SECRET;
+  if (
+    cloudinaryApiSecretRaw === undefined ||
+    cloudinaryApiSecretRaw === null
+  ) {
+    errors.push('CLOUDINARY_API_SECRET is required');
+  } else {
+    const cloudinaryApiSecret = String(cloudinaryApiSecretRaw).trim();
+    config.CLOUDINARY_API_SECRET = cloudinaryApiSecret;
+
+    if (cloudinaryApiSecret.length === 0) {
+      errors.push('CLOUDINARY_API_SECRET must not be empty');
+    }
+  }
+
   if (errors.length > 0) {
     throw new InvalidEnvironmentError(
       `Environment validation failed:\n  - ${errors.join('\n  - ')}`,
