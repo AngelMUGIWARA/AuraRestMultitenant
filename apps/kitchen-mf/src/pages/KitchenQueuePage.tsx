@@ -1,16 +1,14 @@
+import { useEffect, useState } from 'react';
 import { getIsReadOnly } from '@maison/auth-client';
 import { useKitchenQueue } from '../hooks/useKitchenQueue';
 import type { KitchenTicket, KitchenTicketStatus } from '@maison/types';
 
 const STATUS_CONFIG: Record<KitchenTicketStatus, { label: string; bg: string; border: string; text: string }> = {
   PENDING:     { label: 'Nuevo',          bg: 'bg-maison-ruby/10',  border: 'border-maison-ruby/40',  text: 'text-maison-ruby' },
-  IN_PROGRESS: { label: 'En preparación', bg: 'bg-maison-amber/10', border: 'border-maison-amber/40', text: 'text-maison-amber' },
+  PREPARING:   { label: 'En preparación', bg: 'bg-maison-amber/10', border: 'border-maison-amber/40', text: 'text-maison-amber' },
   READY:       { label: 'Listo',          bg: 'bg-maison-sage/10',  border: 'border-maison-sage/40',  text: 'text-maison-sage' },
   DELIVERED:   { label: 'Entregado',      bg: 'bg-maison-sage/10',  border: 'border-maison-sage/40',  text: 'text-maison-sage' },
-};
-
-const TYPE_LABEL: Record<string, string> = {
-  dine_in: 'Mesa', takeaway: 'Para llevar', delivery: 'Domicilio',
+  CANCELLED:   { label: 'Cancelado',      bg: 'bg-maison-ruby/10',  border: 'border-maison-ruby/40',  text: 'text-maison-ruby' },
 };
 
 function formatElapsed(seconds: number): string {
@@ -20,30 +18,42 @@ function formatElapsed(seconds: number): string {
   return `${m}m ${s}s`;
 }
 
+// El backend ya no manda elapsedSeconds precalculado; se recalcula aquí
+// desde ticket.createdAt (mismo punto de referencia que usaba el backend
+// antes de que se quitara el campo), refrescado cada segundo.
+function useElapsedSeconds(createdAt: string): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return Math.floor((now - new Date(createdAt).getTime()) / 1000);
+}
+
 function KitchenTicketCard({ ticket, onUpdateStatus, readOnly }: {
   ticket: KitchenTicket;
   onUpdateStatus: (ticketId: string, orderId: string, orderNumber: string, status: KitchenTicketStatus) => void;
   readOnly?: boolean;
 }) {
   const cfg = STATUS_CONFIG[ticket.status];
-  const isOverdue = ticket.elapsedSeconds > 900;
+  const elapsedSeconds = useElapsedSeconds(ticket.createdAt);
+  const isOverdue = elapsedSeconds > 900;
 
   return (
     <article className={`flex flex-col gap-0 rounded-xl border-2 overflow-hidden ${cfg.border} ${cfg.bg}`}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xl font-bold text-maison-cream">#{ticket.orderNumber}</span>
+          <span className="font-mono text-xl font-bold text-maison-cream">#{ticket.orderNumber ?? '—'}</span>
           {ticket.tableNumber && (
             <span className="text-xs bg-white/10 rounded px-1.5 py-0.5 text-maison-cream-dim">
               Mesa {ticket.tableNumber}
             </span>
           )}
-          <span className="text-xs text-maison-cream-dim">{TYPE_LABEL[ticket.type] ?? ticket.type}</span>
         </div>
         <div className={`flex items-center gap-1.5 font-mono text-sm font-medium ${isOverdue ? 'text-maison-ruby animate-pulse' : 'text-maison-cream-dim'}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-3.5 w-3.5" aria-hidden="true"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-          {formatElapsed(ticket.elapsedSeconds)}
+          {formatElapsed(elapsedSeconds)}
         </div>
       </div>
 
@@ -55,7 +65,7 @@ function KitchenTicketCard({ ticket, onUpdateStatus, readOnly }: {
               {item.quantity}×
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-maison-cream">{item.name}</p>
+              <p className="text-sm font-medium text-maison-cream">{item.menuItemName}</p>
               {item.notes && <p className="text-xs text-maison-cream-muted mt-0.5 italic">{item.notes}</p>}
             </div>
           </li>
@@ -74,16 +84,16 @@ function KitchenTicketCard({ ticket, onUpdateStatus, readOnly }: {
         {!readOnly && ticket.status === 'PENDING' && (
           <button
             type="button"
-            onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber, 'IN_PROGRESS')}
+            onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber ?? '', 'PREPARING')}
             className="flex-1 rounded-lg bg-maison-amber/20 border border-maison-amber/50 py-2 text-sm font-medium text-maison-amber hover:bg-maison-amber/30 transition"
           >
             Iniciar preparación
           </button>
         )}
-        {!readOnly && ticket.status === 'IN_PROGRESS' && (
+        {!readOnly && ticket.status === 'PREPARING' && (
           <button
             type="button"
-            onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber, 'READY')}
+            onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber ?? '', 'READY')}
             className="flex-1 rounded-lg bg-maison-sage/20 border border-maison-sage/50 py-2 text-sm font-medium text-maison-sage hover:bg-maison-sage/30 transition"
           >
             Marcar como listo ✓
@@ -109,7 +119,7 @@ export default function KitchenQueuePage() {
   const readOnly = getIsReadOnly();
 
   const newTickets = tickets.filter((t) => t.status === 'PENDING');
-  const inProgressTickets = tickets.filter((t) => t.status === 'IN_PROGRESS');
+  const inProgressTickets = tickets.filter((t) => t.status === 'PREPARING');
   const readyTickets = tickets.filter((t) => t.status === 'READY');
 
   return (

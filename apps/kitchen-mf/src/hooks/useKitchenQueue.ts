@@ -32,7 +32,7 @@ export function useKitchenQueue() {
     let pollTimer: ReturnType<typeof setInterval> | null = null;
 
     try {
-      const wsUrl = (import.meta.env.VITE_KITCHEN_WS_URL as string | undefined) ?? 'ws://localhost:3001/kitchen/queue';
+      const wsUrl = ((import.meta as any).env?.VITE_KITCHEN_WS_URL as string | undefined) ?? 'ws://localhost:3001/kitchen/queue';
       ws = new WebSocket(wsUrl);
       ws.onopen = () => setWsConnected(true);
       ws.onmessage = (e) => {
