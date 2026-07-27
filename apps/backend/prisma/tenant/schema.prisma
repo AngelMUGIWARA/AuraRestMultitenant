@@ -763,7 +763,12 @@ model CashSession {
   movements CashMovement[]
   counts    CashCount[]
 
-  @@unique([registerId, status], name: "cash_session_open_per_register")
+  // "cash_session_open_per_register" (única sesión OPEN por caja) es un
+  // índice único PARCIAL (WHERE status = 'OPEN'), definido a mano en
+  // 20260724010000_add_cash_register_engine. Prisma no puede expresar
+  // índices únicos parciales en su DSL — declararlo aquí como @@unique
+  // hace que Prisma lo crea "faltante" y regenere uno completo (incorrecto)
+  // en cada migrate dev/reset. Se deja fuera del schema a propósito.
   @@index([registerId])
   @@index([status])
   @@index([openedAt])
