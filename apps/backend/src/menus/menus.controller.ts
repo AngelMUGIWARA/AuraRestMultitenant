@@ -58,7 +58,7 @@ export class MenusController {
   constructor(private readonly service: MenusService) {}
 
   @Get()
-  @Roles('OWNER', 'ADMIN', 'MANAGER', 'WAITER', 'CASHIER')
+  @Roles('OWNER', 'MANAGER', 'WAITER', 'CASHIER')
   @ApiOperation({ summary: 'Listar menú', operationId: 'menus_findAll' })
   @ApiResponse({ status: 200, type: [MenuResponseDto] })
   @ApiQuery({
@@ -86,7 +86,7 @@ export class MenusController {
   }
 
   @Get('stats')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({
     summary: 'Estadísticas del menú',
     operationId: 'menus_getStats',
@@ -97,7 +97,7 @@ export class MenusController {
   }
 
   @Get(':id')
-  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER')
+  @Roles('OWNER', 'MANAGER', 'CASHIER')
   @ApiOperation({
     summary: 'Obtener producto por ID',
     operationId: 'menus_findOne',
@@ -109,7 +109,7 @@ export class MenusController {
   }
 
   @Post()
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({
     summary: 'Crear producto',
     operationId: 'menus_create',
@@ -159,7 +159,7 @@ export class MenusController {
   }
 
   @Put(':id')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({
     summary: 'Actualizar producto',
     operationId: 'menus_update',
@@ -212,7 +212,7 @@ export class MenusController {
   }
 
   @Patch(':id/price')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({
     summary: 'Actualizar precio',
     operationId: 'menus_updatePrice',
@@ -227,7 +227,7 @@ export class MenusController {
   }
 
   @Patch(':id/status')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({
     summary: 'Actualizar estado de disponibilidad',
     operationId: 'menus_updateStatus',
@@ -242,7 +242,7 @@ export class MenusController {
   }
 
   @Delete(':id')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({
     summary: 'Eliminar producto (soft-delete)',
     operationId: 'menus_remove',

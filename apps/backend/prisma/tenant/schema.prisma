@@ -18,11 +18,9 @@ datasource db {
 
 enum UserRole {
   OWNER
-  ADMIN
   MANAGER
   WAITER
   CASHIER
-  CHEF
   KITCHEN_STAFF
 }
 

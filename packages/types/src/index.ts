@@ -41,11 +41,9 @@ export type AsyncState<T> = {
 // ver apps/backend/src/system-admin/).
 export type UserRole =
   | "OWNER"
-  | "ADMIN"
   | "MANAGER"
   | "WAITER"
   | "CASHIER"
-  | "CHEF"
   | "KITCHEN_STAFF"
   | "SUPER_ADMIN";
 

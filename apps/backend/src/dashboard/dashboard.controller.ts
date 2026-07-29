@@ -38,7 +38,7 @@ export class DashboardController {
   constructor(private readonly service: DashboardService) {}
 
   @Get('stats')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({ summary: 'Métricas generales del tenant', operationId: 'dashboard_getStats' })
   @ApiResponse({ status: 200, type: DashboardStatsDto })
   getStats(@CurrentTenant() tenant: TenantContext): Promise<DashboardStatsDto> {
@@ -46,7 +46,7 @@ export class DashboardController {
   }
 
   @Get('revenue')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({
     summary: 'Ingresos mensuales (órdenes PAID) de los últimos meses',
     operationId: 'dashboard_getRevenue',
@@ -60,7 +60,7 @@ export class DashboardController {
   }
 
   @Get('activity')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({ summary: 'Actividad reciente del tenant', operationId: 'dashboard_getActivity' })
   @ApiResponse({ status: 200, type: ActivityItemDto, isArray: true })
   getActivity(
@@ -71,7 +71,7 @@ export class DashboardController {
   }
 
   @Get('branches-summary')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({
     summary: 'Resumen por sucursal (ingresos y pedidos del mes en curso)',
     operationId: 'dashboard_getBranchesSummary',

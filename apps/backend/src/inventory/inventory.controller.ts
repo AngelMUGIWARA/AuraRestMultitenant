@@ -56,7 +56,7 @@ export class InventoryController {
   // ── Disponibilidad — única vista para CASHIER / WAITER ───
 
   @Get("availability")
-  @Roles("OWNER", "ADMIN", "MANAGER", "CHEF", "KITCHEN_STAFF", "CASHIER", "WAITER")
+  @Roles("OWNER", "MANAGER", "KITCHEN_STAFF", "CASHIER", "WAITER")
   @ApiOperation({
     summary: "Disponibilidad de platillos (available: true/false)",
     operationId: "inventory_availability",
@@ -69,10 +69,10 @@ export class InventoryController {
     return this.service.getAvailability(tenant.schemaName, branchId);
   }
 
-  // ── Proveedores (solo OWNER / ADMIN) ─────────────────────
+  // ── Proveedores (solo OWNER) ──────────────────────────────
 
   @Get("suppliers")
-  @Roles("OWNER", "ADMIN")
+  @Roles("OWNER")
   @ApiOperation({ summary: "Listar proveedores", operationId: "inventory_suppliers_findAll" })
   @ApiQuery({ name: "isActive", required: false, type: Boolean })
   findSuppliers(
@@ -85,7 +85,7 @@ export class InventoryController {
   }
 
   @Post("suppliers")
-  @Roles("OWNER", "ADMIN")
+  @Roles("OWNER")
   @ApiOperation({ summary: "Crear proveedor", operationId: "inventory_suppliers_create" })
   createSupplier(
     @CurrentTenant() tenant: TenantContext,
@@ -95,7 +95,7 @@ export class InventoryController {
   }
 
   @Put("suppliers/:id")
-  @Roles("OWNER", "ADMIN")
+  @Roles("OWNER")
   @ApiOperation({ summary: "Actualizar proveedor", operationId: "inventory_suppliers_update" })
   updateSupplier(
     @CurrentTenant() tenant: TenantContext,
@@ -106,7 +106,7 @@ export class InventoryController {
   }
 
   @Delete("suppliers/:id")
-  @Roles("OWNER", "ADMIN")
+  @Roles("OWNER")
   @ApiOperation({ summary: "Desactivar proveedor (soft-delete)", operationId: "inventory_suppliers_remove" })
   removeSupplier(@CurrentTenant() tenant: TenantContext, @Param("id") id: string) {
     return this.service.removeSupplier(tenant.schemaName, id);
@@ -115,9 +115,9 @@ export class InventoryController {
   // ── Insumos ──────────────────────────────────────────────
 
   @Get("items")
-  @Roles("OWNER", "ADMIN", "MANAGER", "CHEF", "KITCHEN_STAFF")
+  @Roles("OWNER", "MANAGER", "KITCHEN_STAFF")
   @ApiOperation({
-    summary: "Listar insumos (CHEF/KITCHEN_STAFF sin costos ni proveedor)",
+    summary: "Listar insumos (KITCHEN_STAFF sin costos ni proveedor)",
     operationId: "inventory_items_findAll",
   })
   @ApiQuery({ name: "isActive", required: false, type: Boolean })
@@ -137,7 +137,7 @@ export class InventoryController {
   }
 
   @Get("items/:id")
-  @Roles("OWNER", "ADMIN", "MANAGER", "CHEF", "KITCHEN_STAFF")
+  @Roles("OWNER", "MANAGER", "KITCHEN_STAFF")
   @ApiOperation({ summary: "Obtener insumo por ID", operationId: "inventory_items_findOne" })
   @ApiResponse({ status: 404, description: "Insumo no encontrado" })
   findItem(
@@ -149,7 +149,7 @@ export class InventoryController {
   }
 
   @Post("items")
-  @Roles("OWNER", "ADMIN")
+  @Roles("OWNER")
   @ApiOperation({ summary: "Crear insumo", operationId: "inventory_items_create" })
   createItem(
     @CurrentTenant() tenant: TenantContext,
@@ -159,7 +159,7 @@ export class InventoryController {
   }
 
   @Put("items/:id")
-  @Roles("OWNER", "ADMIN")
+  @Roles("OWNER")
   @ApiOperation({ summary: "Actualizar insumo", operationId: "inventory_items_update" })
   updateItem(
     @CurrentTenant() tenant: TenantContext,
@@ -170,7 +170,7 @@ export class InventoryController {
   }
 
   @Delete("items/:id")
-  @Roles("OWNER", "ADMIN")
+  @Roles("OWNER")
   @ApiOperation({ summary: "Desactivar insumo (soft-delete)", operationId: "inventory_items_remove" })
   removeItem(@CurrentTenant() tenant: TenantContext, @Param("id") id: string) {
     return this.service.removeItem(tenant.schemaName, id);
@@ -179,9 +179,9 @@ export class InventoryController {
   // ── Stock y alertas ──────────────────────────────────────
 
   @Get("stock")
-  @Roles("OWNER", "ADMIN", "MANAGER", "CHEF", "KITCHEN_STAFF")
+  @Roles("OWNER", "MANAGER", "KITCHEN_STAFF")
   @ApiOperation({
-    summary: "Existencias por sucursal (MANAGER/CHEF limitados a las suyas)",
+    summary: "Existencias por sucursal (MANAGER/KITCHEN_STAFF limitados a las suyas)",
     operationId: "inventory_stock_find",
   })
   @ApiQuery({ name: "branchId", required: false })
@@ -194,7 +194,7 @@ export class InventoryController {
   }
 
   @Get("stock/alerts")
-  @Roles("OWNER", "ADMIN", "MANAGER")
+  @Roles("OWNER", "MANAGER")
   @ApiOperation({
     summary: "Alertas de stock bajo mínimo",
     operationId: "inventory_stock_alerts",
@@ -211,7 +211,7 @@ export class InventoryController {
   // ── Movimientos ──────────────────────────────────────────
 
   @Get("movements")
-  @Roles("OWNER", "ADMIN", "MANAGER")
+  @Roles("OWNER", "MANAGER")
   @ApiOperation({
     summary: "Kardex de movimientos (MANAGER limitado a su sucursal)",
     operationId: "inventory_movements_findAll",
@@ -234,12 +234,12 @@ export class InventoryController {
   }
 
   @Post("movements")
-  @Roles("OWNER", "ADMIN", "MANAGER", "CHEF")
+  @Roles("OWNER", "MANAGER", "KITCHEN_STAFF")
   @ApiOperation({
     summary:
       "Registrar movimiento y actualizar stock (permiso fino por tipo: " +
-      "PURCHASE/ADJUSTMENT→OWNER/ADMIN/MANAGER, WASTE→+CHEF, " +
-      "CONSUMPTION→OWNER/ADMIN/CHEF, TRANSFER→OWNER/ADMIN)",
+      "PURCHASE/ADJUSTMENT→OWNER/MANAGER, WASTE→+KITCHEN_STAFF, " +
+      "CONSUMPTION→OWNER/KITCHEN_STAFF, TRANSFER→OWNER)",
     operationId: "inventory_movements_create",
   })
   @ApiResponse({ status: 400, description: "Stock insuficiente o datos inválidos" })
@@ -255,9 +255,9 @@ export class InventoryController {
   // ── Recetas ──────────────────────────────────────────────
 
   @Get("recipes/:menuItemId")
-  @Roles("OWNER", "ADMIN", "MANAGER", "CHEF")
+  @Roles("OWNER", "MANAGER", "KITCHEN_STAFF")
   @ApiOperation({
-    summary: "Receta de un platillo (CHEF sin costos)",
+    summary: "Receta de un platillo (KITCHEN_STAFF sin costos)",
     operationId: "inventory_recipes_findOne",
   })
   findRecipe(
@@ -269,7 +269,7 @@ export class InventoryController {
   }
 
   @Put("recipes/:menuItemId")
-  @Roles("OWNER", "ADMIN")
+  @Roles("OWNER")
   @ApiOperation({
     summary: "Reemplazar receta completa de un platillo",
     operationId: "inventory_recipes_replace",

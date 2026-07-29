@@ -17,7 +17,7 @@ import { VoiceSeedDto } from './dto/voice-seed.dto';
 import { VoiceLoginDto } from './dto/voice-login.dto';
 import { VoiceLoginResponseDto } from './dto/voice-login-response.dto';
 
-const VOICE_ROLES = ['OWNER', 'ADMIN'];
+const VOICE_ROLES = ['OWNER'];
 
 @Injectable()
 export class AuthService {

@@ -21,7 +21,7 @@ export class ReservationsController {
   constructor(private readonly reservationsService: ReservationsService) {}
 
   @Get('stats')
-  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER')
+  @Roles('OWNER', 'MANAGER', 'CASHIER', 'WAITER')
   @ApiOperation({ summary: 'Obtener estadísticas de reservaciones', operationId: 'reservations_getStats' })
   @ApiResponse({ status: 200, description: 'Estadísticas de reservaciones' })
   getStats(
@@ -33,7 +33,7 @@ export class ReservationsController {
   }
 
   @Post()
-  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER')
+  @Roles('OWNER', 'MANAGER', 'CASHIER', 'WAITER')
   @ApiOperation({ summary: 'Crear una nueva reservación', operationId: 'reservations_create' })
   @ApiResponse({ status: 201, type: ReservationResponseDto })
   create(
@@ -46,7 +46,7 @@ export class ReservationsController {
   }
 
   @Get()
-  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER')
+  @Roles('OWNER', 'MANAGER', 'CASHIER', 'WAITER')
   @ApiOperation({ summary: 'Listar todas las reservaciones', operationId: 'reservations_findAll' })
   @ApiResponse({ status: 200, description: 'Lista de reservaciones' })
   findAll(
@@ -58,7 +58,7 @@ export class ReservationsController {
   }
 
   @Get(':id')
-  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER')
+  @Roles('OWNER', 'MANAGER', 'CASHIER', 'WAITER')
   @ApiOperation({ summary: 'Obtener una reservación por ID', operationId: 'reservations_findOne' })
   @ApiResponse({ status: 200, type: ReservationResponseDto })
   @ApiResponse({ status: 404, description: 'Reservación no encontrada' })
@@ -72,7 +72,7 @@ export class ReservationsController {
   }
 
   @Patch(':id/status')
-  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER')
+  @Roles('OWNER', 'MANAGER', 'CASHIER')
   @ApiOperation({ summary: 'Actualizar el estado de una reservación', operationId: 'reservations_updateStatus' })
   @ApiResponse({ status: 200, type: ReservationResponseDto })
   @ApiResponse({ status: 400, description: 'Transición de estado inválida' })

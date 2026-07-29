@@ -33,13 +33,13 @@ export class UserStatsDto {
   })
   pendingUsers: number;
 
-  @ApiProperty({ description: 'Roles OWNER + ADMIN' })
+  @ApiProperty({ description: 'Rol OWNER' })
   adminCount: number;
 
   @ApiProperty({ description: 'Rol MANAGER' })
   managerCount: number;
 
-  @ApiProperty({ description: 'Roles WAITER, CASHIER, CHEF y KITCHEN_STAFF' })
+  @ApiProperty({ description: 'Roles WAITER, CASHIER y KITCHEN_STAFF' })
   staffCount: number;
 
   @ApiProperty({ description: 'Usuarios creados desde el inicio del mes actual' })

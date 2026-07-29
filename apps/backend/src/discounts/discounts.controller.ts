@@ -26,7 +26,7 @@ import { UpdateDiscountDto } from './dto/update-discount.dto';
 export class DiscountsController {
   constructor(private readonly discountsService: DiscountsService) {}
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER')
+  @Roles('MANAGER', 'OWNER')
   @Post()
   @ApiOperation({ summary: 'Crear descuento', operationId: 'discounts_create' })
   @ApiResponse({ status: 201, type: DiscountResponseDto })
@@ -37,7 +37,7 @@ export class DiscountsController {
     return this.discountsService.create(tenant.schemaName, dto);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER')
+  @Roles('MANAGER', 'OWNER')
   @Get()
   @ApiOperation({ summary: 'Listar descuentos', operationId: 'discounts_findAll' })
   @ApiResponse({ status: 200, type: [DiscountResponseDto] })
@@ -45,7 +45,7 @@ export class DiscountsController {
     return this.discountsService.findAll(tenant.schemaName);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER')
   @Get('code/:code')
   @ApiOperation({ summary: 'Buscar descuento por código', operationId: 'discounts_findByCode' })
   @ApiResponse({ status: 200, type: DiscountResponseDto })
@@ -57,7 +57,7 @@ export class DiscountsController {
     return this.discountsService.findByCode(tenant.schemaName, code);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER')
+  @Roles('MANAGER', 'OWNER')
   @Get(':id')
   @ApiOperation({ summary: 'Obtener descuento por ID', operationId: 'discounts_findById' })
   @ApiResponse({ status: 200, type: DiscountResponseDto })
@@ -69,7 +69,7 @@ export class DiscountsController {
     return this.discountsService.findById(tenant.schemaName, id);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER')
+  @Roles('MANAGER', 'OWNER')
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar descuento', operationId: 'discounts_update' })
   @ApiResponse({ status: 200, type: DiscountResponseDto })
@@ -81,7 +81,7 @@ export class DiscountsController {
     return this.discountsService.update(tenant.schemaName, id, dto);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER')
+  @Roles('MANAGER', 'OWNER')
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar descuento', operationId: 'discounts_delete' })
   @ApiResponse({ status: 200, description: 'Descuento eliminado' })

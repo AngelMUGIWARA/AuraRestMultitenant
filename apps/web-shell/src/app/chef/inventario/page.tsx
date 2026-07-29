@@ -24,7 +24,7 @@ export default function ChefInventarioPage() {
   const { selectedBranch } = useBranch();
   const branchId = selectedBranch.id;
 
-  const isChef = role === 'CHEF';
+  const isChef = role === 'KITCHEN_STAFF';
 
   const tabs = useMemo<TabId[]>(
     () => (isChef ? ['existencias', 'disponibilidad', 'recetas'] : ['existencias', 'disponibilidad']),
@@ -192,7 +192,7 @@ export default function ChefInventarioPage() {
         )}
       </section>
 
-      {/* Modal de consumo/merma — solo CHEF */}
+      {/* Modal de consumo/merma — solo KITCHEN_STAFF */}
       {isChef && (
         <MovementModal
           open={movementOpen}

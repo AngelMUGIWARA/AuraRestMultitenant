@@ -10,7 +10,7 @@ import { SystemTenantsRepository } from './system-tenants.repository';
 import { CreateSystemTenantDto } from './dto/create-system-tenant.dto';
 import { CreateTenantResponseDto } from './dto/tenant-response.dto';
 
-const TENANT_ROLE_NAMES = ['OWNER', 'ADMIN', 'MANAGER', 'WAITER', 'CASHIER', 'CHEF', 'KITCHEN_STAFF'];
+const TENANT_ROLE_NAMES = ['OWNER', 'MANAGER', 'WAITER', 'CASHIER', 'KITCHEN_STAFF'];
 
 // apps/backend, tanto en ts-node (src/system-admin/tenants) como compilado (dist/system-admin/tenants)
 const BACKEND_ROOT = path.resolve(__dirname, '../../..');
