@@ -9,6 +9,7 @@ import {
   Put,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -26,12 +27,14 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
+import { TransformInterceptor } from '../common/interceptors/transform.interceptor';
 import { BranchesService } from './branches.service';
 import {
   BranchFiltersDto,
   BranchResponseDto,
   BranchStatsResponseDto,
   CreateBranchDto,
+  PaginatedBranchesDto,
   UpdateBranchDto,
 } from './dto/branch.dto';
 
@@ -39,6 +42,9 @@ import {
 @ApiBearerAuth('JWT')
 @ApiSecurity('TenantSlug')
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
+// Envuelve la respuesta en { data, message, success, timestamp }: es el
+// contrato ApiResponse<T> de @maison/types que consume el frontend.
+@UseInterceptors(TransformInterceptor)
 @Controller('admin/branches')
 export class BranchesController {
   constructor(private readonly service: BranchesService) {}
@@ -54,12 +60,12 @@ export class BranchesController {
   @Get()
   @Roles('OWNER', 'ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Listar sucursales', operationId: 'branches_getAll' })
-  @ApiResponse({ status: 200, type: BranchResponseDto, isArray: true })
+  @ApiResponse({ status: 200, type: PaginatedBranchesDto })
   getAll(
     @CurrentTenant() tenant: TenantContext,
     @Query() filters: BranchFiltersDto,
   ) {
-    return this.service.getAll(tenant.schemaName, {});
+    return this.service.getAll(tenant.schemaName, filters);
   }
 
   @Get(':id')

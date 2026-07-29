@@ -1,7 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { BranchesRepository } from './branches.repository';
 import { ActivityLogService } from '../activity-log/activity-log.service';
-import { CreateBranchDto, UpdateBranchDto } from './dto/branch.dto';
+import {
+  BranchFiltersDto,
+  BranchStatsResponseDto,
+  CreateBranchDto,
+  PaginatedBranchesDto,
+  UpdateBranchDto,
+} from './dto/branch.dto';
 
 @Injectable()
 export class BranchesService {
@@ -10,15 +16,49 @@ export class BranchesService {
     private readonly activityLog: ActivityLogService,
   ) {}
 
-  async getStats(schemaName: string) {
-    return this.repo.getStats(schemaName);
+  /**
+   * Devuelve la forma completa de BranchStats (@maison/types) que consume
+   * SucursalesPage. Los campos que el modelo Branch todavía no representa
+   * (mantenimiento, capacidad y rating) se devuelven en 0: si se omiten,
+   * el frontend los recibe como undefined y las tarjetas muestran NaN.
+   */
+  async getStats(schemaName: string): Promise<BranchStatsResponseDto> {
+    const { total, active } = await this.repo.getStats(schemaName);
+
+    return {
+      totalBranches: total,
+      activeBranches: active,
+      inactiveBranches: total - active,
+      maintenanceBranches: 0,
+      totalCapacity: 0,
+      avgRating: 0,
+    };
   }
 
   async getAll(
     schemaName: string,
-    params: { skip?: number; take?: number } = {},
-  ) {
-    return this.repo.findAll(schemaName, params);
+    filters: BranchFiltersDto = new BranchFiltersDto(),
+  ): Promise<PaginatedBranchesDto> {
+    const { page = 1, limit = 20 } = filters;
+    // 'maintenance' no tiene equivalente en isActive todavía: se ignora en
+    // vez de filtrar (mostrar "sin resultados" sería engañoso — esas
+    // sucursales sí existen, solo no podemos identificarlas como tales).
+    const isActive =
+      filters.status === 'active' ? true : filters.status === 'inactive' ? false : undefined;
+    const { data, total } = await this.repo.findAll(schemaName, {
+      skip: filters.skip,
+      take: limit,
+      search: filters.search,
+      isActive,
+    });
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async getOne(schemaName: string, id: string) {

@@ -13,16 +13,33 @@ export class BranchesRepository {
 
   async findAll(
     schemaName: string,
-    params: { skip?: number; take?: number } = {},
+    params: {
+      skip?: number;
+      take?: number;
+      search?: string;
+      isActive?: boolean;
+    } = {},
   ) {
     const db = this.db(schemaName);
+    const where = {
+      ...(params.isActive !== undefined ? { isActive: params.isActive } : {}),
+      ...(params.search
+        ? {
+            OR: [
+              { name: { contains: params.search, mode: 'insensitive' as const } },
+              { address: { contains: params.search, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    };
     const [data, total] = await Promise.all([
       db.branch.findMany({
+        where,
         skip: params.skip,
         take: params.take,
         orderBy: { createdAt: 'desc' },
       }),
-      db.branch.count(),
+      db.branch.count({ where }),
     ]);
     return { data, total };
   }
@@ -58,10 +75,11 @@ export class BranchesRepository {
   }
 
   async getStats(schemaName: string) {
-    // ejemplo simple: contar sucursales y activas
     const db = this.db(schemaName);
-    const total = await db.branch.count();
-    const active = await db.branch.count({ where: { isActive: true } });
+    const [total, active] = await Promise.all([
+      db.branch.count(),
+      db.branch.count({ where: { isActive: true } }),
+    ]);
     return { total, active };
   }
 }
