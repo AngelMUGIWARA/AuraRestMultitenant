@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient as TenantPrismaClient } from '../generated/prisma-tenant';
+import { assertValidSchemaName } from '../common/utils/schema-name.util';
 
 interface ClientEntry {
   client: TenantPrismaClient;
@@ -46,7 +47,7 @@ export class TenantPrismaService implements OnModuleDestroy {
   // ── Público ──────────────────────────────────────────────
 
   getClient(schemaName: string): TenantPrismaClient {
-    this.assertValidSchemaName(schemaName);
+    assertValidSchemaName(schemaName);
 
     const existing = this.clients.get(schemaName);
     if (existing) {
@@ -96,28 +97,6 @@ export class TenantPrismaService implements OnModuleDestroy {
     this.logger.log(
       `TenantPrismaService cerrado: ${entries.length} clientes, ${rejected} errores`,
     );
-  }
-
-  // ── Privado: validación ──────────────────────────────────
-
-  private assertValidSchemaName(schemaName: string): void {
-    if (schemaName === undefined || schemaName === null) {
-      throw new Error('schemaName es requerido');
-    }
-    if (typeof schemaName !== 'string') {
-      throw new Error(`schemaName debe ser string, recibido ${typeof schemaName}`);
-    }
-    if (schemaName.trim().length === 0) {
-      throw new Error('schemaName no puede estar vacío');
-    }
-    if (/\s/.test(schemaName)) {
-      throw new Error('schemaName no puede contener espacios');
-    }
-    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schemaName)) {
-      throw new Error(
-        `schemaName="${schemaName}" contiene caracteres no válidos para un esquema PostgreSQL`,
-      );
-    }
   }
 
   // ── Privado: creación ────────────────────────────────────

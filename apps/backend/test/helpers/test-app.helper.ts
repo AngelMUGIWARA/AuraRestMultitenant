@@ -1,5 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, NestMiddleware, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { INestApplication } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
@@ -13,29 +14,43 @@ import { Request, Response, NextFunction } from 'express';
 var _sharedTenantDb: Record<string, any>;
 var _mockTenantPrismaService: any;
 var _mockActivityLogRepo: any;
+var _mockPrismaService: any;
 
 jest.mock('../../src/database/prisma.service', () => {
   return {
-    PrismaService: jest.fn(() => ({
-      $connect: jest.fn().mockResolvedValue(undefined),
-      $disconnect: jest.fn().mockResolvedValue(undefined),
-      onModuleInit: jest.fn().mockResolvedValue(undefined),
-      onModuleDestroy: jest.fn().mockResolvedValue(undefined),
-      tenant: {
-        findUnique: jest.fn().mockResolvedValue({
-          id: 'tenant-001',
-          name: 'Test Restaurant',
-          slug: 'test-tenant',
-          schemaName: 'test_tenant_schema',
-          email: 'admin@test.com',
-          phone: '555-0000',
-          address: '123 Test St',
-          logoUrl: null,
-          status: 'ACTIVE',
-          plan: 'PRO',
-        }),
-      },
-    })),
+    PrismaService: jest.fn(() => {
+      const instance = {
+        $connect: jest.fn().mockResolvedValue(undefined),
+        $disconnect: jest.fn().mockResolvedValue(undefined),
+        onModuleInit: jest.fn().mockResolvedValue(undefined),
+        onModuleDestroy: jest.fn().mockResolvedValue(undefined),
+        tenant: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'tenant-001',
+            name: 'Test Restaurant',
+            slug: 'test-tenant',
+            schemaName: 'test_tenant_schema',
+            email: 'admin@test.com',
+            phone: '555-0000',
+            address: '123 Test St',
+            logoUrl: null,
+            status: 'ACTIVE',
+            plan: 'PRO',
+          }),
+          findMany: jest.fn().mockResolvedValue([]),
+          update: jest.fn(),
+        },
+        superAdmin: {
+          findUnique: jest.fn(),
+        },
+        systemAuditLog: {
+          create: jest.fn().mockResolvedValue(undefined),
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      };
+      _mockPrismaService = instance;
+      return instance;
+    }),
   };
 });
 
@@ -76,6 +91,7 @@ import { PaymentsModule } from '../../src/payments/payments.module';
 import { KitchenModule } from '../../src/kitchen/kitchen.module';
 import { ActivityLogModule } from '../../src/activity-log/activity-log.module';
 import { HealthModule } from '../../src/health/health.module';
+import { SystemAdminModule } from '../../src/system-admin/system-admin.module';
 
 const TENANT_SCHEMA = 'test_tenant_schema';
 const TENANT_SLUG = 'test-tenant';
@@ -140,15 +156,21 @@ export function getMockActivityLogRepo() {
   return _mockActivityLogRepo;
 }
 
+export function getMockPrismaService() {
+  return _mockPrismaService;
+}
+
 export async function createIntegrationTestApp(): Promise<{
   app: INestApplication;
   jwtService: JwtService;
   tenantDb: Record<string, any>;
   mockTenantPrisma: any;
   mockActivityLogRepo: any;
+  mockPrisma: any;
 }> {
   const moduleFixture: TestingModule = await Test.createTestingModule({
     imports: [
+      ConfigModule.forRoot({ isGlobal: true }),
       DatabaseModule,
       AuthModule,
       OrdersModule,
@@ -156,6 +178,7 @@ export async function createIntegrationTestApp(): Promise<{
       KitchenModule,
       ActivityLogModule,
       HealthModule,
+      SystemAdminModule,
     ],
     providers: [
       { provide: APP_GUARD, useClass: FakeThrottlerGuard },
@@ -190,6 +213,7 @@ export async function createIntegrationTestApp(): Promise<{
     tenantDb: _sharedTenantDb,
     mockTenantPrisma: getMockTenantPrisma(),
     mockActivityLogRepo: getMockActivityLogRepo(),
+    mockPrisma: getMockPrismaService(),
   };
 }
 
@@ -227,6 +251,26 @@ export function generateRefreshToken(jwtService: JwtService, user: {
       secret: process.env.JWT_REFRESH_SECRET,
       expiresIn: '7d',
     },
+  );
+}
+
+export function generateSystemAdminAccessToken(jwtService: JwtService, superAdmin: {
+  id: string;
+  email: string;
+}): string {
+  return jwtService.sign(
+    { sub: superAdmin.id, email: superAdmin.email, role: 'SUPER_ADMIN' },
+    { secret: process.env.SYSTEM_JWT_SECRET },
+  );
+}
+
+export function generateSystemAdminRefreshToken(jwtService: JwtService, superAdmin: {
+  id: string;
+  email: string;
+}): string {
+  return jwtService.sign(
+    { sub: superAdmin.id, email: superAdmin.email, role: 'SUPER_ADMIN' },
+    { secret: process.env.SYSTEM_JWT_REFRESH_SECRET, expiresIn: '30d' },
   );
 }
 
