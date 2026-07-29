@@ -96,6 +96,23 @@ export const mockCashierUser = {
   branchId: BRANCH_ID,
 };
 
+export const SUPER_ADMIN_ID = 'super-admin-001';
+
+export const mockSuperAdmin = {
+  id: SUPER_ADMIN_ID,
+  name: 'Plataforma Admin',
+  email: 'superadmin@aurarest.dev',
+  passwordHash: ACTIVE_PASSWORD_HASH,
+  status: 'ACTIVE',
+};
+
+export const mockInactiveSuperAdmin = {
+  ...mockSuperAdmin,
+  id: 'super-admin-002',
+  email: 'inactive-superadmin@aurarest.dev',
+  status: 'INACTIVE',
+};
+
 export const mockInactiveUser = {
   id: INACTIVE_USER_ID,
   name: 'Inactive User',

@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { AuthClient } from '@maison/auth-client';
 import { apiClient } from '@maison/api-client';
 import { on } from '@maison/event-bus';
 import { Skeleton } from '@maison/ui';
+
+const CHANGE_PASSWORD_PATH = '/auth/change-password';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -14,6 +16,7 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
@@ -25,8 +28,19 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
       return role !== null && allowedRoles.includes(role);
     }
 
+    // Bloquea el resto de la app hasta que cambie la contraseña temporal —
+    // se aplica sin importar el rol (OWNER recién creado por Super Admin,
+    // o cualquier usuario invitado con mustChangePassword=true).
+    function enforceMustChangePassword(): boolean {
+      if (pathname === CHANGE_PASSWORD_PATH) return false;
+      if (!AuthClient.mustChangePassword()) return false;
+      router.replace(CHANGE_PASSWORD_PATH);
+      return true;
+    }
+
     async function check() {
       if (AuthClient.isAuthenticated() && hasAllowedRole()) {
+        if (enforceMustChangePassword()) return;
         setChecking(false);
         return;
       }
@@ -44,6 +58,7 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
             AuthClient.setRefreshToken(data.refreshToken);
           }
           if (hasAllowedRole()) {
+            if (enforceMustChangePassword()) return;
             setChecking(false);
             return;
           }
@@ -79,7 +94,7 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
       offLogin();
       offExpired();
     };
-  }, [router, allowedRoles]);
+  }, [router, allowedRoles, pathname]);
 
   if (checking) {
     return (

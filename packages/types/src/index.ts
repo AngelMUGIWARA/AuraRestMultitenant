@@ -36,8 +36,21 @@ export type AsyncState<T> = {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-export type UserRole = "super_admin" | "admin" | "manager" | "staff";
-export type UserStatus = "active" | "inactive" | "pending";
+// Coincide con el enum UserRole de apps/backend/prisma/tenant/schema.prisma,
+// más SUPER_ADMIN (operador de plataforma, vive fuera de cualquier tenant —
+// ver apps/backend/src/system-admin/).
+export type UserRole =
+  | "OWNER"
+  | "ADMIN"
+  | "MANAGER"
+  | "WAITER"
+  | "CASHIER"
+  | "CHEF"
+  | "KITCHEN_STAFF"
+  | "SUPER_ADMIN";
+
+// Coincide con el enum UserStatus de apps/backend/prisma/tenant/schema.prisma.
+export type UserStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
 
 export interface AuthUser {
   id: string;
@@ -57,6 +70,8 @@ export interface AuthTokenPayload {
   tenantSchemaName: string;
   branchId?: string;
   tenantId?: string;
+  /** Solo presente en el access token (no en el refresh token). */
+  mustChangePassword?: boolean;
   exp: number;
   iat: number;
 }
@@ -73,24 +88,26 @@ export interface LoginResponse {
 }
 
 // ─── Tenant ───────────────────────────────────────────────────────────────────
+//
+// Coincide con el modelo Tenant real de
+// apps/backend/prisma/system/schema.prisma. Gestionado exclusivamente por el
+// Super Admin (apps/backend/src/system-admin/tenants/) — no por un tenant
+// ADMIN/OWNER individual.
 
-export type TenantStatus = "active" | "inactive" | "suspended" | "trial";
-export type TenantPlan = "starter" | "professional" | "enterprise";
+export type TenantStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
+export type TenantPlan = "FREE" | "BASIC" | "PRO" | "ENTERPRISE";
 
 export interface Tenant {
   id: string;
   name: string;
   slug: string;
+  schemaName: string;
+  email: string;
+  phone?: string | null;
+  address?: string | null;
+  logoUrl?: string | null;
   status: TenantStatus;
   plan: TenantPlan;
-  logoUrl?: string;
-  ownerId: string;
-  ownerEmail: string;
-  restaurantCount: number;
-  activeMenus: number;
-  monthlyRevenue: number;
-  monthlyOrders: number;
-  avgRating: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -101,21 +118,62 @@ export interface TenantFilters {
   search?: string;
   page?: number;
   limit?: number;
-  sortBy?: "createdAt" | "name" | "monthlyRevenue";
-  sortOrder?: "asc" | "desc";
 }
 
 export interface CreateTenantPayload {
   name: string;
   slug: string;
-  plan: TenantPlan;
-  ownerEmail: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  logoUrl?: string;
+  plan?: TenantPlan;
   ownerName: string;
+  ownerEmail: string;
+}
+
+export interface TenantOwnerCredentials {
+  email: string;
+  temporaryPassword: string;
+}
+
+export interface CreateTenantResponse {
+  tenant: Tenant;
+  owner: TenantOwnerCredentials;
 }
 
 export interface SuspendTenantPayload {
-  reason: string;
-  notifyOwner?: boolean;
+  reason?: string;
+}
+
+// ─── Super Admin ──────────────────────────────────────────────────────────────
+
+export interface SuperAdmin {
+  id: string;
+  name: string;
+  email: string;
+  role: "SUPER_ADMIN";
+}
+
+export interface SuperAdminLoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface SuperAdminAuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  superAdmin: SuperAdmin;
+}
+
+export interface SystemAuditLogEntry {
+  id: string;
+  superAdminId: string;
+  action: string;
+  targetType: string;
+  targetId?: string | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
 }
 
 // ─── Branch / Sucursal ────────────────────────────────────────────────────────
