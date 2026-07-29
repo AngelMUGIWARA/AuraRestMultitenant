@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -31,17 +32,25 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
+import { TransformInterceptor } from '../common/interceptors/transform.interceptor';
 import { ChangeUserStatusDto } from './dto/change-user-status.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PaginatedUsersDto, UserResponseDto } from './dto/user-response.dto';
+import {
+  PaginatedUsersDto,
+  UserResponseDto,
+  UserStatsDto,
+} from './dto/user-response.dto';
 import { UsersService } from './users.service';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT')
 @ApiSecurity('TenantSlug')
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
+// Envuelve la respuesta en { data, message, success, timestamp }: es el
+// contrato ApiResponse<T> de @maison/types que consume el frontend.
+@UseInterceptors(TransformInterceptor)
 @Controller('admin/users')
 export class UsersController {
   constructor(private readonly service: UsersService) {}
@@ -55,6 +64,16 @@ export class UsersController {
     @Query() pagination: PaginationDto,
   ): Promise<PaginatedUsersDto> {
     return this.service.findAll(tenant.schemaName, pagination);
+  }
+
+  // Debe declararse ANTES de @Get(':id'): de lo contrario la ruta param
+  // captura "stats" como si fuera un id y responde 404.
+  @Get('stats')
+  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @ApiOperation({ summary: 'Estadísticas de usuarios del tenant' })
+  @ApiResponse({ status: 200, type: UserStatsDto })
+  getStats(@CurrentTenant() tenant: TenantContext): Promise<UserStatsDto> {
+    return this.service.getStats(tenant.schemaName);
   }
 
   @Get(':id')

@@ -217,12 +217,19 @@ export interface BranchFilters {
   limit?: number;
 }
 
+// El backend (CreateBranchDto/UpdateBranchDto) solo persiste name/slug/
+// address/phone — el resto de los campos de Branch (city, email, capacity,
+// managerName, openingHours, status, avgRating) no existen todavía en el
+// modelo Prisma. Se dejan aquí como opcionales para no romper el contrato
+// de Branch, pero enviarlos al crear/editar no tiene efecto: el
+// ValidationPipe global (forbidNonWhitelisted) los descartaría con un 400
+// si no fueran opcionales y se incluyeran en el payload.
 export interface CreateBranchPayload {
   name: string;
-  slug: string;
-  city: string;
-  address: string;
+  slug?: string;
+  address?: string;
   phone?: string;
+  city?: string;
   email?: string;
   capacity?: number;
   managerName?: string;

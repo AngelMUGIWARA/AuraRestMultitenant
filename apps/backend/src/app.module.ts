@@ -39,6 +39,7 @@ import { ReceiptsModule } from './receipts/receipts.module';
 import { CashRegisterModule } from './cash-register/cash-register.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { UploadModule } from './upload/upload.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { UploadModule } from './upload/upload.module';
     InventoryModule,
     PublicModule,
     UploadModule,
+    DashboardModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

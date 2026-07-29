@@ -10,7 +10,11 @@ import * as bcrypt from 'bcrypt';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PaginatedUsersDto, UserResponseDto } from './dto/user-response.dto';
+import {
+  PaginatedUsersDto,
+  UserResponseDto,
+  UserStatsDto,
+} from './dto/user-response.dto';
 import { UsersRepository } from './users.repository';
 import {
   INVITATION_NOTIFIER,
@@ -49,6 +53,34 @@ export class UsersService {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getStats(schemaName: string): Promise<UserStatsDto> {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { total, byStatus, byRole, pending, newSince } =
+      await this.repo.getStats(schemaName, startOfMonth);
+
+    const countByStatus = (status: string) =>
+      byStatus.find((s) => s.status === status)?._count._all ?? 0;
+
+    const countByRole = (...roles: string[]) =>
+      byRole
+        .filter((r) => roles.includes(r.role))
+        .reduce((sum, r) => sum + r._count._all, 0);
+
+    return {
+      totalUsers: total,
+      activeUsers: countByStatus('ACTIVE'),
+      inactiveUsers: countByStatus('INACTIVE'),
+      pendingUsers: pending,
+      adminCount: countByRole('OWNER', 'ADMIN'),
+      managerCount: countByRole('MANAGER'),
+      staffCount: countByRole('WAITER', 'CASHIER', 'CHEF', 'KITCHEN_STAFF'),
+      newThisMonth: newSince,
     };
   }
 
