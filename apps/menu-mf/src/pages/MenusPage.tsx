@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useBranch } from '@maison/ui';
 import { useMenus } from '../hooks/useMenus';
 import { MenuFormModal } from '../components/MenuFormModal';
@@ -173,6 +174,7 @@ function ProductCardSkeleton() {
 
 export default function MenusPage() {
   const { selectedBranch } = useBranch();
+  const navigate = useNavigate();
   const {
     stats, items, isLoading, error, filters, setFilters, refresh,
     createMenuItem, updateMenuItem, removeMenuItem, isMutating,
@@ -191,6 +193,10 @@ export default function MenusPage() {
   function openCreateForm() {
     setEditingItem(null);
     setFormOpen(true);
+  }
+  
+  function openPrintMenu() {
+  navigate('/menus/print');
   }
 
   function openEditForm(item: MenuItem) {
@@ -230,6 +236,14 @@ export default function MenusPage() {
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <button type="button" onClick={refresh} className="btn-ghost" disabled={isLoading}>
             <IconRefresh className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+          </button>
+          <button
+            type="button"
+            onClick={openPrintMenu}
+            className="btn-ghost"
+          >
+            🖨️
+            Imprimir menú
           </button>
           <button type="button" onClick={openCreateForm} className="btn-primary">
             <IconPlus className="h-4 w-4" />

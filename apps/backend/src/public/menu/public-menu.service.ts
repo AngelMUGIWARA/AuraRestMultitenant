@@ -27,10 +27,9 @@ export class PublicMenuService {
       throw new NotFoundException('Tenant no disponible');
     }
 
-    const branch = await this.repo.getBranch(
-      tenant.schemaName,
-      branchIdentifier || 'default',
-    );
+    const branch = branchIdentifier
+      ? await this.repo.getBranch(tenant.schemaName, branchIdentifier)
+      : await this.repo.getDefaultBranch(tenant.schemaName);
 
     if (!branch) {
       throw new NotFoundException('Sucursal no encontrada');
