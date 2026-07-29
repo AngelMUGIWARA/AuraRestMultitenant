@@ -1,15 +1,31 @@
 import { cn, formatCurrency, getInitials } from '../../utils';
 import { Skeleton, SkeletonRow, EmptyState, IconTenants, IconExternalLink } from '@maison/ui';
-import type { Tenant, TenantStatus, TenantPlan } from '@maison/types';
 import { TENANT_STATUS_LABELS, PLAN_LABELS } from '../../constants';
 
-const STATUS_BADGE: Record<TenantStatus, string> = { active: 'badge-active', inactive: 'badge-inactive', suspended: 'badge-suspended', trial: 'badge-trial' };
-const PLAN_BADGE: Record<TenantPlan, string> = { starter: 'badge badge-inactive', professional: 'badge bg-maison-amber-glow text-maison-amber', enterprise: 'badge bg-maison-ruby-bg text-maison-ruby' };
+// Fila de resumen por sucursal en el dashboard de OWNER — no confundir con
+// el Tenant de plataforma (@maison/types), que representa un restaurante
+// completo y solo lo administra el Super Admin.
+type BranchSummaryStatus = keyof typeof TENANT_STATUS_LABELS;
+type BranchSummaryPlan = keyof typeof PLAN_LABELS;
 
-function StatusBadge({ status }: { status: TenantStatus }) { return <span className={cn('badge', STATUS_BADGE[status])}><span className="h-1 w-1 rounded-full bg-current" />{TENANT_STATUS_LABELS[status]}</span>; }
-function PlanBadge({ plan }: { plan: TenantPlan }) { return <span className={PLAN_BADGE[plan]}>{PLAN_LABELS[plan]}</span>; }
+interface BranchSummary {
+  id: string;
+  name: string;
+  ownerEmail: string;
+  status: BranchSummaryStatus;
+  plan: BranchSummaryPlan;
+  monthlyRevenue: number;
+  monthlyOrders: number;
+  avgRating: number;
+}
 
-interface TenantTableProps { tenants?: Tenant[]; isLoading?: boolean; error?: boolean; }
+const STATUS_BADGE: Record<BranchSummaryStatus, string> = { active: 'badge-active', inactive: 'badge-inactive', suspended: 'badge-suspended', trial: 'badge-trial' };
+const PLAN_BADGE: Record<BranchSummaryPlan, string> = { starter: 'badge badge-inactive', professional: 'badge bg-maison-amber-glow text-maison-amber', enterprise: 'badge bg-maison-ruby-bg text-maison-ruby' };
+
+function StatusBadge({ status }: { status: BranchSummaryStatus }) { return <span className={cn('badge', STATUS_BADGE[status])}><span className="h-1 w-1 rounded-full bg-current" />{TENANT_STATUS_LABELS[status]}</span>; }
+function PlanBadge({ plan }: { plan: BranchSummaryPlan }) { return <span className={PLAN_BADGE[plan]}>{PLAN_LABELS[plan]}</span>; }
+
+interface TenantTableProps { tenants?: BranchSummary[]; isLoading?: boolean; error?: boolean; }
 
 const COLUMNS = ['Sucursal', 'Plan', 'Estado', 'Ingresos / mes', 'Pedidos', 'Rating', ''];
 

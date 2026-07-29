@@ -73,19 +73,6 @@ export const OWNER_NAV = [
   },
 ] as const;
 
-export const TENANT_STATUS_LABELS = {
-  active: 'Activo',
-  inactive: 'Inactivo',
-  suspended: 'Suspendido',
-  trial: 'Prueba',
-} as const;
-
-export const PLAN_LABELS = {
-  starter: 'Starter',
-  professional: 'Professional',
-  enterprise: 'Enterprise',
-} as const;
-
 export const STOCK_STATUS_LABELS = {
   ok: 'Normal',
   low: 'Bajo',

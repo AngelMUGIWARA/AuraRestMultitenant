@@ -19,7 +19,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { PromotionsModule } from './promotions/promotions.module';
 import { ReportsModule } from './reports/reports.module';
 import { TablesModule } from './tables/tables.module';
-import { TenantsModule } from './tenants/tenants.module';
+import { SystemAdminModule } from './system-admin/system-admin.module';
 import { UsersModule } from './users/users.module';
 import { TipsModule } from './tips/tips.module';
 import { RefundsModule } from './refunds/refunds.module';
@@ -55,7 +55,7 @@ import { UploadModule } from './upload/upload.module';
     AuthModule,
     BranchesModule,
     UsersModule,
-    TenantsModule,
+    SystemAdminModule,
     ReportsModule,
     OrdersModule,
     TablesModule,
@@ -86,6 +86,7 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(TenantMiddleware)
+      .exclude({ path: 'system-admin/(.*)', method: RequestMethod.ALL })
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }

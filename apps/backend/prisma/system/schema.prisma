@@ -62,3 +62,40 @@ model RefreshSession {
   @@index([expiresAt])
   @@map("refresh_sessions")
 }
+
+// ============================================================
+// SUPER ADMIN — operador de la plataforma, fuera de cualquier tenant.
+// Auth y JWT completamente independientes del flujo de auth por tenant
+// (ver src/system-admin/). Nunca vive en un schema de tenant.
+// ============================================================
+
+enum SuperAdminStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model SuperAdmin {
+  id           String           @id @default(cuid())
+  email        String           @unique
+  passwordHash String           @map("password_hash")
+  name         String
+  status       SuperAdminStatus @default(ACTIVE)
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt      @map("updated_at")
+
+  @@map("super_admins")
+}
+
+model SystemAuditLog {
+  id           String   @id @default(cuid())
+  superAdminId String   @map("super_admin_id")
+  action       String
+  targetType   String   @map("target_type")
+  targetId     String?  @map("target_id")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([superAdminId])
+  @@index([createdAt])
+  @@map("system_audit_logs")
+}

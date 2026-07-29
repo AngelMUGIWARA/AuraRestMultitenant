@@ -95,6 +95,14 @@ export const AuthClient = {
     return (payload?.tenantSlug as string | undefined) ?? null;
   },
 
+  /** true si el usuario debe cambiar su contraseña antes de usar el resto de la app. */
+  mustChangePassword(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
+    const payload = parseJwt(token);
+    return payload?.mustChangePassword ?? false;
+  },
+
   /** Returns Authorization header value or null if not authenticated. */
   getAuthHeader(): string | null {
     const token = this.getToken();
