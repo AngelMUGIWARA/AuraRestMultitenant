@@ -24,7 +24,20 @@ ALTER TABLE "users" ALTER COLUMN "role" SET DEFAULT 'WAITER';
 
 DROP TYPE "UserRole_old";
 
--- 3. Reasignar sucursales (user_branches) que referencian el catálogo
+-- 3. Asegurar que el catálogo "roles" tenga las filas destino antes de
+--    reasignar. Tenants creados antes de que KITCHEN_STAFF se agregara a
+--    TENANT_ROLE_NAMES pueden no tener esa fila sembrada; sin este upsert,
+--    el UPDATE de abajo pone role_id = NULL y viola el NOT NULL de
+--    user_branches.role_id (visto en tenant_ejemplo con datos reales).
+INSERT INTO "roles" ("id", "name", "updated_at")
+VALUES (gen_random_uuid()::text, 'KITCHEN_STAFF', now())
+ON CONFLICT ("name") DO NOTHING;
+
+INSERT INTO "roles" ("id", "name", "updated_at")
+VALUES (gen_random_uuid()::text, 'OWNER', now())
+ON CONFLICT ("name") DO NOTHING;
+
+-- 4. Reasignar sucursales (user_branches) que referencian el catálogo
 --    "roles" con name='ADMIN'/'CHEF' hacia OWNER/KITCHEN_STAFF.
 UPDATE "user_branches"
 SET "role_id" = (SELECT "id" FROM "roles" WHERE "name" = 'OWNER')
@@ -34,7 +47,7 @@ UPDATE "user_branches"
 SET "role_id" = (SELECT "id" FROM "roles" WHERE "name" = 'KITCHEN_STAFF')
 WHERE "role_id" = (SELECT "id" FROM "roles" WHERE "name" = 'CHEF');
 
--- 4. Limpiar permisos y catálogo de roles ADMIN/CHEF.
+-- 5. Limpiar permisos y catálogo de roles ADMIN/CHEF.
 DELETE FROM "role_permissions"
 WHERE "role_id" IN (SELECT "id" FROM "roles" WHERE "name" IN ('ADMIN', 'CHEF'));
 
