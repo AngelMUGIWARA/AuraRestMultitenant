@@ -77,9 +77,9 @@ export class UsersService {
       activeUsers: countByStatus('ACTIVE'),
       inactiveUsers: countByStatus('INACTIVE'),
       pendingUsers: pending,
-      adminCount: countByRole('OWNER', 'ADMIN'),
+      adminCount: countByRole('OWNER'),
       managerCount: countByRole('MANAGER'),
-      staffCount: countByRole('WAITER', 'CASHIER', 'CHEF', 'KITCHEN_STAFF'),
+      staffCount: countByRole('WAITER', 'CASHIER', 'KITCHEN_STAFF'),
       newThisMonth: newSince,
     };
   }

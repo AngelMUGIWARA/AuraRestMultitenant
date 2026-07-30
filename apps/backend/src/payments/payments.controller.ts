@@ -25,7 +25,7 @@ import { PaymentResponseDto } from './dto/payment-response.dto';
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER')
   @Post('process')
   @ApiOperation({ summary: 'Procesar pago de una orden', operationId: 'payments_processPayment' })
   @ApiResponse({ status: 201, type: PaymentResponseDto })
@@ -39,7 +39,7 @@ export class PaymentsController {
     return this.paymentsService.processPayment(tenant.schemaName, dto, userId);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER')
   @Get('order/:orderId')
   @ApiOperation({ summary: 'Obtener pagos de una orden', operationId: 'payments_findByOrder' })
   @ApiResponse({ status: 200, type: [PaymentResponseDto] })

@@ -29,7 +29,7 @@ export class ReservationsService {
 
   /**
    * Valida que el usuario tiene permisos para operar en la rama
-   * OWNER y ADMIN pueden acceder a cualquier rama
+   * OWNER puede acceder a cualquier rama
    * MANAGER, CASHIER, WAITER solo a su rama
    */
   private validateBranchAccess(
@@ -43,8 +43,8 @@ export class ReservationsService {
 
     const userRole = user.role?.toUpperCase() || 'WAITER';
 
-    // OWNER y ADMIN pueden acceder a cualquier rama
-    if (userRole === 'OWNER' || userRole === 'ADMIN') {
+    // OWNER puede acceder a cualquier rama
+    if (userRole === 'OWNER') {
       return true;
     }
 
@@ -128,7 +128,7 @@ export class ReservationsService {
       }
       filters.branchId = user.branchId;
     } else {
-      // OWNER y ADMIN pueden filtrar por rama si lo especifican
+      // OWNER puede filtrar por rama si lo especifica
       if (query.branchId) filters.branchId = query.branchId;
     }
 

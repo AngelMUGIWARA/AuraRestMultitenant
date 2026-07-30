@@ -24,9 +24,8 @@ describe("InventoryService", () => {
   let repo: jest.Mocked<Partial<InventoryRepository>>;
 
   const owner = { id: "u-owner", role: "OWNER" };
-  const admin = { id: "u-admin", role: "ADMIN" };
   const manager = { id: "u-manager", role: "MANAGER" };
-  const chef = { id: "u-chef", role: "CHEF" };
+  const kitchenStaff = { id: "u-kitchen-staff", role: "KITCHEN_STAFF" };
 
   beforeEach(() => {
     repo = {
@@ -51,15 +50,15 @@ describe("InventoryService", () => {
 
   it.each([
     ["PURCHASE", manager, true],
-    ["PURCHASE", chef, false],
-    ["CONSUMPTION", chef, true],
+    ["PURCHASE", kitchenStaff, false],
+    ["CONSUMPTION", kitchenStaff, true],
     ["CONSUMPTION", manager, false],
-    ["WASTE", chef, true],
+    ["WASTE", kitchenStaff, true],
     ["WASTE", manager, true],
-    ["ADJUSTMENT", chef, false],
+    ["ADJUSTMENT", kitchenStaff, false],
     ["ADJUSTMENT", owner, true],
     ["TRANSFER_OUT", manager, false],
-    ["TRANSFER_OUT", admin, true],
+    ["TRANSFER_OUT", owner, true],
   ] as const)(
     "movimiento %s con rol %o → permitido=%s",
     async (type, user, allowed) => {
@@ -77,7 +76,7 @@ describe("InventoryService", () => {
   );
 
   it("PURCHASE aplica delta positivo y CONSUMPTION negativo", async () => {
-    await service.createMovement(SCHEMA, admin, {
+    await service.createMovement(SCHEMA, owner, {
       ...movementDto,
       type: "PURCHASE",
       unitCost: 100,
@@ -87,7 +86,7 @@ describe("InventoryService", () => {
       expect.objectContaining({ stockDelta: 2, totalCost: 200 }),
     );
 
-    await service.createMovement(SCHEMA, chef, {
+    await service.createMovement(SCHEMA, kitchenStaff, {
       ...movementDto,
       type: "CONSUMPTION",
     } as never);
@@ -111,7 +110,7 @@ describe("InventoryService", () => {
 
   it("rechaza supplierId en movimientos que no son PURCHASE", async () => {
     await expect(
-      service.createMovement(SCHEMA, chef, {
+      service.createMovement(SCHEMA, kitchenStaff, {
         ...movementDto,
         type: "WASTE",
         supplierId: "sup-1",
@@ -119,8 +118,8 @@ describe("InventoryService", () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it("CHEF no puede registrar costos aunque los envíe", async () => {
-    await service.createMovement(SCHEMA, chef, {
+  it("KITCHEN_STAFF no puede registrar costos aunque los envíe", async () => {
+    await service.createMovement(SCHEMA, kitchenStaff, {
       ...movementDto,
       type: "CONSUMPTION",
       unitCost: 999,
@@ -164,17 +163,17 @@ describe("InventoryService", () => {
 
   // ── Ocultamiento de costos ───────────────────────────────
 
-  it("CHEF no ve costos ni proveedor en insumos; ADMIN sí", async () => {
-    const chefResult = await service.findItems(SCHEMA, chef);
-    const chefItem = chefResult.data[0] as Record<string, unknown>;
-    expect(chefItem.costPerUnit).toBeUndefined();
-    expect(chefItem.supplier).toBeUndefined();
-    expect(chefItem.supplierId).toBeUndefined();
-    expect(chefItem.name).toBe("Arrachera");
+  it("KITCHEN_STAFF no ve costos ni proveedor en insumos; OWNER sí", async () => {
+    const kitchenStaffResult = await service.findItems(SCHEMA, kitchenStaff);
+    const kitchenStaffItem = kitchenStaffResult.data[0] as Record<string, unknown>;
+    expect(kitchenStaffItem.costPerUnit).toBeUndefined();
+    expect(kitchenStaffItem.supplier).toBeUndefined();
+    expect(kitchenStaffItem.supplierId).toBeUndefined();
+    expect(kitchenStaffItem.name).toBe("Arrachera");
 
-    const adminResult = await service.findItems(SCHEMA, admin);
-    const adminItem = adminResult.data[0] as Record<string, unknown>;
-    expect(adminItem.costPerUnit).toBe(220);
-    expect(adminItem.supplier).toEqual({ id: "sup-1", name: "Carnes del Norte" });
+    const ownerResult = await service.findItems(SCHEMA, owner);
+    const ownerItem = ownerResult.data[0] as Record<string, unknown>;
+    expect(ownerItem.costPerUnit).toBe(220);
+    expect(ownerItem.supplier).toEqual({ id: "sup-1", name: "Carnes del Norte" });
   });
 });

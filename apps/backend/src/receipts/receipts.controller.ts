@@ -41,7 +41,7 @@ import {
 export class ReceiptsController {
   constructor(private readonly receiptsService: ReceiptsService) {}
 
-  @Roles('ADMIN', 'OWNER', 'CASHIER')
+  @Roles('OWNER', 'CASHIER')
   @Post()
   @ApiOperation({
     summary: 'Emitir un comprobante interno para una orden liquidada',
@@ -74,7 +74,7 @@ export class ReceiptsController {
     );
   }
 
-  @Roles('ADMIN', 'OWNER', 'CASHIER', 'MANAGER')
+  @Roles('OWNER', 'CASHIER', 'MANAGER')
   @Get()
   @ApiOperation({
     summary: 'Listar comprobantes con paginación y filtros',
@@ -92,7 +92,7 @@ export class ReceiptsController {
     return this.receiptsService.findAll(tenant.schemaName, query);
   }
 
-  @Roles('ADMIN', 'OWNER', 'CASHIER', 'MANAGER')
+  @Roles('OWNER', 'CASHIER', 'MANAGER')
   @Get('order/:orderId')
   @ApiOperation({
     summary: 'Obtener el comprobante de una orden',
@@ -115,7 +115,7 @@ export class ReceiptsController {
     return this.receiptsService.findByOrder(tenant.schemaName, orderId);
   }
 
-  @Roles('ADMIN', 'OWNER', 'CASHIER', 'MANAGER')
+  @Roles('OWNER', 'CASHIER', 'MANAGER')
   @Get(':id')
   @ApiOperation({
     summary: 'Obtener un comprobante por ID',

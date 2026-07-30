@@ -26,7 +26,7 @@ import { TableResponseDto } from './dto/table-response.dto';
 export class TablesController {
   constructor(private readonly tablesService: TablesService) { }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Get()
   @ApiOperation({ summary: 'Listar mesas', operationId: 'tables_findAll' })
   @ApiResponse({ status: 200, type: [TableResponseDto] })
@@ -37,7 +37,7 @@ export class TablesController {
     return this.tablesService.findAll(tenant.schemaName, branchId);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Get(':id')
   @ApiOperation({ summary: 'Obtener mesa por ID', operationId: 'tables_findById' })
   @ApiResponse({ status: 200, type: TableResponseDto })
@@ -49,7 +49,7 @@ export class TablesController {
     return this.tablesService.findById(tenant.schemaName, id);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')
   @Patch(':id/status')
   @ApiOperation({ summary: 'Actualizar estado de mesa', operationId: 'tables_updateStatus' })
   @ApiResponse({ status: 200, type: TableResponseDto })

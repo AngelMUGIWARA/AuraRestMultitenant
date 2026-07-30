@@ -56,7 +56,7 @@ export class UsersController {
   constructor(private readonly service: UsersService) {}
 
   @Get()
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({ summary: 'Listar usuarios del tenant' })
   @ApiResponse({ status: 200, type: PaginatedUsersDto })
   findAll(
@@ -69,7 +69,7 @@ export class UsersController {
   // Debe declararse ANTES de @Get(':id'): de lo contrario la ruta param
   // captura "stats" como si fuera un id y responde 404.
   @Get('stats')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({ summary: 'Estadísticas de usuarios del tenant' })
   @ApiResponse({ status: 200, type: UserStatsDto })
   getStats(@CurrentTenant() tenant: TenantContext): Promise<UserStatsDto> {
@@ -77,7 +77,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({ summary: 'Obtener un usuario por ID' })
   @ApiResponse({ status: 200, type: UserResponseDto })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
@@ -89,7 +89,7 @@ export class UsersController {
   }
 
   @Post()
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Crear un nuevo usuario' })
   @ApiResponse({ status: 201, type: UserResponseDto })
   @ApiResponse({ status: 409, description: 'Email ya registrado' })
@@ -101,7 +101,7 @@ export class UsersController {
   }
 
   @Post('invite')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Invitar a un usuario (crea cuenta provisional)' })
   @ApiResponse({ status: 201, type: UserResponseDto })
   @ApiResponse({ status: 409, description: 'Email ya registrado' })
@@ -113,7 +113,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Actualizar un usuario' })
   @ApiResponse({ status: 200, type: UserResponseDto })
   update(
@@ -125,7 +125,7 @@ export class UsersController {
   }
 
   @Patch(':id/status')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Cambiar el estado de un usuario' })
   @ApiResponse({ status: 200, type: UserResponseDto })
   changeStatus(
@@ -137,7 +137,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Eliminar un usuario' })
   @ApiResponse({ status: 204 })

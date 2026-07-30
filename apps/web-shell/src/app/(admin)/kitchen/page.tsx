@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AuthClient } from '@maison/auth-client';
 import { RemoteLoader } from '@/components/shell/RemoteLoader';
 
-const CHEF_ROLES = ['CHEF', 'KITCHEN_STAFF'];
+const CHEF_ROLES = ['KITCHEN_STAFF'];
 
 export default function Page() {
   const router = useRouter();

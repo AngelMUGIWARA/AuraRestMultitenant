@@ -50,7 +50,7 @@ export class BranchesController {
   constructor(private readonly service: BranchesService) {}
 
   @Get('stats')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({ summary: 'Estadísticas de sucursales', operationId: 'branches_getStats' })
   @ApiResponse({ status: 200, type: BranchStatsResponseDto })
   getStats(@CurrentTenant() tenant: TenantContext) {
@@ -58,7 +58,7 @@ export class BranchesController {
   }
 
   @Get()
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({ summary: 'Listar sucursales', operationId: 'branches_getAll' })
   @ApiResponse({ status: 200, type: PaginatedBranchesDto })
   getAll(
@@ -69,7 +69,7 @@ export class BranchesController {
   }
 
   @Get(':id')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({ summary: 'Obtener sucursal por ID', operationId: 'branches_getOne' })
   @ApiResponse({ status: 200, type: BranchResponseDto })
   @ApiResponse({ status: 404, description: 'Sucursal no encontrada' })
@@ -78,7 +78,7 @@ export class BranchesController {
   }
 
   @Post()
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Crear sucursal', operationId: 'branches_create' })
   @ApiResponse({ status: 201, type: BranchResponseDto })
   create(
@@ -91,7 +91,7 @@ export class BranchesController {
   }
 
   @Put(':id')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Actualizar sucursal', operationId: 'branches_update' })
   @ApiResponse({ status: 200, type: BranchResponseDto })
   update(
@@ -103,7 +103,7 @@ export class BranchesController {
   }
 
   @Patch(':id/activate')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Activar sucursal', operationId: 'branches_activate' })
   @ApiResponse({ status: 200, type: BranchResponseDto })
   @ApiResponse({ status: 404, description: 'Sucursal no encontrada' })
@@ -117,7 +117,7 @@ export class BranchesController {
   }
 
   @Patch(':id/deactivate')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Desactivar sucursal', operationId: 'branches_deactivate' })
   @ApiResponse({ status: 200, type: BranchResponseDto })
   @ApiResponse({ status: 404, description: 'Sucursal no encontrada' })
@@ -131,7 +131,7 @@ export class BranchesController {
   }
 
   @Delete(':id')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Eliminar sucursal', operationId: 'branches_remove' })
   @ApiResponse({ status: 200, description: 'Sucursal eliminada' })
   @ApiResponse({ status: 404, description: 'Sucursal no encontrada' })

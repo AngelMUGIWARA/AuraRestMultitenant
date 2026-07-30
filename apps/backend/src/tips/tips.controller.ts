@@ -21,7 +21,7 @@ export class TipsController {
   ) {}
 
   @Put(':id/tip')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER, UserRole.WAITER)
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.WAITER)
   @ApiOperation({ summary: 'Apply or update tip for an order' })
   async applyTip(
     @Param('id') id: string,
@@ -35,7 +35,7 @@ export class TipsController {
   }
 
   @Delete(':id/tip')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER, UserRole.WAITER)
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.WAITER)
   @ApiOperation({ summary: 'Remove tip from an order' })
   @HttpCode(HttpStatus.OK)
   async removeTip(
