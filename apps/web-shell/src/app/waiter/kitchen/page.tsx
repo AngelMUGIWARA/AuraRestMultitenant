@@ -1,7 +1,7 @@
 'use client';
 
-import { RemoteLoader } from '@/components/shell/RemoteLoader';
+import { LazyMF } from '@/components/shell/LazyMF';
 
 export default function WaiterKitchenPage() {
-  return <RemoteLoader remote="kitchen_mf" module="./App" />;
+  return <LazyMF remote="kitchen_mf" module="./App" lazy={true} />;
 }

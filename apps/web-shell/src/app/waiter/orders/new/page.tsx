@@ -1,7 +1,7 @@
 'use client';
 
-import { RemoteLoader } from '@/components/shell/RemoteLoader';
+import { LazyMF } from '@/components/shell/LazyMF';
 
 export default function WaiterNewOrderPage() {
-  return <RemoteLoader remote="orders_mf" module="./App" />;
+  return <LazyMF remote="orders_tables_mf" module="./OrdersApp" />;
 }

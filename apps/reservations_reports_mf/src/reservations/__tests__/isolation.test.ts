@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, resolve } from 'path';
 
-const RESERVATIONS_MF_SRC = resolve(__dirname, '../../src');
-const TABLES_MF_SRC = resolve(__dirname, '../../../tables-mf/src');
-const DASHBOARD_MF_SRC = resolve(__dirname, '../../../dashboard-mf/src');
+const RESERVATIONS_MF_SRC = resolve(__dirname, '..');
+const TABLES_MF_SRC = resolve(__dirname, '../../../../orders_tables_mf/src/tables');
+const DASHBOARD_MF_SRC = resolve(__dirname, '../../../../core_auth_dashboard_mf/src/dashboard');
 
 function getAllTsTsxDirectories(dir: string): string[] {
   const results: string[] = [];

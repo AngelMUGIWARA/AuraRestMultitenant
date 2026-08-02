@@ -11,6 +11,7 @@ export default defineConfig({
       exposes: {
         './AuthApp': './src/AppAuth.tsx',
         './DashboardApp': './src/AppDashboard.tsx',
+        './AdminApp': './src/AppAdminDashboard.tsx',
       },
       shared: {
         react: { singleton: true, requiredVersion: '^19' },
