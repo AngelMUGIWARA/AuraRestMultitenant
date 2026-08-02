@@ -21,3 +21,27 @@ export class PaginatedUsersDto {
   @ApiProperty() limit: number;
   @ApiProperty() totalPages: number;
 }
+
+export class UserStatsDto {
+  @ApiProperty() totalUsers: number;
+  @ApiProperty() activeUsers: number;
+  @ApiProperty() inactiveUsers: number;
+
+  @ApiProperty({
+    description:
+      'Usuarios invitados que aún no establecen su propia contraseña (mustChangePassword = true)',
+  })
+  pendingUsers: number;
+
+  @ApiProperty({ description: 'Rol OWNER' })
+  adminCount: number;
+
+  @ApiProperty({ description: 'Rol MANAGER' })
+  managerCount: number;
+
+  @ApiProperty({ description: 'Roles WAITER, CASHIER y KITCHEN_STAFF' })
+  staffCount: number;
+
+  @ApiProperty({ description: 'Usuarios creados desde el inicio del mes actual' })
+  newThisMonth: number;
+}

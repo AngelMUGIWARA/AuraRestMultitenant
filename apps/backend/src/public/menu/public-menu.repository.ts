@@ -29,6 +29,18 @@ export class PublicMenuRepository {
       },
     });
   }
+  async getDefaultBranch(schemaName: string) {
+    const db = this.tenantDb(schemaName);
+
+    return db.branch.findFirst({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+  }
 
   async getCategoriesWithItems(schemaName: string) {
     const db = this.tenantDb(schemaName);

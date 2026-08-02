@@ -19,28 +19,29 @@ import { UpsertRecipeDto } from "./dto/upsert-recipe.dto";
  * (la pertenencia a endpoints se refuerza con @Roles en el controller;
  *  aquí se aplican las reglas finas: tipo de movimiento, sucursal y costos)
  *
- *  OWNER / ADMIN  → acceso total (todas las sucursales, costos, configuración)
+ *  OWNER          → acceso total (todas las sucursales, costos, configuración)
  *  MANAGER        → operación de SU sucursal: stock, entradas, ajustes,
  *                   mermas, movimientos y alertas
- *  CHEF           → consulta operativa sin costos; registra consumo y merma
- *  KITCHEN_STAFF  → consulta de disponibilidad; sin costos ni escritura
+ *  KITCHEN_STAFF  → consulta operativa sin costos; registra consumo y merma
+ *                   (el rol CHEF se retiró y se fusionó aquí — ver
+ *                   ANALISIS_ROLES_Y_TENANTS.md)
  *  CASHIER/WAITER → solo disponibilidad (available: true/false) vía /availability
  */
 
 /** Roles que nunca deben ver costos ni datos de proveedor */
-const COST_RESTRICTED_ROLES = new Set(["CHEF", "KITCHEN_STAFF"]);
+const COST_RESTRICTED_ROLES = new Set(["KITCHEN_STAFF"]);
 
 /** Roles con visibilidad global de sucursales */
-const GLOBAL_BRANCH_ROLES = new Set(["OWNER", "ADMIN"]);
+const GLOBAL_BRANCH_ROLES = new Set(["OWNER"]);
 
 /** Qué roles pueden registrar cada tipo de movimiento */
 const MOVEMENT_ROLE_MATRIX: Record<MovementTypeDto, string[]> = {
-  PURCHASE: ["OWNER", "ADMIN", "MANAGER"],
-  ADJUSTMENT: ["OWNER", "ADMIN", "MANAGER"],
-  WASTE: ["OWNER", "ADMIN", "MANAGER", "CHEF"],
-  CONSUMPTION: ["OWNER", "ADMIN", "CHEF"],
-  TRANSFER_IN: ["OWNER", "ADMIN"],
-  TRANSFER_OUT: ["OWNER", "ADMIN"],
+  PURCHASE: ["OWNER", "MANAGER"],
+  ADJUSTMENT: ["OWNER", "MANAGER"],
+  WASTE: ["OWNER", "MANAGER", "KITCHEN_STAFF"],
+  CONSUMPTION: ["OWNER", "KITCHEN_STAFF"],
+  TRANSFER_IN: ["OWNER"],
+  TRANSFER_OUT: ["OWNER"],
 };
 
 /** Tipos que suman stock; el resto resta (ADJUSTMENT usa direction) */
@@ -59,7 +60,7 @@ export class InventoryService {
 
   /**
    * Sucursales visibles para el usuario:
-   *  - OWNER/ADMIN → null (todas)
+   *  - OWNER → null (todas)
    *  - resto → las asignadas en UserBranch; si no tiene asignaciones se
    *    permite todo (tenants de una sola sucursal que no usan UserBranch)
    */
@@ -101,7 +102,7 @@ export class InventoryService {
     return rest;
   }
 
-  // ── Proveedores (OWNER/ADMIN) ────────────────────────────
+  // ── Proveedores (solo OWNER) ──────────────────────────────
 
   async findSuppliers(schemaName: string, isActive?: boolean) {
     const rows = await this.repo.findSuppliers(schemaName, isActive);

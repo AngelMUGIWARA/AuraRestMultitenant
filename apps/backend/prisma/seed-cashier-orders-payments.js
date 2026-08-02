@@ -82,10 +82,10 @@ async function main() {
             where: { email: 'admin@demo.com' },
             update: {},
             create: {
-                name: 'Laura Admin',
+                name: 'Laura Owner',
                 email: 'admin@demo.com',
                 passwordHash: await hash('Admin123'),
-                role: 'ADMIN',
+                role: 'OWNER',
                 status: 'ACTIVE',
                 phone: '+52 55 1111 0002',
             },
@@ -116,10 +116,10 @@ async function main() {
             where: { email: 'chef@demo.com' },
             update: {},
             create: {
-                name: 'Marco Chef',
+                name: 'Marco Cocina',
                 email: 'chef@demo.com',
                 passwordHash: await hash('Chef1234'),
-                role: 'CHEF',
+                role: 'KITCHEN_STAFF',
                 status: 'ACTIVE',
             },
         }),
@@ -130,11 +130,10 @@ async function main() {
     if (roles.length === 0) {
         await Promise.all([
             tenantDb.role.create({ data: { name: 'OWNER' } }),
-            tenantDb.role.create({ data: { name: 'ADMIN' } }),
             tenantDb.role.create({ data: { name: 'MANAGER' } }),
             tenantDb.role.create({ data: { name: 'WAITER' } }),
             tenantDb.role.create({ data: { name: 'CASHIER' } }),
-            tenantDb.role.create({ data: { name: 'CHEF' } }),
+            tenantDb.role.create({ data: { name: 'KITCHEN_STAFF' } }),
         ]);
     }
     const branch = await tenantDb.branch.upsert({
@@ -259,17 +258,17 @@ async function main() {
         console.log(`⏭️   Orden:    ORD-0001 ya existe, se omitió`);
     }
     console.log(`
-╔══════════════════════════════════════════════════════════════╗
-║              CREDENCIALES DE PRUEBA                          ║
-╠══════════════════════════════════════════════════════════════╣
-║  Header requerido:  x-tenant-slug: demo                      ║
-╠══════════════════════════════════════════════════════════════╣
-║  OWNER    owner@demo.com    / Owner123                       ║
-║  ADMIN    admin@demo.com    / Admin123                       ║
-║  WAITER   mesero@demo.com   / Mesero123                      ║
-║  CASHIER  cajero@demo.com   / Cajero123                      ║
-║  CHEF     chef@demo.com     / Chef1234                       ║
-╚══════════════════════════════════════════════════════════════╝
+╔═════════════════════════════════════════════╗
+║              CREDENCIALES DE PRUEBA         ║
+╠═════════════════════════════════════════════╣
+║  Header requerido:  x-tenant-slug: demo     ║
+╠═════════════════════════════════════════════╣
+║  OWNER          owner@demo.com   / Owner123 ║
+║  OWNER          admin@demo.com   / Admin123 ║
+║  WAITER         mesero@demo.com  / Mesero123║
+║  CASHIER        cajero@demo.com  / Cajero123║
+║  KITCHEN_STAFF  chef@demo.com    / Chef1234 ║
+╚═════════════════════════════════════════════╝
 
   Login:  POST http://localhost:4000/api/v1/auth/login
   Docs:   http://localhost:4000/api/docs

@@ -15,7 +15,7 @@ export class RefundsController {
   constructor(private readonly refundsService: RefundsService) {}
 
   @Post('orders/:orderId/payments/:paymentId/refunds')
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER, UserRole.OWNER)
+  @Roles(UserRole.MANAGER, UserRole.CASHIER, UserRole.OWNER)
   async createRefund(
     @CurrentTenant() schemaName: string,
     @Param('orderId') orderId: string,

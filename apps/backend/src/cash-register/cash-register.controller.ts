@@ -42,7 +42,7 @@ import { ListCashSessionsQueryDto } from './dto/list-cash-sessions-query.dto';
 export class CashRegisterController {
   constructor(private readonly cashRegisterService: CashRegisterService) {}
 
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @Post('registers')
   @ApiOperation({
     summary: 'Crear una caja para una sucursal',
@@ -61,7 +61,7 @@ export class CashRegisterController {
     return this.cashRegisterService.createRegister(tenant.schemaName, dto, userId);
   }
 
-  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER')
+  @Roles('OWNER', 'MANAGER', 'CASHIER')
   @Get('registers')
   @ApiOperation({
     summary: 'Listar cajas',
@@ -75,7 +75,7 @@ export class CashRegisterController {
     return this.cashRegisterService.findRegisters(tenant.schemaName, branchId);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'CASHIER')
+  @Roles('OWNER', 'MANAGER', 'CASHIER')
   @Post('sessions/open')
   @ApiOperation({
     summary: 'Abrir una sesión de caja',
@@ -94,7 +94,7 @@ export class CashRegisterController {
     return this.cashRegisterService.openSession(tenant.schemaName, dto, userId);
   }
 
-  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER')
+  @Roles('OWNER', 'MANAGER', 'CASHIER')
   @Get('sessions/current')
   @ApiOperation({
     summary: 'Obtener la sesión de caja actual (abierta)',
@@ -108,7 +108,7 @@ export class CashRegisterController {
     return this.cashRegisterService.findCurrentSession(tenant.schemaName, branchId);
   }
 
-  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER')
+  @Roles('OWNER', 'MANAGER', 'CASHIER')
   @Get('sessions')
   @ApiOperation({
     summary: 'Listar sesiones de caja con filtros',
@@ -122,7 +122,7 @@ export class CashRegisterController {
     return this.cashRegisterService.findSessions(tenant.schemaName, query);
   }
 
-  @Roles('OWNER', 'ADMIN', 'MANAGER', 'CASHIER')
+  @Roles('OWNER', 'MANAGER', 'CASHIER')
   @Get('sessions/:id')
   @ApiOperation({
     summary: 'Obtener una sesión de caja por ID',
@@ -138,7 +138,7 @@ export class CashRegisterController {
     return this.cashRegisterService.findSessionById(tenant.schemaName, id);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'CASHIER')
+  @Roles('OWNER', 'MANAGER', 'CASHIER')
   @Post('sessions/:id/movements')
   @ApiOperation({
     summary: 'Registrar un movimiento manual (ingreso/egreso/ajuste)',
@@ -159,7 +159,7 @@ export class CashRegisterController {
     return this.cashRegisterService.createMovement(tenant.schemaName, id, dto, userId);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'CASHIER')
+  @Roles('OWNER', 'MANAGER', 'CASHIER')
   @Post('sessions/:id/count')
   @ApiOperation({
     summary: 'Registrar arqueo de caja',
@@ -180,7 +180,7 @@ export class CashRegisterController {
     return this.cashRegisterService.createCount(tenant.schemaName, id, dto, userId);
   }
 
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @Post('sessions/:id/close')
   @ApiOperation({
     summary: 'Cerrar sesión de caja',

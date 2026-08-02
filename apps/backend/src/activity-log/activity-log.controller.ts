@@ -18,7 +18,7 @@ export class ActivityLogController {
   constructor(private readonly service: ActivityLogService) {}
 
   @Get()
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({ summary: 'Listar logs de actividad', operationId: 'activityLogs_findAll' })
   @ApiResponse({ status: 200, type: PaginatedActivityLogResponseDto })
   findAll(

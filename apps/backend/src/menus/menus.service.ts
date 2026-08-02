@@ -1,17 +1,30 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 
-import { MenusRepository, MenuFilters } from "./menus.repository";
+import { MenusRepository, MenuFilters } from './menus.repository';
 
-import { CreateMenuDto } from "./dto/create-menu.dto";
-import { UpdateMenuDto } from "./dto/update-menu.dto";
-import { UpdatePriceDto } from "./dto/update-price.dto";
-import { UpdateStatusDto } from "./dto/update-status.dto";
+import { UploadService } from '../upload/upload.service';
+
+import { CreateMenuDto } from './dto/create-menu.dto';
+import { UpdateMenuDto } from './dto/update-menu.dto';
+import { UpdatePriceDto } from './dto/update-price.dto';
+import { UpdateStatusDto } from './dto/update-status.dto';
 
 @Injectable()
 export class MenusService {
-  constructor(private readonly repo: MenusRepository) {}
+  constructor(
+    private readonly repo: MenusRepository,
+    private readonly uploadService: UploadService,
+  ) {}
 
-  async findAll(schemaName: string, categoryId?: string, filters?: MenuFilters) {
+  async findAll(
+    schemaName: string,
+    categoryId?: string,
+    filters?: MenuFilters,
+  ) {
     const items = await this.repo.findAll(schemaName, categoryId, filters);
     return {
       data: items,
@@ -32,12 +45,51 @@ export class MenusService {
     return item;
   }
 
-  async create(schemaName: string, dto: CreateMenuDto) {
+  async create(
+    schemaName: string,
+    dto: CreateMenuDto,
+    file?: Express.Multer.File,
+  ) {
+    if (file) {
+      if (!file.mimetype.startsWith('image/')) {
+        throw new BadRequestException('El archivo debe ser una imagen');
+      }
+
+      const image = await this.uploadService.uploadImage(file, 'menu-items');
+
+      dto.imageUrl = image.secure_url;
+    }
+
     return this.repo.create(schemaName, dto);
   }
 
-  async update(schemaName: string, id: string, dto: UpdateMenuDto) {
-    await this.findOne(schemaName, id);
+  async update(
+    schemaName: string,
+    id: string,
+    dto: UpdateMenuDto,
+    file?: Express.Multer.File,
+  ) {
+    const item = await this.findOne(schemaName, id);
+
+    if (file) {
+      if (!file.mimetype.startsWith('image/')) {
+        throw new BadRequestException('El archivo debe ser una imagen');
+      }
+
+      const oldImage = item.imageUrl;
+
+      const image = await this.uploadService.uploadImage(file, 'menu-items');
+
+      dto.imageUrl = image.secure_url;
+
+      const updated = await this.repo.update(schemaName, id, dto);
+
+      if (oldImage) {
+        await this.uploadService.deleteImageByUrl(oldImage);
+      }
+
+      return updated;
+    }
 
     return this.repo.update(schemaName, id, dto);
   }

@@ -61,9 +61,8 @@ export const MOVEMENT_META: Record<InventoryMovementType, MovementMeta> = {
 /** Tipos de movimiento que cada rol puede registrar (espejo del backend) */
 export const MOVEMENT_TYPES_BY_ROLE: Record<string, InventoryMovementType[]> = {
   OWNER: ['PURCHASE', 'CONSUMPTION', 'ADJUSTMENT', 'WASTE', 'TRANSFER_IN', 'TRANSFER_OUT'],
-  ADMIN: ['PURCHASE', 'CONSUMPTION', 'ADJUSTMENT', 'WASTE', 'TRANSFER_IN', 'TRANSFER_OUT'],
   MANAGER: ['PURCHASE', 'ADJUSTMENT', 'WASTE'],
-  CHEF: ['CONSUMPTION', 'WASTE'],
+  KITCHEN_STAFF: ['CONSUMPTION', 'WASTE'],
 };
 
 export function formatQty(value: string | number, unit?: InventoryUnit): string {

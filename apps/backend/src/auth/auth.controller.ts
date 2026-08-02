@@ -90,11 +90,11 @@ export class AuthController {
   }
 
   @ApiBearerAuth('JWT')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @Patch('voice-seed')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Configurar la palabra clave de voz para autenticarse ante la skill de Alexa (requiere JWT normal, solo OWNER/ADMIN)',
+    summary: 'Configurar la palabra clave de voz para autenticarse ante la skill de Alexa (requiere JWT normal, solo OWNER)',
     operationId: 'auth_setVoiceSeed',
   })
   @ApiResponse({ status: 200, description: 'Palabra clave de voz configurada' })

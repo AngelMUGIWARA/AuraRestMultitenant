@@ -98,6 +98,91 @@ export function validateEnv(config: Record<string, unknown>): Record<string, unk
     errors.push('JWT_SECRET must be different from JWT_REFRESH_SECRET');
   }
 
+  // ── SYSTEM_JWT_SECRET ─────────────────────────────────────
+  const systemJwtSecretRaw = config.SYSTEM_JWT_SECRET;
+  if (systemJwtSecretRaw === undefined || systemJwtSecretRaw === null) {
+    errors.push('SYSTEM_JWT_SECRET is required');
+  } else {
+    const systemJwtSecret = String(systemJwtSecretRaw).trim();
+    config.SYSTEM_JWT_SECRET = systemJwtSecret;
+    if (systemJwtSecret.length === 0) {
+      errors.push('SYSTEM_JWT_SECRET must not be empty');
+    } else if (isProduction) {
+      if (isPlaceholder(systemJwtSecret)) {
+        errors.push('SYSTEM_JWT_SECRET is insecure for production');
+      }
+      if (systemJwtSecret.length < 32) {
+        errors.push('SYSTEM_JWT_SECRET is too short for production (minimum 32 characters)');
+      }
+    }
+  }
+
+  // ── SYSTEM_JWT_REFRESH_SECRET ─────────────────────────────
+  const systemJwtRefreshRaw = config.SYSTEM_JWT_REFRESH_SECRET;
+  if (systemJwtRefreshRaw === undefined || systemJwtRefreshRaw === null) {
+    errors.push('SYSTEM_JWT_REFRESH_SECRET is required');
+  } else {
+    const systemJwtRefresh = String(systemJwtRefreshRaw).trim();
+    config.SYSTEM_JWT_REFRESH_SECRET = systemJwtRefresh;
+    if (systemJwtRefresh.length === 0) {
+      errors.push('SYSTEM_JWT_REFRESH_SECRET must not be empty');
+    } else if (isProduction) {
+      if (isPlaceholder(systemJwtRefresh)) {
+        errors.push('SYSTEM_JWT_REFRESH_SECRET is insecure for production');
+      }
+      if (systemJwtRefresh.length < 32) {
+        errors.push('SYSTEM_JWT_REFRESH_SECRET is too short for production (minimum 32 characters)');
+      }
+    }
+  }
+
+  if (
+    typeof config.SYSTEM_JWT_SECRET === 'string' &&
+    typeof config.SYSTEM_JWT_REFRESH_SECRET === 'string' &&
+    config.SYSTEM_JWT_SECRET.length > 0 &&
+    config.SYSTEM_JWT_REFRESH_SECRET.length > 0 &&
+    config.SYSTEM_JWT_SECRET === config.SYSTEM_JWT_REFRESH_SECRET
+  ) {
+    errors.push('SYSTEM_JWT_SECRET must be different from SYSTEM_JWT_REFRESH_SECRET');
+  }
+  if (
+    typeof config.SYSTEM_JWT_SECRET === 'string' &&
+    typeof config.JWT_SECRET === 'string' &&
+    config.SYSTEM_JWT_SECRET.length > 0 &&
+    config.JWT_SECRET.length > 0 &&
+    config.SYSTEM_JWT_SECRET === config.JWT_SECRET
+  ) {
+    errors.push('SYSTEM_JWT_SECRET must be different from JWT_SECRET');
+  }
+
+  // ── SYSTEM_JWT_EXPIRES_IN ─────────────────────────────────
+  const systemExpiresInRaw = config.SYSTEM_JWT_EXPIRES_IN;
+  if (systemExpiresInRaw !== undefined && systemExpiresInRaw !== null) {
+    const systemExpiresIn = String(systemExpiresInRaw).trim();
+    config.SYSTEM_JWT_EXPIRES_IN = systemExpiresIn;
+    if (systemExpiresIn.length === 0) {
+      errors.push('SYSTEM_JWT_EXPIRES_IN must not be empty');
+    } else if (!isValidExpiresIn(systemExpiresIn)) {
+      errors.push('SYSTEM_JWT_EXPIRES_IN has an invalid format (expected: e.g. 2h, 30m)');
+    }
+  } else {
+    config.SYSTEM_JWT_EXPIRES_IN = '2h';
+  }
+
+  // ── SYSTEM_JWT_REFRESH_EXPIRES_IN ─────────────────────────
+  const systemRefreshExpiresRaw = config.SYSTEM_JWT_REFRESH_EXPIRES_IN;
+  if (systemRefreshExpiresRaw !== undefined && systemRefreshExpiresRaw !== null) {
+    const systemRefreshExpires = String(systemRefreshExpiresRaw).trim();
+    config.SYSTEM_JWT_REFRESH_EXPIRES_IN = systemRefreshExpires;
+    if (systemRefreshExpires.length === 0) {
+      errors.push('SYSTEM_JWT_REFRESH_EXPIRES_IN must not be empty');
+    } else if (!isValidExpiresIn(systemRefreshExpires)) {
+      errors.push('SYSTEM_JWT_REFRESH_EXPIRES_IN has an invalid format (expected: e.g. 30d)');
+    }
+  } else {
+    config.SYSTEM_JWT_REFRESH_EXPIRES_IN = '30d';
+  }
+
   // ── JWT_EXPIRES_IN ────────────────────────────────────────
   const expiresInRaw = config.JWT_EXPIRES_IN;
   if (expiresInRaw !== undefined && expiresInRaw !== null) {
@@ -150,6 +235,48 @@ export function validateEnv(config: Record<string, unknown>): Record<string, unk
     }
   } else {
     config.AUTH_REFRESH_THROTTLE_TTL_MS = 60000;
+  }
+
+    // ── CLOUDINARY_CLOUD_NAME ──────────────────────────
+  const cloudNameRaw = config.CLOUDINARY_CLOUD_NAME;
+  if (cloudNameRaw === undefined || cloudNameRaw === null) {
+    errors.push('CLOUDINARY_CLOUD_NAME is required');
+  } else {
+    const cloudName = String(cloudNameRaw).trim();
+    config.CLOUDINARY_CLOUD_NAME = cloudName;
+
+    if (cloudName.length === 0) {
+      errors.push('CLOUDINARY_CLOUD_NAME must not be empty');
+    }
+  }
+
+  // ── CLOUDINARY_API_KEY ─────────────────────────────
+  const cloudinaryApiKeyRaw = config.CLOUDINARY_API_KEY;
+  if (cloudinaryApiKeyRaw === undefined || cloudinaryApiKeyRaw === null) {
+    errors.push('CLOUDINARY_API_KEY is required');
+  } else {
+    const cloudinaryApiKey = String(cloudinaryApiKeyRaw).trim();
+    config.CLOUDINARY_API_KEY = cloudinaryApiKey;
+
+    if (cloudinaryApiKey.length === 0) {
+      errors.push('CLOUDINARY_API_KEY must not be empty');
+    }
+  }
+
+  // ── CLOUDINARY_API_SECRET ──────────────────────────
+  const cloudinaryApiSecretRaw = config.CLOUDINARY_API_SECRET;
+  if (
+    cloudinaryApiSecretRaw === undefined ||
+    cloudinaryApiSecretRaw === null
+  ) {
+    errors.push('CLOUDINARY_API_SECRET is required');
+  } else {
+    const cloudinaryApiSecret = String(cloudinaryApiSecretRaw).trim();
+    config.CLOUDINARY_API_SECRET = cloudinaryApiSecret;
+
+    if (cloudinaryApiSecret.length === 0) {
+      errors.push('CLOUDINARY_API_SECRET must not be empty');
+    }
   }
 
   if (errors.length > 0) {

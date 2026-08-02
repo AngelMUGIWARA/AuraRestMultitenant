@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useBranch } from '@maison/ui';
 import { useMenus } from '../hooks/useMenus';
 import { MenuFormModal } from '../components/MenuFormModal';
@@ -48,21 +49,32 @@ function ProductCard({ item, onEdit, onDelete }: ProductCardProps) {
   return (
     <article className="card card-hover flex flex-col gap-0 overflow-hidden">
       {/* Image placeholder */}
-      <div
-        className="relative flex h-32 items-center justify-center"
-        style={{
-          background:
-            'repeating-linear-gradient(45deg, rgb(var(--color-surface-2)) 0 8px, rgb(var(--color-surface-3)) 8px 16px)',
-        }}
-        aria-hidden="true"
-      >
-        <IconMenus className="h-8 w-8 text-maison-cream-dim opacity-40" />
+      <div className="relative h-32 overflow-hidden">
+        {item.imageUrl ? (
+          <img
+            src={item.imageUrl}
+            alt={item.name}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div
+            className="flex h-full items-center justify-center"
+            style={{
+              background:
+                'repeating-linear-gradient(45deg, rgb(var(--color-surface-2)) 0 8px, rgb(var(--color-surface-3)) 8px 16px)',
+            }}
+          >
+            <IconMenus className="h-8 w-8 text-maison-cream-dim opacity-40" />
+          </div>
+        )}
+
         {item.isPopular && (
           <span className="absolute left-2 top-2 flex items-center gap-1 rounded bg-maison-amber-glow px-1.5 py-0.5 text-2xs font-medium text-maison-amber">
             <IconFlame className="h-2.5 w-2.5" />
             Popular
           </span>
         )}
+
         {item.status !== 'AVAILABLE' && (
           <div className="absolute inset-0 flex items-center justify-center bg-surface-0/70">
             <span className={cn('badge', STATUS_BADGE[item.status])}>
@@ -162,6 +174,7 @@ function ProductCardSkeleton() {
 
 export default function MenusPage() {
   const { selectedBranch } = useBranch();
+  const navigate = useNavigate();
   const {
     stats, items, isLoading, error, filters, setFilters, refresh,
     createMenuItem, updateMenuItem, removeMenuItem, isMutating,
@@ -180,6 +193,10 @@ export default function MenusPage() {
   function openCreateForm() {
     setEditingItem(null);
     setFormOpen(true);
+  }
+  
+  function openPrintMenu() {
+  navigate('/menus/print');
   }
 
   function openEditForm(item: MenuItem) {
@@ -219,6 +236,14 @@ export default function MenusPage() {
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <button type="button" onClick={refresh} className="btn-ghost" disabled={isLoading}>
             <IconRefresh className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+          </button>
+          <button
+            type="button"
+            onClick={openPrintMenu}
+            className="btn-ghost"
+          >
+            🖨️
+            Imprimir menú
           </button>
           <button type="button" onClick={openCreateForm} className="btn-primary">
             <IconPlus className="h-4 w-4" />

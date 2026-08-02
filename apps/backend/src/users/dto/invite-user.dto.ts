@@ -3,11 +3,9 @@ import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 
 enum UserRole {
   OWNER = 'OWNER',
-  ADMIN = 'ADMIN',
   MANAGER = 'MANAGER',
   WAITER = 'WAITER',
   CASHIER = 'CASHIER',
-  CHEF = 'CHEF',
   KITCHEN_STAFF = 'KITCHEN_STAFF',
 }
 

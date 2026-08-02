@@ -6,11 +6,9 @@ export const API_BASE_URL =
 
 export const ROLE_ROUTES: Record<string, string> = {
   OWNER:         '/dashboard',
-  ADMIN:         '/admin',
   MANAGER:       '/waiter-orders',
   WAITER:        '/waiter/tables',
   CASHIER:       '/cashier',
-  CHEF:          '/chef/dashboard',
   KITCHEN_STAFF: '/chef/dashboard',
 };
 
@@ -72,19 +70,6 @@ export const OWNER_NAV = [
     ],
   },
 ] as const;
-
-export const TENANT_STATUS_LABELS = {
-  active: 'Activo',
-  inactive: 'Inactivo',
-  suspended: 'Suspendido',
-  trial: 'Prueba',
-} as const;
-
-export const PLAN_LABELS = {
-  starter: 'Starter',
-  professional: 'Professional',
-  enterprise: 'Enterprise',
-} as const;
 
 export const STOCK_STATUS_LABELS = {
   ok: 'Normal',

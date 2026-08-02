@@ -20,7 +20,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:integration": "jest --config ./test/jest-e2e.json --verbose",
-    "seed": "ts-node --project tsconfig.json -r tsconfig-paths/register prisma/seed.ts"
+    "seed": "ts-node --project tsconfig.json -r tsconfig-paths/register prisma/seed.ts",
+    "seed:super-admin": "ts-node --project tsconfig.json -r tsconfig-paths/register prisma/seed-system-admin.ts"
   },
   "prisma": {
     "seed": "ts-node --project tsconfig.json -r tsconfig-paths/register prisma/seed.ts"
@@ -40,6 +41,7 @@
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "cloudinary": "^2.10.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
@@ -56,6 +58,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
+    "@types/multer": "^2.2.0",
     "@types/node": "^24.0.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^7.0.0",

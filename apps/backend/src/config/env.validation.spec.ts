@@ -7,6 +7,14 @@ function baseValid(overrides?: Record<string, unknown>): Record<string, unknown>
     JWT_REFRESH_SECRET: 'b'.repeat(40),
     JWT_EXPIRES_IN: '8h',
     JWT_REFRESH_EXPIRES_IN: '7d',
+    // Los secretos del Super Admin deben ser distintos entre sí y de los
+    // JWT_* de arriba; se usan letras propias para que sigan siendo únicos
+    // aunque un test sobrescriba JWT_SECRET / JWT_REFRESH_SECRET.
+    SYSTEM_JWT_SECRET: 'e'.repeat(64),
+    SYSTEM_JWT_REFRESH_SECRET: 'f'.repeat(64),
+    CLOUDINARY_CLOUD_NAME: 'test_cloud',
+    CLOUDINARY_API_KEY: 'test_api_key',
+    CLOUDINARY_API_SECRET: 'test_api_secret',
     ...overrides,
   };
 }
@@ -402,6 +410,132 @@ describe('validateEnv', () => {
       expect(() =>
         validateEnv(baseValid({ AUTH_REFRESH_THROTTLE_TTL_MS: 'not_a_number' })),
       ).toThrow('AUTH_REFRESH_THROTTLE_TTL_MS must be a positive integer');
+    });
+  });
+
+  describe('SYSTEM_JWT secrets (Super Admin)', () => {
+    it('fails when SYSTEM_JWT_SECRET is missing', () => {
+      const cfg = baseValid();
+      delete cfg.SYSTEM_JWT_SECRET;
+      expect(() => validateEnv(cfg)).toThrow(InvalidEnvironmentError);
+      expect(() => validateEnv(cfg)).toThrow('SYSTEM_JWT_SECRET is required');
+    });
+
+    it('fails when SYSTEM_JWT_REFRESH_SECRET is missing', () => {
+      const cfg = baseValid();
+      delete cfg.SYSTEM_JWT_REFRESH_SECRET;
+      expect(() => validateEnv(cfg)).toThrow(
+        'SYSTEM_JWT_REFRESH_SECRET is required',
+      );
+    });
+
+    it('fails when SYSTEM_JWT_SECRET is only spaces', () => {
+      expect(() => validateEnv(baseValid({ SYSTEM_JWT_SECRET: '   ' }))).toThrow(
+        'SYSTEM_JWT_SECRET must not be empty',
+      );
+    });
+
+    it('fails when both SYSTEM secrets are identical', () => {
+      const same = 'e'.repeat(64);
+      expect(() =>
+        validateEnv(
+          baseValid({
+            SYSTEM_JWT_SECRET: same,
+            SYSTEM_JWT_REFRESH_SECRET: same,
+          }),
+        ),
+      ).toThrow(
+        'SYSTEM_JWT_SECRET must be different from SYSTEM_JWT_REFRESH_SECRET',
+      );
+    });
+
+    it('fails when SYSTEM_JWT_SECRET equals JWT_SECRET', () => {
+      const shared = 'a'.repeat(40);
+      expect(() =>
+        validateEnv(
+          baseValid({ JWT_SECRET: shared, SYSTEM_JWT_SECRET: shared }),
+        ),
+      ).toThrow('SYSTEM_JWT_SECRET must be different from JWT_SECRET');
+    });
+
+    it('rejects a short SYSTEM_JWT_SECRET in production', () => {
+      expect(() =>
+        validateEnv(
+          baseValid({
+            NODE_ENV: 'production',
+            JWT_SECRET: 'c'.repeat(64),
+            JWT_REFRESH_SECRET: 'd'.repeat(64),
+            SYSTEM_JWT_SECRET: 'e'.repeat(31),
+          }),
+        ),
+      ).toThrow('SYSTEM_JWT_SECRET is too short for production');
+    });
+
+    it('rejects a placeholder SYSTEM_JWT_SECRET in production', () => {
+      expect(() =>
+        validateEnv(
+          baseValid({
+            NODE_ENV: 'production',
+            JWT_SECRET: 'c'.repeat(64),
+            JWT_REFRESH_SECRET: 'd'.repeat(64),
+            SYSTEM_JWT_SECRET: 'CAMBIAME_USA_UN_SECRETO_UNICO_AQUI',
+          }),
+        ),
+      ).toThrow('SYSTEM_JWT_SECRET is insecure for production');
+    });
+
+    it('allows placeholders in development', () => {
+      const result = validateEnv(
+        baseValid({ SYSTEM_JWT_SECRET: 'CAMBIAME_USA_UN_SECRETO_UNICO_AQUI' }),
+      );
+      expect(result.SYSTEM_JWT_SECRET).toBe(
+        'CAMBIAME_USA_UN_SECRETO_UNICO_AQUI',
+      );
+    });
+
+    it('applies default expiries when undefined', () => {
+      const cfg = baseValid();
+      delete cfg.SYSTEM_JWT_EXPIRES_IN;
+      delete cfg.SYSTEM_JWT_REFRESH_EXPIRES_IN;
+      const result = validateEnv(cfg);
+      expect(result.SYSTEM_JWT_EXPIRES_IN).toBe('2h');
+      expect(result.SYSTEM_JWT_REFRESH_EXPIRES_IN).toBe('30d');
+    });
+
+    it('rejects a malformed SYSTEM_JWT_EXPIRES_IN', () => {
+      expect(() =>
+        validateEnv(baseValid({ SYSTEM_JWT_EXPIRES_IN: '2 horas' })),
+      ).toThrow('SYSTEM_JWT_EXPIRES_IN has an invalid format');
+    });
+  });
+
+  describe('CLOUDINARY credentials', () => {
+    it.each([
+      'CLOUDINARY_CLOUD_NAME',
+      'CLOUDINARY_API_KEY',
+      'CLOUDINARY_API_SECRET',
+    ])('fails when %s is missing', (key) => {
+      const cfg = baseValid();
+      delete cfg[key];
+      expect(() => validateEnv(cfg)).toThrow(InvalidEnvironmentError);
+      expect(() => validateEnv(cfg)).toThrow(`${key} is required`);
+    });
+
+    it.each([
+      'CLOUDINARY_CLOUD_NAME',
+      'CLOUDINARY_API_KEY',
+      'CLOUDINARY_API_SECRET',
+    ])('fails when %s is only spaces', (key) => {
+      expect(() => validateEnv(baseValid({ [key]: '   ' }))).toThrow(
+        `${key} must not be empty`,
+      );
+    });
+
+    it('trims surrounding whitespace', () => {
+      const result = validateEnv(
+        baseValid({ CLOUDINARY_CLOUD_NAME: '  my_cloud  ' }),
+      );
+      expect(result.CLOUDINARY_CLOUD_NAME).toBe('my_cloud');
     });
   });
 });
