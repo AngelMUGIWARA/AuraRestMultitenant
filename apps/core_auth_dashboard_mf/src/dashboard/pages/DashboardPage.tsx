@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useDashboard } from '../hooks/useDashboard';
 import { formatCurrency, formatNumber, formatPercent } from '../utils';
 import { StatCard, StatCardSkeleton, IconTenants, IconUsers, IconDollarSign, IconStar, IconPlus } from '@maison/ui';
 import { RevenueChartSection } from '../components/dashboard/RevenueChartSection';
 import { ActivityFeed } from '../components/dashboard/ActivityFeed';
 import { TenantTable } from '../components/dashboard/TenantTable';
+import { BranchModal } from '../components/branches/BranchModal';
 
 export default function DashboardPage() {
-  const { data, isLoading, error } = useDashboard();
+  const { data, isLoading, error, refresh } = useDashboard();
+  const [modalOpen, setModalOpen] = useState(false);
   const stats = data?.stats;
   const hasError = !!error;
   return (
@@ -16,7 +19,7 @@ export default function DashboardPage() {
           <h1 className="font-display text-3xl font-medium text-maison-cream leading-none">Dashboard</h1>
           <p className="mt-1.5 text-sm text-maison-cream-muted">Vista general de la plataforma</p>
         </div>
-        <button type="button" className="inline-flex items-center gap-2 rounded border border-maison-amber bg-maison-amber-glow px-4 py-2 text-sm font-medium text-maison-amber transition-colors hover:bg-maison-amber hover:text-surface-0 self-start sm:self-auto">
+        <button type="button" onClick={() => setModalOpen(true)} className="inline-flex items-center gap-2 rounded border border-maison-amber bg-maison-amber-glow px-4 py-2 text-sm font-medium text-maison-amber transition-colors hover:bg-maison-amber hover:text-surface-0 self-start sm:self-auto">
           <IconPlus className="h-4 w-4" />Nueva Sucursal
         </button>
       </header>
@@ -36,10 +39,12 @@ export default function DashboardPage() {
         </div>
       </section>
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_380px]">
-        <RevenueChartSection isLoading={isLoading} error={hasError} />
+        <RevenueChartSection data={data?.revenue} isLoading={isLoading} error={hasError} />
         <ActivityFeed items={data?.activity} isLoading={isLoading} error={hasError} />
       </div>
-      <TenantTable isLoading={isLoading} error={hasError} />
+      <TenantTable tenants={data?.branches} isLoading={isLoading} error={hasError} />
+
+      <BranchModal open={modalOpen} onClose={() => setModalOpen(false)} onSuccess={refresh} />
     </div>
   );
 }

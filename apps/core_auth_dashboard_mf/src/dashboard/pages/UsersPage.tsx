@@ -3,9 +3,18 @@ import { formatNumber, cn } from '../utils';
 import { StatCard, StatCardSkeleton, SkeletonRow, EmptyState, IconUsers } from '@maison/ui';
 import type { UserRole, UserStatus } from '@maison/types';
 
-const ROLE_LABEL: Record<UserRole, string> = { super_admin: 'Super Admin', admin: 'Admin', manager: 'Gerente', staff: 'Staff' };
-const STATUS_BADGE: Record<UserStatus, string> = { active: 'badge-active', inactive: 'badge-inactive', pending: 'badge bg-maison-gold-bg text-maison-gold' };
-const STATUS_LABEL: Record<UserStatus, string> = { active: 'Activo', inactive: 'Inactivo', pending: 'Pendiente' };
+const ROLE_LABEL: Record<UserRole, string> = {
+  OWNER: 'Dueño',
+  ADMIN: 'Admin',
+  MANAGER: 'Gerente',
+  WAITER: 'Mesero',
+  CASHIER: 'Cajero',
+  CHEF: 'Chef',
+  KITCHEN_STAFF: 'Cocina',
+  SUPER_ADMIN: 'Super Admin',
+};
+const STATUS_BADGE: Record<UserStatus, string> = { ACTIVE: 'badge-active', INACTIVE: 'badge-inactive', SUSPENDED: 'badge bg-maison-gold-bg text-maison-gold' };
+const STATUS_LABEL: Record<UserStatus, string> = { ACTIVE: 'Activo', INACTIVE: 'Inactivo', SUSPENDED: 'Suspendido' };
 
 export default function UsersPage() {
   const { stats, users, isLoading, error } = useUsers();

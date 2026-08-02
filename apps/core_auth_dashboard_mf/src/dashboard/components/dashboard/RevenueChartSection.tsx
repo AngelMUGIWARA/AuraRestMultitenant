@@ -31,7 +31,8 @@ export function RevenueChartSection({ data, isLoading = false, error = false }: 
         {!isLoading && !error && data && data.length > 0 && (
           <div className="flex flex-col gap-3">
             <div className="flex items-end gap-1.5 h-48 px-1">
-              {data.map((point) => { const max = Math.max(...data.map((d) => d.revenue)); return <div key={point.month} className="flex-1 flex flex-col justify-end group cursor-pointer" title={`${point.month}: $${point.revenue.toLocaleString('es-MX')}`}><div className="w-full rounded-sm bg-maison-amber-dim group-hover:bg-maison-amber transition-colors" style={{ height: `${max > 0 ? (point.revenue / max) * 100 : 0}%` }} /></div>; })}
+              {/* h-full en el wrapper: con items-end su altura sería auto y el height % de la barra colapsaría a 0 */}
+              {data.map((point) => { const max = Math.max(...data.map((d) => d.revenue)); return <div key={point.month} className="flex-1 h-full flex flex-col justify-end group cursor-pointer" title={`${point.month}: $${point.revenue.toLocaleString('es-MX')}`}><div className="w-full rounded-sm bg-maison-amber-dim group-hover:bg-maison-amber transition-colors" style={{ height: `${max > 0 ? (point.revenue / max) * 100 : 0}%` }} /></div>; })}
             </div>
             <div className="flex gap-1.5">{data.map((point) => <p key={point.month} className="flex-1 text-center font-mono text-2xs text-maison-cream-dim">{point.month}</p>)}</div>
           </div>

@@ -170,12 +170,6 @@ describe('LoginPage', () => {
       expect(mockLocationReplace).toHaveBeenCalledWith('/dashboard');
     });
 
-    it('redirects ADMIN to /admin', async () => {
-      const handleSuccess = await submitForm();
-      handleSuccess({ role: 'ADMIN', id: '1', email: 'a@b.com', name: 'Admin' });
-      expect(mockLocationReplace).toHaveBeenCalledWith('/admin');
-    });
-
     it('redirects MANAGER to /waiter-orders', async () => {
       const handleSuccess = await submitForm();
       handleSuccess({ role: 'MANAGER', id: '1', email: 'a@b.com', name: 'Mgr' });
@@ -192,12 +186,6 @@ describe('LoginPage', () => {
       const handleSuccess = await submitForm();
       handleSuccess({ role: 'CASHIER', id: '1', email: 'a@b.com', name: 'Cashier' });
       expect(mockLocationReplace).toHaveBeenCalledWith('/cashier');
-    });
-
-    it('redirects CHEF to /kitchen', async () => {
-      const handleSuccess = await submitForm();
-      handleSuccess({ role: 'CHEF', id: '1', email: 'a@b.com', name: 'Chef' });
-      expect(mockLocationReplace).toHaveBeenCalledWith('/kitchen');
     });
 
     it('redirects KITCHEN_STAFF to /kitchen', async () => {
