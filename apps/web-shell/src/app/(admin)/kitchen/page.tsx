@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthClient } from '@maison/auth-client';
-import { RemoteLoader } from '@/components/shell/RemoteLoader';
+import { LazyMF } from '@/components/shell/LazyMF';
 
 const CHEF_ROLES = ['CHEF', 'KITCHEN_STAFF'];
 
@@ -20,5 +20,5 @@ export default function Page() {
   }, [router]);
 
   if (!allowed) return null;
-  return <RemoteLoader remote="kitchen_mf" module="./App" />;
+  return <LazyMF remote="kitchen_mf" module="./App" lazy={true} />;
 }

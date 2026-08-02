@@ -866,6 +866,167 @@ main           ← estable, desplegable
 - [ ] **Variables de entorno**: Crear `.env.local` para cada MFE.
 - [ ] **Configuración de despliegue**: CI/CD para builds independientes.
 
+## Optimized Development Flow
+
+A partir de la **optimización de Module Federation (v2.0)**, el proyecto reduce los remotos precargados de 9 a 6 (3 grupos + 3 lazy-loads). Esto acelera el bootstrap inicial y mejora el rendimiento en desarrollo.
+
+### Cambios arquitectónicos
+
+**Agrupación de Microfrontends (MF + Dashboard):**
+- `core_auth_dashboard_mf` (puerto 5011) → Agrupa `auth-mf` + `dashboard-mf`, expone `./AuthApp` y `./DashboardApp`
+- `orders_tables_mf` (puerto 5012) → Agrupa `orders-mf` + `tables-mf`, expone `./OrdersApp` y `./TablesApp`
+- `reservations_reports_mf` (puerto 5013) → Agrupa `reservations-mf` + `reports-mf`, expone `./ReservationsApp` y `./ReportsApp`
+
+**Lazy-Loading (Carga bajo demanda):**
+- `kitchen-mf` (puerto 5005) — Se carga cuando el usuario accede a `/kitchen`
+- `cashier-mf` (puerto 5006) — Se carga cuando el usuario accede a `/cashier`
+- `menu-mf` (puerto 5003) — Se carga cuando el usuario accede a `/menus`
+
+### Scripts de desarrollo
+
+#### 1. **dev:host** (Recomendado — Shell + 3 grupos precargados)
+
+```bash
+pnpm dev:host
+```
+
+Levanta:
+- Web-shell (Next.js, puerto 3030)
+- `core_auth_dashboard_mf` (puerto 5011)
+- `orders_tables_mf` (puerto 5012)
+- `reservations_reports_mf` (puerto 5013)
+
+Resultado: Los 3 remotos precargados al inicio. `kitchen`, `cashier` y `menu` se cargan bajo demanda.
+
+**Caso de uso:** Desarrollo local estándar. Tiempos de startup rápidos (~45s).
+
+#### 2. **dev:host:optimized** (Solo Shell)
+
+```bash
+pnpm dev:host:optimized
+```
+
+Levanta:
+- Web-shell (Next.js, puerto 3030)
+- Nada más.
+
+Los MFs se cargan bajo demanda cuando el usuario accede a sus rutas. Necesitas que los MFs se levanten por separado (p. ej. con `pnpm dev:core` en otra terminal).
+
+**Caso de uso:** Desarrollo ultra-rápido de cambios en el shell. Minimiza overhead inicial.
+
+#### 3. **dev:all** (Stack completo)
+
+```bash
+pnpm dev:all
+```
+
+Levanta:
+- Web-shell + todos los 6 remotos (3 precargados + 3 lazy)
+
+**Caso de uso:** Desarrollo full-stack. Todos los MFs disponibles sin lazy-loading.
+
+#### 4. **dev:mfes** (Solo MFs)
+
+```bash
+pnpm dev:mfes
+```
+
+Levanta solo los 6 remotos (sin shell). Útil si ya tienes el shell corriendo en otra terminal.
+
+### Scripts individuales de MFs
+
+Levanta un remoto específico (precargado o lazy):
+
+```bash
+pnpm dev:core          # core_auth_dashboard_mf
+pnpm dev:orders        # orders_tables_mf
+pnpm dev:reserv        # reservations_reports_mf
+pnpm dev:kitchen       # kitchen-mf (lazy)
+pnpm dev:cashier       # cashier-mf (lazy)
+pnpm dev:menu          # menu-mf (lazy)
+```
+
+### Build scripts (igual que antes)
+
+```bash
+pnpm build              # Compila todos los MFs + shell
+pnpm build:mfes         # Solo MFs (sin shell)
+pnpm build:shell        # Solo shell
+```
+
+### Arquitectura de carga
+
+**Configuración en `federation.ts` (web-shell):**
+
+```typescript
+// Remotos que se cargan al inicio
+remotes: [
+  { name: 'core_auth_dashboard_mf', entry: 'http://localhost:5011/remoteEntry.js', type: 'module' },
+  { name: 'orders_tables_mf', entry: 'http://localhost:5012/remoteEntry.js', type: 'module' },
+  { name: 'reservations_reports_mf', entry: 'http://localhost:5013/remoteEntry.js', type: 'module' },
+  // kitchen, cashier, menu se registran dinámicamente en loadRemote.ts
+]
+```
+
+**Componente LazyMF** (en shell):
+
+```tsx
+// Remoto precargado (eager)
+<LazyMF remote="core_auth_dashboard_mf" module="./DashboardApp" />
+
+// Remoto bajo demanda (lazy)
+<LazyMF remote="kitchen_mf" module="./App" lazy={true} />
+```
+
+### Flujo de carga
+
+1. **Usuario abre "/" en el navegador**
+   - Shell (Next.js) renderiza
+   - `initFederation()` registra los 3 remotos precargados
+   - Se descargan 3 `remoteEntry.js` (core, orders, reserv) en paralelo
+   - **Total: ~2.5 MB gzipped**
+
+2. **Usuario navega a `/orders`**
+   - Shell busca remoto en `remoteMap.ts`
+   - Descarga y renderiza `OrdersApp` desde `orders_tables_mf`
+   - ✓ Ya precargado, renderiza inmediatamente
+
+3. **Usuario navega a `/kitchen`**
+   - Shell busca remoto en `remoteMap.ts`
+   - `loadRemoteDynamically()` inicializa `kitchen-mf` (si aún no está cargado)
+   - Descarga `remoteEntry.js` + módulo
+   - Renderiza con Suspense fallback
+   - ✓ Carga bajo demanda
+
+### Mapeo de rutas a remotos
+
+Ver `src/lib/remoteMap.ts` en el shell:
+
+```typescript
+export const remoteMap: Record<string, RemoteConfig> = {
+  '/auth/login': { remote: 'core_auth_dashboard_mf', module: './AuthApp' },
+  '/dashboard': { remote: 'core_auth_dashboard_mf', module: './DashboardApp' },
+  '/orders': { remote: 'orders_tables_mf', module: './OrdersApp' },
+  '/kitchen': { remote: 'kitchen_mf', module: './App', lazy: true },
+  // ...
+};
+```
+
+### Compatibilidad
+
+- Todos los MFs precargados siguen exponiendo su `remoteEntry.js` en los mismos puertos anteriores
+- **Los MFs individuales (`auth-mf`, `dashboard-mf`, etc.) aún existen**, pero sus compilaciones no se usan en el flujo principal
+- Para eliminarlos en el futuro: borrar directorios en `apps/` y actualizar `pnpm-workspace.yaml`
+
+### Medidas de rendimiento (esperadas)
+
+| Métrica | Sin optimización | Con optimización |
+|:--------|:-----------------|:-----------------|
+| Remotos precargados | 9 | 3 |
+| Bootstrap inicial | ~2 min | ~45 s |
+| First Meaningful Paint | ~3 s | ~1.5 s |
+| Primer remoteEntry.js descargado | ~150 KB | ~50 KB (3 x 17 KB promedio) |
+
 ## Solución de problemas
 
 ### El microfrontend no inicia

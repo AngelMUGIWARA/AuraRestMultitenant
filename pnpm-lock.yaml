@@ -466,6 +466,67 @@ importers:
         specifier: ^6.3.0
         version: 6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0)
 
+  apps/core_auth_dashboard_mf:
+    dependencies:
+      '@maison/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@maison/auth-client':
+        specifier: workspace:*
+        version: link:../../packages/auth-client
+      '@maison/event-bus':
+        specifier: workspace:*
+        version: link:../../packages/event-bus
+      '@maison/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@maison/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      react:
+        specifier: 19.2.4
+        version: 19.2.4
+      react-dom:
+        specifier: 19.2.4
+        version: 19.2.4(react@19.2.4)
+      react-router-dom:
+        specifier: ^7.0.0
+        version: 7.18.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+    devDependencies:
+      '@module-federation/vite':
+        specifier: ^1.0.0
+        version: 1.16.8(typescript@5.9.3)(vite@6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0))
+      '@testing-library/jest-dom':
+        specifier: ^6.9.1
+        version: 6.10.0(@testing-library/dom@10.4.1)
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@testing-library/user-event':
+        specifier: ^14.6.1
+        version: 14.6.1(@testing-library/dom@10.4.1)
+      '@types/react':
+        specifier: ^19
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.17)
+      '@vitejs/plugin-react':
+        specifier: ^4.4.0
+        version: 4.7.0(vite@6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0))
+      jsdom:
+        specifier: ^29.1.1
+        version: 29.1.1(@noble/hashes@1.8.0)
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+      vite:
+        specifier: ^6.3.0
+        version: 6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0)
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@24.13.2)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0))
+
   apps/dashboard-mf:
     dependencies:
       '@maison/api-client':
@@ -665,6 +726,73 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@24.13.2)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0))
 
+  apps/orders_tables_mf:
+    dependencies:
+      '@maison/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@maison/auth-client':
+        specifier: workspace:*
+        version: link:../../packages/auth-client
+      '@maison/event-bus':
+        specifier: workspace:*
+        version: link:../../packages/event-bus
+      '@maison/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@maison/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      konva:
+        specifier: ^10.3.0
+        version: 10.3.0
+      react:
+        specifier: 19.2.4
+        version: 19.2.4
+      react-dom:
+        specifier: 19.2.4
+        version: 19.2.4(react@19.2.4)
+      react-konva:
+        specifier: ^19.2.5
+        version: 19.2.5(@types/react@19.2.17)(konva@10.3.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react-router-dom:
+        specifier: ^7.0.0
+        version: 7.18.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+    devDependencies:
+      '@module-federation/vite':
+        specifier: ^1.0.0
+        version: 1.16.8(typescript@5.9.3)(vite@6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0))
+      '@testing-library/jest-dom':
+        specifier: ^6.9.1
+        version: 6.10.0(@testing-library/dom@10.4.1)
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@testing-library/user-event':
+        specifier: ^14.6.1
+        version: 14.6.1(@testing-library/dom@10.4.1)
+      '@types/react':
+        specifier: ^19
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.17)
+      '@vitejs/plugin-react':
+        specifier: ^4.4.0
+        version: 4.7.0(vite@6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0))
+      jsdom:
+        specifier: ^29.1.1
+        version: 29.1.1(@noble/hashes@1.8.0)
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+      vite:
+        specifier: ^6.3.0
+        version: 6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0)
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@24.13.2)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0))
+
   apps/reports-mf:
     dependencies:
       '@maison/api-client':
@@ -743,6 +871,73 @@ importers:
       react-router-dom:
         specifier: ^7.0.0
         version: 7.18.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+    devDependencies:
+      '@module-federation/vite':
+        specifier: ^1.0.0
+        version: 1.16.8(typescript@5.9.3)(vite@6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0))
+      '@testing-library/jest-dom':
+        specifier: ^6.9.1
+        version: 6.10.0(@testing-library/dom@10.4.1)
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@testing-library/user-event':
+        specifier: ^14.6.1
+        version: 14.6.1(@testing-library/dom@10.4.1)
+      '@types/react':
+        specifier: ^19
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.17)
+      '@vitejs/plugin-react':
+        specifier: ^4.4.0
+        version: 4.7.0(vite@6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0))
+      jsdom:
+        specifier: ^29.1.1
+        version: 29.1.1(@noble/hashes@1.8.0)
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+      vite:
+        specifier: ^6.3.0
+        version: 6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0)
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@24.13.2)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@6.4.3(@types/node@24.13.2)(jiti@2.7.0)(terser@5.48.0))
+
+  apps/reservations_reports_mf:
+    dependencies:
+      '@maison/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@maison/auth-client':
+        specifier: workspace:*
+        version: link:../../packages/auth-client
+      '@maison/event-bus':
+        specifier: workspace:*
+        version: link:../../packages/event-bus
+      '@maison/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@maison/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      jspdf:
+        specifier: ^4.2.1
+        version: 4.2.1
+      react:
+        specifier: 19.2.4
+        version: 19.2.4
+      react-dom:
+        specifier: 19.2.4
+        version: 19.2.4(react@19.2.4)
+      react-router-dom:
+        specifier: ^7.0.0
+        version: 7.18.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      recharts:
+        specifier: ^3.8.1
+        version: 3.9.0(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react-is@19.2.7)(react@19.2.4)(redux@5.0.1)
     devDependencies:
       '@module-federation/vite':
         specifier: ^1.0.0

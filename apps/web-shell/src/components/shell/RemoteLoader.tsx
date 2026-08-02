@@ -3,10 +3,17 @@
 import { useEffect, useState, type ComponentType } from 'react';
 import { loadRemote } from '@module-federation/runtime';
 import { initFederation, MFE_URLS } from '@/lib/federation';
+import { loadRemoteDynamically } from '@/lib/loadRemote';
 import { Skeleton } from '@maison/ui';
 
 // Maps remote names to their expected URL for the error message
 const REMOTE_PORT_MAP: Record<string, string> = {
+  // Nuevos remotos agrupados
+  core_auth_dashboard_mf:  MFE_URLS.core_auth_dashboard,
+  orders_tables_mf:        MFE_URLS.orders_tables,
+  reservations_reports_mf: MFE_URLS.reservations_reports,
+
+  // Legacy (para compatibilidad)
   auth_mf:         MFE_URLS.auth,
   dashboard_mf:    MFE_URLS.dashboard,
   menu_mf:         MFE_URLS.menu,
@@ -19,13 +26,15 @@ const REMOTE_PORT_MAP: Record<string, string> = {
 };
 
 interface RemoteLoaderProps {
-  /** Nombre del remote registrado en initFederation (ej. 'dashboard_mf') */
+  /** Nombre del remote registrado en initFederation (ej. 'core_auth_dashboard_mf') */
   remote: string;
-  /** Path expuesto en el vite.config del MFE (ej. './App') */
+  /** Path expuesto en el vite.config del MFE (ej. './AuthApp') */
   module: string;
+  /** Si es true, carga el remoto bajo demanda (lazy loading) */
+  lazy?: boolean;
 }
 
-export function RemoteLoader({ remote, module: mod }: RemoteLoaderProps) {
+export function RemoteLoader({ remote, module: mod, lazy = false }: RemoteLoaderProps) {
   const [Component, setComponent] = useState<ComponentType | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,18 +42,32 @@ export function RemoteLoader({ remote, module: mod }: RemoteLoaderProps) {
     initFederation();
 
     const expose = mod.startsWith('./') ? mod.slice(2) : mod;
-    loadRemote<{ default: ComponentType }>(`${remote}/${expose}`)
-      .then((m) => {
-        if (m?.default) {
-          setComponent(() => m.default);
+    const loadModule = async () => {
+      try {
+        let module: { default: ComponentType };
+
+        let moduleExport: { default?: ComponentType } | null;
+
+        if (lazy) {
+          // Cargar dinámicamente para remotos lazy
+          moduleExport = await loadRemoteDynamically(remote, `./${expose}`);
+        } else {
+          // Cargar de manera estándar para remotos eager
+          moduleExport = await loadRemote<{ default?: ComponentType }>(`${remote}/${expose}`);
+        }
+
+        if (moduleExport?.default) {
+          setComponent(() => moduleExport.default as ComponentType);
         } else {
           setError(`${remote}/${mod} no exporta un componente default.`);
         }
-      })
-      .catch((err: unknown) => {
+      } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Error al cargar el módulo remoto.');
-      });
-  }, [remote, mod]);
+      }
+    };
+
+    loadModule();
+  }, [remote, mod, lazy]);
 
   if (error) {
     const expectedUrl = REMOTE_PORT_MAP[remote] ?? 'desconocido';

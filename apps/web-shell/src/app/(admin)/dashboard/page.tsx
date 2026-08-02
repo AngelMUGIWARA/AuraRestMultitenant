@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthClient } from '@maison/auth-client';
-import { RemoteLoader } from '@/components/shell/RemoteLoader';
+import { LazyMF } from '@/components/shell/LazyMF';
 import { ROLE_ROUTES } from '@/lib/constants';
 
 export default function DashboardPage() {
@@ -20,5 +20,5 @@ export default function DashboardPage() {
   }, [router]);
 
   if (!allowed) return null;
-  return <RemoteLoader remote="dashboard_mf" module="./App" />;
+  return <LazyMF remote="core_auth_dashboard_mf" module="./DashboardApp" />;
 }

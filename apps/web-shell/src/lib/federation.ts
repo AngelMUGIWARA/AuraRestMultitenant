@@ -36,6 +36,12 @@ function installViteReactPreamble() {
 }
 
 export const MFE_URLS = {
+  // Remotos que se cargan al inicio (eager)
+  core_auth_dashboard:   process.env.NEXT_PUBLIC_MFE_CORE_AUTH_DASHBOARD_URL ?? 'http://localhost:5011/remoteEntry.js',
+  orders_tables:         process.env.NEXT_PUBLIC_MFE_ORDERS_TABLES_URL ?? 'http://localhost:5012/remoteEntry.js',
+  reservations_reports:  process.env.NEXT_PUBLIC_MFE_RESERVATIONS_REPORTS_URL ?? 'http://localhost:5013/remoteEntry.js',
+
+  // Remotos legacy (para backwards compatibility si se usan directamente)
   auth:         process.env.NEXT_PUBLIC_MFE_AUTH_URL         ?? 'http://localhost:5001/remoteEntry.js',
   dashboard:    process.env.NEXT_PUBLIC_MFE_DASHBOARD_URL    ?? 'http://localhost:5002/remoteEntry.js',
   menu:         process.env.NEXT_PUBLIC_MFE_MENU_URL         ?? 'http://localhost:5003/remoteEntry.js',
@@ -56,16 +62,12 @@ export function initFederation(): void {
 
   init({
     name: 'web_shell',
+    // Solo cargar los remotos eagerly (al inicio)
     remotes: [
-      { name: 'auth_mf',         entry: MFE_URLS.auth,         type: 'module' },
-      { name: 'dashboard_mf',    entry: MFE_URLS.dashboard,    type: 'module' },
-      { name: 'menu_mf',         entry: MFE_URLS.menu,         type: 'module' },
-      { name: 'orders_mf',       entry: MFE_URLS.orders,       type: 'module' },
-      { name: 'kitchen_mf',      entry: MFE_URLS.kitchen,      type: 'module' },
-      { name: 'cashier_mf',      entry: MFE_URLS.cashier,      type: 'module' },
-      { name: 'reports_mf',      entry: MFE_URLS.reports,      type: 'module' },
-      { name: 'reservations_mf', entry: MFE_URLS.reservations, type: 'module' },
-      { name: 'tables_mf',       entry: MFE_URLS.tables,       type: 'module' },
+      { name: 'core_auth_dashboard_mf', entry: MFE_URLS.core_auth_dashboard,  type: 'module' },
+      { name: 'orders_tables_mf',       entry: MFE_URLS.orders_tables,        type: 'module' },
+      { name: 'reservations_reports_mf', entry: MFE_URLS.reservations_reports, type: 'module' },
+      // Los remotos lazy (kitchen, cashier, menu) se registran bajo demanda en loadRemote.ts
     ],
     shared: {
       react: {

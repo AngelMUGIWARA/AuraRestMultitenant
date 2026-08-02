@@ -10,6 +10,9 @@ packages:
   - 'apps/reports-mf'
   - 'apps/reservations-mf'
   - 'apps/tables-mf'
+  - 'apps/core_auth_dashboard_mf'
+  - 'apps/orders_tables_mf'
+  - 'apps/reservations_reports_mf'
 
   - 'packages/*'
   - 'dev-cli'
