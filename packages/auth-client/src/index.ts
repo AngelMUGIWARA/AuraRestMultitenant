@@ -1,4 +1,5 @@
 import type { AuthUser, AuthTokenPayload } from '@maison/types';
+import { emit } from '@maison/event-bus';
 
 const TOKEN_KEY = 'maison_access_token';
 const REFRESH_KEY = 'maison_refresh_token';
@@ -49,6 +50,45 @@ export const AuthClient = {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
+  },
+
+  /**
+   * Realiza logout completo: limpia tokens, estado local y emite evento global.
+   * Todos los microfrontends escuchan 'auth:logout' y limpian su propio estado.
+   * @param apiLogout - Si true, también notifica al backend (opcional)
+   */
+  async logout(apiLogout = false): Promise<void> {
+    if (typeof window === 'undefined') return;
+
+    // Opcionalmente, notificar al backend (ej. para invalidar refresh token en blacklist)
+    if (apiLogout) {
+      try {
+        const rt = this.getRefreshToken();
+        // No esperar a que responda, limpiamos de todas formas
+        fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: rt ?? '' }),
+        }).catch(() => {});
+      } catch {
+        // Ignorar errores de API
+      }
+    }
+
+    // 1. Limpiar tokens
+    this.clearTokens();
+
+    // 2. Limpiar otros datos de sesión del localStorage que pudieran estar en el app
+    // (branch seleccionada, preferencias, caché del usuario, etc.)
+    localStorage.removeItem('maison_branch_id');
+    localStorage.removeItem('maison_branch_name');
+    localStorage.removeItem('maison_tenant_slug');
+    localStorage.removeItem('maison_sidebar_collapsed');
+    localStorage.removeItem('maison_session_id');
+
+    // 3. Emitir evento global para que todos los MFEs limpien su estado
+    // Esto también dispara el evento en AuthGuard que redirige a /login
+    emit('auth:logout', undefined);
   },
 
   // ── Session state ────────────────────────────────────────────────────────
