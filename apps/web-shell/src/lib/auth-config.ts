@@ -3,40 +3,40 @@ import type { UserRole } from '@maison/types';
 /**
  * Matriz de autorización centralizada: qué roles pueden acceder a qué rutas.
  * Se usa en AuthGuard para redirigir/rechazar antes de renderizar contenido.
+ * Nota: ADMIN en URLs (/admin/*) corresponde al rol SUPER_ADMIN.
  */
 export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
-  // OWNER dashboard
-  '/dashboard': ['OWNER'],
-  '/reportes': ['OWNER', 'ADMIN', 'SUPER_ADMIN'],
-  '/reservaciones': ['OWNER', 'ADMIN', 'SUPER_ADMIN'],
-  '/sucursales': ['OWNER', 'ADMIN', 'SUPER_ADMIN'],
-  '/settings': ['OWNER', 'ADMIN', 'SUPER_ADMIN'],
-  '/inventario': ['OWNER', 'ADMIN', 'SUPER_ADMIN'],
+  // OWNER dashboard (roles: OWNER, SUPER_ADMIN)
+  '/dashboard': ['OWNER', 'SUPER_ADMIN'],
+  '/reportes': ['OWNER', 'SUPER_ADMIN'],
+  '/reservaciones': ['OWNER', 'SUPER_ADMIN'],
+  '/sucursales': ['OWNER', 'SUPER_ADMIN'],
+  '/settings': ['OWNER', 'SUPER_ADMIN'],
+  '/inventario': ['OWNER', 'SUPER_ADMIN'],
 
-  // ADMIN dashboard (accessible by ADMIN and SUPER_ADMIN)
-  '/dashboard-admin': ['ADMIN', 'SUPER_ADMIN'],
-  '/admin': ['ADMIN', 'SUPER_ADMIN'],
-  '/admin/dashboard': ['ADMIN', 'SUPER_ADMIN'],
-  '/admin/settings': ['ADMIN', 'SUPER_ADMIN'],
-  '/admin/users': ['ADMIN', 'SUPER_ADMIN'],
-  '/categorias': ['ADMIN', 'SUPER_ADMIN'],
-  '/menus': ['ADMIN', 'SUPER_ADMIN'],
-  '/orders': ['ADMIN', 'SUPER_ADMIN'],
-  '/analytics': ['ADMIN', 'SUPER_ADMIN'],
-  '/integrations': ['ADMIN', 'SUPER_ADMIN'],
-  '/logs': ['ADMIN', 'SUPER_ADMIN'],
+  // ADMIN dashboard (SUPER_ADMIN only)
+  '/dashboard-admin': ['SUPER_ADMIN'],
+  '/admin': ['SUPER_ADMIN'],
+  '/admin/dashboard': ['SUPER_ADMIN'],
+  '/admin/settings': ['SUPER_ADMIN'],
+  '/admin/users': ['SUPER_ADMIN'],
+  '/categorias': ['SUPER_ADMIN'],
+  '/menus': ['SUPER_ADMIN'],
+  '/orders': ['SUPER_ADMIN', 'MANAGER'],
+  '/analytics': ['SUPER_ADMIN'],
+  '/integrations': ['SUPER_ADMIN'],
+  '/logs': ['SUPER_ADMIN'],
 
-  // CASHIER
-  '/cashier': ['CASHIER', 'OWNER', 'ADMIN', 'SUPER_ADMIN'],
+  // CASHIER (CASHIER y SUPER_ADMIN)
+  '/cashier': ['CASHIER', 'SUPER_ADMIN'],
 
-  // KITCHEN
-  '/kitchen': ['KITCHEN_STAFF', 'OWNER', 'ADMIN', 'SUPER_ADMIN'],
-  '/chef/dashboard': ['KITCHEN_STAFF', 'OWNER', 'ADMIN', 'SUPER_ADMIN'],
+  // KITCHEN (KITCHEN_STAFF y SUPER_ADMIN)
+  '/kitchen': ['KITCHEN_STAFF', 'SUPER_ADMIN'],
+  '/chef/dashboard': ['KITCHEN_STAFF', 'SUPER_ADMIN'],
 
   // WAITER / Manager - órdenes
-  '/orders': ['WAITER', 'MANAGER', 'OWNER', 'ADMIN', 'SUPER_ADMIN'],
-  '/waiter-orders': ['WAITER', 'MANAGER', 'OWNER', 'ADMIN', 'SUPER_ADMIN'],
-  '/waiter/tables': ['WAITER', 'MANAGER', 'OWNER', 'ADMIN', 'SUPER_ADMIN'],
+  '/waiter-orders': ['WAITER', 'MANAGER', 'SUPER_ADMIN'],
+  '/waiter/tables': ['WAITER', 'MANAGER', 'SUPER_ADMIN'],
 
   // Rutas públicas (no requieren autenticación)
   '/auth/login': [],

@@ -6,7 +6,6 @@ export const API_BASE_URL =
 
 export const ROLE_ROUTES: Record<string, string> = {
   OWNER:         '/dashboard',
-  ADMIN:         '/admin/dashboard',
   SUPER_ADMIN:   '/admin/dashboard',
   MANAGER:       '/waiter-orders',
   WAITER:        '/waiter/tables',
