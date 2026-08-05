@@ -22,7 +22,44 @@ export default defineConfig({
       },
     }),
   ],
-  build: { target: 'esnext' },
-  server: { port: 5006, cors: true, headers: { 'Access-Control-Allow-Origin': '*' } },
-  preview: { port: 5006, cors: true, headers: { 'Access-Control-Allow-Origin': '*' } },
+
+  // ✅ OPTIMIZACIÓN DE BUILD
+  build: {
+    target: 'esnext',
+    minify: 'terser',
+    terserOptions: {
+      compress: { drop_console: false, unused: true, passes: 2 },
+      mangle: true,
+    },
+    sourcemap: false,
+    cssCodeSplit: true,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: { 'react-libs': ['react', 'react-dom'], 'ui': ['@maison/ui'] },
+        chunkFileNames: 'chunks/[name]-[hash].js',
+        entryFileNames: '[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
+      },
+    },
+  },
+
+  // ✅ OPTIMIZACIÓN DE DEV SERVER
+  server: {
+    port: 5006,
+    cors: true,
+    fs: { strict: false },
+    middlewareMode: false,
+    hmr: { protocol: 'ws', host: 'localhost', port: 5006, timeout: 60000 },
+  },
+
+  preview: {
+    port: 5006,
+    cors: true,
+  },
+
+  resolve: { dedupe: ['react', 'react-dom'] },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', '@maison/ui', '@maison/api-client', '@maison/auth-client'],
+  },
 });

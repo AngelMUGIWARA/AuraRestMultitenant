@@ -7,6 +7,9 @@ const API_BASE_URL: string =
   (import.meta as any).env?.VITE_API_URL ??
   'http://localhost:4000/api/v1';
 
+// ✅ OPTIMIZACIÓN: Timeout global para requests (15 segundos)
+const REQUEST_TIMEOUT = 15000;
+
 const REFRESH_EXCLUDED = [
   '/auth/login',
   '/auth/refresh',
@@ -164,40 +167,51 @@ async function request<T>(
       'application/json';
   }
 
-  const response = await fetch(url, {
-    ...fetchOptions,
-    headers,
-  });
+  // ✅ OPTIMIZACIÓN: Agregar timeout global
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, REQUEST_TIMEOUT);
 
-  if (!response.ok) {
-    const body = await response
-      .json()
-      .catch(() => ({
-        message: 'Error de red',
-      }));
+  try {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      headers,
+      signal: controller.signal,
+    });
 
-    const error = new ApiClientError(
-      response.status,
-      body.message ?? 'La solicitud falló',
-      body.errors,
-    );
+    if (!response.ok) {
+      const body = await response
+        .json()
+        .catch(() => ({
+          message: 'Error de red',
+        }));
 
-    if (
-      response.status === 401 &&
-      shouldAttemptRefresh(endpoint)
-    ) {
-      const refreshed =
-        await attemptRefresh();
+      const error = new ApiClientError(
+        response.status,
+        body.message ?? 'La solicitud falló',
+        body.errors,
+      );
 
-      if (refreshed) {
-        return request<T>(endpoint, options);
+      if (
+        response.status === 401 &&
+        shouldAttemptRefresh(endpoint)
+      ) {
+        const refreshed =
+          await attemptRefresh();
+
+        if (refreshed) {
+          return request<T>(endpoint, options);
+        }
       }
+
+      throw error;
     }
 
-    throw error;
+    return response.json() as Promise<T>;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return response.json() as Promise<T>;
 }
 
 export const apiClient = {

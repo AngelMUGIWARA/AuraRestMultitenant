@@ -6,23 +6,19 @@ import { initFederation, MFE_URLS } from '@/lib/federation';
 import { loadRemoteDynamically } from '@/lib/loadRemote';
 import { Skeleton } from '@maison/ui';
 
+// ✅ Configuración de retry y timeouts
+const LOAD_TIMEOUT = 30000;     // 30 segundos para cargar remoteEntry.js
+const RETRY_ATTEMPTS = 3;       // Reintentar 3 veces
+const RETRY_DELAYS = [1000, 2000, 4000]; // 1s, 2s, 4s
+
 // Maps remote names to their expected URL for the error message
 const REMOTE_PORT_MAP: Record<string, string> = {
-  // Nuevos remotos agrupados
   core_auth_dashboard_mf:  MFE_URLS.core_auth_dashboard,
   orders_tables_mf:        MFE_URLS.orders_tables,
   reservations_reports_mf: MFE_URLS.reservations_reports,
-
-  // Legacy (para compatibilidad)
-  auth_mf:         MFE_URLS.auth,
-  dashboard_mf:    MFE_URLS.dashboard,
-  menu_mf:         MFE_URLS.menu,
-  orders_mf:       MFE_URLS.orders,
-  kitchen_mf:      MFE_URLS.kitchen,
-  cashier_mf:      MFE_URLS.cashier,
-  reports_mf:      MFE_URLS.reports,
-  reservations_mf: MFE_URLS.reservations,
-  tables_mf:       MFE_URLS.tables,
+  kitchen_mf:              MFE_URLS.kitchen_mf,
+  cashier_mf:              MFE_URLS.cashier_mf,
+  menu_mf:                 MFE_URLS.menu_mf,
 };
 
 interface RemoteLoaderProps {
@@ -37,14 +33,23 @@ interface RemoteLoaderProps {
 export function RemoteLoader({ remote, module: mod, lazy = false }: RemoteLoaderProps) {
   const [Component, setComponent] = useState<ComponentType | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(1);
 
   useEffect(() => {
     initFederation();
 
     const expose = mod.startsWith('./') ? mod.slice(2) : mod;
-    const loadModule = async () => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    let cancelled = false;
+
+    // ✅ Función con retry automático
+    const loadModule = async (retryAttempt = 1): Promise<void> => {
       try {
-        let module: { default: ComponentType };
+        // ✅ Crear timeout para evitar espera infinita
+        const controller = new AbortController();
+        timeoutId = setTimeout(() => {
+          controller.abort();
+        }, LOAD_TIMEOUT);
 
         let moduleExport: { default?: ComponentType } | null;
 
@@ -56,29 +61,74 @@ export function RemoteLoader({ remote, module: mod, lazy = false }: RemoteLoader
           moduleExport = await loadRemote<{ default?: ComponentType }>(`${remote}/${expose}`);
         }
 
+        if (timeoutId) clearTimeout(timeoutId);
+
+        if (cancelled) return;
+
         if (moduleExport?.default) {
           setComponent(() => moduleExport.default as ComponentType);
+          setError(null);
         } else {
-          setError(`${remote}/${mod} no exporta un componente default.`);
+          throw new Error(`${remote}/${mod} no exporta un componente default.`);
         }
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Error al cargar el módulo remoto.');
+        if (timeoutId) clearTimeout(timeoutId);
+
+        if (cancelled) return;
+
+        const errorMsg = err instanceof Error ? err.message : 'Error al cargar el módulo remoto.';
+        setAttempt(retryAttempt);
+
+        // ✅ Retry automático con backoff exponencial
+        if (retryAttempt < RETRY_ATTEMPTS) {
+          const delay = RETRY_DELAYS[retryAttempt - 1] || 5000;
+          console.warn(
+            `Error cargando ${remote}/${mod} (intento ${retryAttempt}/${RETRY_ATTEMPTS}): ${errorMsg}. Reintentando en ${delay}ms...`
+          );
+
+          // Esperar antes de reintentar
+          await new Promise(resolve => {
+            timeoutId = setTimeout(resolve, delay);
+          });
+
+          if (!cancelled) {
+            return loadModule(retryAttempt + 1);
+          }
+          return;
+        }
+
+        // ✅ Después de todos los reintentos fallidos
+        setError(
+          `No se pudo cargar ${remote} después de ${RETRY_ATTEMPTS} intentos: ${errorMsg}`
+        );
       }
     };
 
-    loadModule();
+    loadModule(1);
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [remote, mod, lazy]);
 
   if (error) {
     const expectedUrl = REMOTE_PORT_MAP[remote] ?? 'desconocido';
     return (
-      <div className="card p-8 text-center space-y-2">
+      <div className="card p-8 text-center space-y-3">
         <p className="text-sm font-medium text-maison-ruby">Error al cargar módulo remoto</p>
         <p className="font-mono text-xs text-maison-cream-dim">{error}</p>
         <p className="text-xs text-maison-cream-muted">
           Verifica que <strong>{remote}</strong> esté corriendo en{' '}
           <code className="font-mono">{expectedUrl.replace('/remoteEntry.js', '')}</code>
         </p>
+        {/* ✅ Botón para reintentar manualmente */}
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-3 py-1.5 text-xs font-medium bg-maison-amber text-black rounded hover:bg-opacity-90 transition-opacity"
+        >
+          Reintentar
+        </button>
       </div>
     );
   }
@@ -86,6 +136,12 @@ export function RemoteLoader({ remote, module: mod, lazy = false }: RemoteLoader
   if (!Component) {
     return (
       <div className="flex flex-col gap-7 animate-fade-in">
+        {/* ✅ Mostrar intento actual si es retry */}
+        {attempt > 1 && (
+          <p className="text-xs text-maison-cream-muted text-center">
+            Cargando (intento {attempt}/{RETRY_ATTEMPTS})...
+          </p>
+        )}
         <Skeleton className="h-8 w-48" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (

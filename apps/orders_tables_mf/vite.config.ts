@@ -27,17 +27,73 @@ export default defineConfig({
       },
     }),
   ],
+
+  // ✅ OPTIMIZACIÓN DE BUILD
   build: {
     target: 'esnext',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: false,
+        unused: true,
+        passes: 2,
+      },
+      mangle: true,
+    },
+    sourcemap: false,
+    cssCodeSplit: true,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-libs': ['react', 'react-dom'],
+          'router': ['react-router-dom'],
+          'ui': ['@maison/ui'],
+          'konva-libs': ['konva', 'react-konva'],
+        },
+        chunkFileNames: 'chunks/[name]-[hash].js',
+        entryFileNames: '[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
+      },
+    },
   },
+
+  // ✅ OPTIMIZACIÓN DE DEV SERVER
   server: {
     port: 5012,
     cors: true,
-    headers: { 'Access-Control-Allow-Origin': '*' },
+    fs: {
+      strict: false,
+    },
+    middlewareMode: false,
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5012,
+      timeout: 60000,
+    },
   },
+
   preview: {
     port: 5012,
     cors: true,
-    headers: { 'Access-Control-Allow-Origin': '*' },
+  },
+
+  // ✅ OPTIMIZACIÓN GENERAL
+  resolve: {
+    dedupe: ['react', 'react-dom', 'konva', 'react-konva'],
+  },
+
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@maison/ui',
+      '@maison/api-client',
+      '@maison/auth-client',
+      'konva',
+      'react-konva',
+    ],
   },
 });
