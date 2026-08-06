@@ -6,7 +6,8 @@ import { useNav } from '@/contexts/NavContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BranchSelector } from '@/components/ui/BranchSelector';
-import { IconSearch, IconBell, IconChevronRight } from '@maison/ui';
+import { GlobalSearch } from '@/components/ui/GlobalSearch';
+import { IconBell, IconChevronRight } from '@maison/ui';
 
 function IconMenu({ className }: { className?: string }) {
   return (
@@ -85,21 +86,7 @@ export function OwnerTopbar() {
       <div className="ml-3 hidden md:block">
         <BranchSelector />
       </div>
-      <div className="relative mx-3 hidden max-w-xs flex-1 lg:flex">
-        <label htmlFor="topbar-search" className="sr-only">
-          Buscar
-        </label>
-        <IconSearch className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-maison-cream-dim" />
-        <input
-          id="topbar-search"
-          type="search"
-          placeholder="Buscar..."
-          className="h-8 w-full rounded border border-maison-border bg-surface-2 pl-8 pr-12 text-sm text-maison-cream placeholder:text-maison-cream-dim outline-none transition-colors focus:border-maison-amber"
-        />
-        <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-maison-border px-1 py-0.5 font-mono text-2xs text-maison-cream-dim">
-          ⌘K
-        </kbd>
-      </div>
+      <GlobalSearch />
       <div className="ml-auto flex items-center gap-1.5">
         <ThemeToggle />
       </div>
