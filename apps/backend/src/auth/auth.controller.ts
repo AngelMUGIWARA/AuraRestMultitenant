@@ -16,6 +16,7 @@ import { LogoutDto } from './dto/logout.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { VoiceSeedDto } from './dto/voice-seed.dto';
+import { VoiceSeedGenerateResponseDto } from './dto/voice-seed-generate-response.dto';
 import { VoiceLoginDto } from './dto/voice-login.dto';
 import { VoiceLoginResponseDto } from './dto/voice-login-response.dto';
 import { Public } from '../common/decorators/public.decorator';
@@ -94,10 +95,10 @@ export class AuthController {
   @Patch('voice-seed')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Configurar la palabra clave de voz para autenticarse ante la skill de Alexa (requiere JWT normal, solo OWNER/ADMIN)',
+    summary: 'Configurar el nombre de usuario de voz para la skill de Alexa (requiere JWT normal, solo OWNER/ADMIN)',
     operationId: 'auth_setVoiceSeed',
   })
-  @ApiResponse({ status: 200, description: 'Palabra clave de voz configurada' })
+  @ApiResponse({ status: 200, description: 'voiceUsername configurado' })
   @ApiResponse({ status: 403, description: 'Rol no autorizado' })
   @ApiResponse({ status: 409, description: 'voiceUsername ya está en uso' })
   setVoiceSeed(
@@ -111,6 +112,32 @@ export class AuthController {
       );
     }
     return this.authService.setVoiceSeed(user.id, tenant.schemaName, dto);
+  }
+
+  @ApiBearerAuth('JWT')
+  @Roles('OWNER', 'ADMIN')
+  @Post('voice-seed/generate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Generar una nueva palabra clave de voz aleatoria, de un solo uso (requiere JWT normal, solo OWNER/ADMIN)',
+    operationId: 'auth_generateVoiceSeed',
+  })
+  @ApiResponse({
+    status: 200,
+    type: VoiceSeedGenerateResponseDto,
+    description: 'Palabra clave generada — se muestra en texto plano solo en esta respuesta',
+  })
+  @ApiResponse({ status: 403, description: 'Rol no autorizado' })
+  generateVoiceSeed(
+    @CurrentUser() user: AuthenticatedUser,
+    @CurrentTenant() tenant: TenantContext,
+  ): Promise<VoiceSeedGenerateResponseDto> {
+    if (!tenant) {
+      throw new UnauthorizedException(
+        'Tenant no identificado. Incluye el header x-tenant-slug.',
+      );
+    }
+    return this.authService.generateVoiceSeed(user.id, tenant.schemaName);
   }
 
   @Public()

@@ -14,8 +14,10 @@ import { TenantPrismaService } from '../database/tenant-prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { VoiceSeedDto } from './dto/voice-seed.dto';
+import { VoiceSeedGenerateResponseDto } from './dto/voice-seed-generate-response.dto';
 import { VoiceLoginDto } from './dto/voice-login.dto';
 import { VoiceLoginResponseDto } from './dto/voice-login-response.dto';
+import { pickRandomSeedWords } from './voice-seed-words';
 
 const VOICE_ROLES = ['OWNER', 'ADMIN'];
 
@@ -298,17 +300,32 @@ export class AuthService {
       );
     }
 
+    await db.user.update({
+      where: { id: userId },
+      data: { voiceUsername },
+    });
+
+    return { voiceUsername };
+  }
+
+  async generateVoiceSeed(
+    userId: string,
+    tenantSchemaName: string,
+  ): Promise<VoiceSeedGenerateResponseDto> {
+    const db = this.tenantPrisma.getClient(tenantSchemaName);
+    const seedWord = pickRandomSeedWords(3).join(' ');
+
     const voiceSeedHash = await bcrypt.hash(
-      dto.seedWord,
+      seedWord,
       Number(process.env.BCRYPT_ROUNDS ?? 10),
     );
 
     await db.user.update({
       where: { id: userId },
-      data: { voiceUsername, voiceSeedHash },
+      data: { voiceSeedHash },
     });
 
-    return { voiceUsername };
+    return { seedWord };
   }
 
   /* ── Voice Login ─────────────────────────────────────────────── */
@@ -335,6 +352,13 @@ export class AuthService {
     if (!VOICE_ROLES.includes(user.role) || user.status !== 'ACTIVE') {
       return invalid;
     }
+
+    // Un solo uso: se quema la seed en el mismo request que la valida
+    // exitosamente. voiceUsername no se toca — se mantiene estable.
+    await db.user.update({
+      where: { id: user.id },
+      data: { voiceSeedHash: null },
+    });
 
     return { valid: true, name: user.name, role: user.role };
   }
