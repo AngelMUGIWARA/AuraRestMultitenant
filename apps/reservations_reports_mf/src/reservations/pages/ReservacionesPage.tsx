@@ -431,7 +431,7 @@ export default function ReservacionesPage() {
                 }
                 description={
                   hasError
-                    ? 'Verifica la conexión con el API del servidor.'
+                    ? 'No pudimos conectar con el servidor. Intenta nuevamente en unos momentos.'
                     : activeStatus !== 'all' && RESERVATION_STATUS_LABELS[activeStatus as ReservationStatus]
                       ? `No hay reservaciones con el estado "${RESERVATION_STATUS_LABELS[activeStatus as ReservationStatus]}".`
                       : 'No hay reservaciones registradas.'
