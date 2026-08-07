@@ -4,11 +4,14 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { parseAllowedOrigins, isOriginAllowed } from './cors/cors-utils';
 import { isSwaggerEnabled, shouldPersistAuthorization } from './config/swagger';
+import { ValidationExceptionFilter } from './common/exception-filters/validation.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api/v1');
+
+  app.useGlobalFilters(new ValidationExceptionFilter());
 
   app.useGlobalPipes(
     new ValidationPipe({

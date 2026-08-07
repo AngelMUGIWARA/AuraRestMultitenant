@@ -179,7 +179,34 @@ export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: Reser
             onSuccess();
             onClose();
         } catch (error) {
-            setSubmitError(error instanceof Error ? error.message : 'No se pudo crear la reservación.');
+            if (error instanceof Error) {
+                const message = error.message;
+
+                if (message.includes('date') || message.includes('formato YYYY-MM-DD')) {
+                    setErrors((prev) => ({
+                        ...prev,
+                        date: 'La fecha debe estar en formato YYYY-MM-DD',
+                    }));
+                } else if (message.includes('time') || message.includes('formato HH:MM')) {
+                    setErrors((prev) => ({
+                        ...prev,
+                        time: 'La hora debe estar en formato HH:MM',
+                    }));
+                } else if (message.includes('nombre') || message.includes('guestName')) {
+                    setErrors((prev) => ({
+                        ...prev,
+                        guestName: 'El nombre solo puede contener letras, espacios, guiones y apóstrofes',
+                    }));
+                } else if (message.includes('Hora no disponible') || message.includes('conflictiva')) {
+                    setSubmitError('La hora seleccionada no está disponible en esta mesa. Intenta con otra hora.');
+                } else if (message.includes('futuro')) {
+                    setSubmitError('La fecha y hora deben ser en el futuro.');
+                } else {
+                    setSubmitError(message || 'No se pudo crear la reservación.');
+                }
+            } else {
+                setSubmitError('No se pudo crear la reservación.');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -195,9 +222,12 @@ export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: Reser
                 <form onSubmit={handleSubmit} noValidate className="space-y-4">
 
                     {submitError && (
-                        <p className="rounded border border-maison-ruby/30 bg-maison-ruby-bg px-3 py-2 text-xs text-maison-ruby">
-                            {submitError}
-                        </p>
+                        <div className="rounded-lg border border-maison-ruby/40 bg-maison-ruby/10 px-4 py-3 flex gap-3 items-start">
+                            <span className="text-maison-ruby text-lg flex-shrink-0 mt-0.5">⚠</span>
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-maison-ruby">{submitError}</p>
+                            </div>
+                        </div>
                     )}
 
                     {/* Sucursal (solo si la vista está en "Todas las sucursales") */}
@@ -229,12 +259,12 @@ export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: Reser
                         <label className="text-2xs text-maison-cream-muted uppercase font-bold">Nombre del Cliente *</label>
                         <input
                             type="text"
-                            className="input-base w-full mt-1"
+                            className={`input-base w-full mt-1 ${errors.guestName ? 'border-maison-ruby' : ''}`}
                             placeholder="Ej. Juan Pérez"
                             value={formData.guestName}
                             onChange={(e) => setFormData({ ...formData, guestName: e.target.value })}
                         />
-                        {errors.guestName && <p className="mt-1 text-2xs text-maison-ruby">{errors.guestName}</p>}
+                        {errors.guestName && <p className="mt-1 text-2xs text-maison-ruby flex items-center gap-1"><span>⚠</span> {errors.guestName}</p>}
                     </div>
 
                     {/* Fila: Teléfono y No. de Personas */}
@@ -243,23 +273,23 @@ export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: Reser
                             <label className="text-2xs text-maison-cream-muted uppercase font-bold">Teléfono *</label>
                             <input
                                 type="tel"
-                                className="input-base w-full mt-1"
+                                className={`input-base w-full mt-1 ${errors.guestPhone ? 'border-maison-ruby' : ''}`}
                                 placeholder="Ej. 5512345678"
                                 value={formData.guestPhone}
                                 onChange={(e) => setFormData({ ...formData, guestPhone: e.target.value })}
                             />
-                            {errors.guestPhone && <p className="mt-1 text-2xs text-maison-ruby">{errors.guestPhone}</p>}
+                            {errors.guestPhone && <p className="mt-1 text-2xs text-maison-ruby flex items-center gap-1"><span>⚠</span> {errors.guestPhone}</p>}
                         </div>
                         <div>
                             <label className="text-2xs text-maison-cream-muted uppercase font-bold">Personas *</label>
                             <input
                                 type="number"
                                 min={1}
-                                className="input-base w-full mt-1"
+                                className={`input-base w-full mt-1 ${errors.partySize ? 'border-maison-ruby' : ''}`}
                                 value={formData.partySize}
                                 onChange={(e) => setFormData({ ...formData, partySize: parseInt(e.target.value, 10) || 1 })}
                             />
-                            {errors.partySize && <p className="mt-1 text-2xs text-maison-ruby">{errors.partySize}</p>}
+                            {errors.partySize && <p className="mt-1 text-2xs text-maison-ruby flex items-center gap-1"><span>⚠</span> {errors.partySize}</p>}
                         </div>
                     </div>
 
@@ -268,12 +298,12 @@ export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: Reser
                         <label className="text-2xs text-maison-cream-muted uppercase font-bold">Correo Electrónico (Opcional)</label>
                         <input
                             type="email"
-                            className="input-base w-full mt-1"
+                            className={`input-base w-full mt-1 ${errors.guestEmail ? 'border-maison-ruby' : ''}`}
                             placeholder="juan.perez@example.com"
                             value={formData.guestEmail}
                             onChange={(e) => setFormData({ ...formData, guestEmail: e.target.value })}
                         />
-                        {errors.guestEmail && <p className="mt-1 text-2xs text-maison-ruby">{errors.guestEmail}</p>}
+                        {errors.guestEmail && <p className="mt-1 text-2xs text-maison-ruby flex items-center gap-1"><span>⚠</span> {errors.guestEmail}</p>}
                     </div>
 
                     {/* Fila: Fecha y Hora */}
@@ -283,21 +313,21 @@ export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: Reser
                             <input
                                 type="date"
                                 min={todayDateString()}
-                                className="input-base w-full mt-1"
+                                className={`input-base w-full mt-1 ${errors.date ? 'border-maison-ruby' : ''}`}
                                 value={formData.date}
                                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                             />
-                            {errors.date && <p className="mt-1 text-2xs text-maison-ruby">{errors.date}</p>}
+                            {errors.date && <p className="mt-1 text-2xs text-maison-ruby flex items-center gap-1"><span>⚠</span> {errors.date}</p>}
                         </div>
                         <div>
                             <label className="text-2xs text-maison-cream-muted uppercase font-bold">Hora *</label>
                             <input
                                 type="time"
-                                className="input-base w-full mt-1"
+                                className={`input-base w-full mt-1 ${errors.time ? 'border-maison-ruby' : ''}`}
                                 value={formData.time}
                                 onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                             />
-                            {errors.time && <p className="mt-1 text-2xs text-maison-ruby">{errors.time}</p>}
+                            {errors.time && <p className="mt-1 text-2xs text-maison-ruby flex items-center gap-1"><span>⚠</span> {errors.time}</p>}
                         </div>
                     </div>
 
@@ -305,7 +335,7 @@ export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: Reser
                     <div>
                         <label className="text-2xs text-maison-cream-muted uppercase font-bold">Mesa *</label>
                         <select
-                            className="input-base w-full mt-1"
+                            className={`input-base w-full mt-1 ${errors.tableId ? 'border-maison-ruby' : ''}`}
                             value={formData.tableId}
                             onChange={(e) => setFormData({ ...formData, tableId: e.target.value })}
                             disabled={!effectiveBranchId || isLoadingTables}
@@ -326,7 +356,7 @@ export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: Reser
                         {!isLoadingTables && effectiveBranchId && tables.length === 0 && (
                             <p className="mt-1 text-2xs text-maison-ruby">No hay mesas registradas en esta sucursal.</p>
                         )}
-                        {errors.tableId && <p className="mt-1 text-2xs text-maison-ruby">{errors.tableId}</p>}
+                        {errors.tableId && <p className="mt-1 text-2xs text-maison-ruby flex items-center gap-1"><span>⚠</span> {errors.tableId}</p>}
                     </div>
 
                     {/* Notas Extra (Opcional) */}
