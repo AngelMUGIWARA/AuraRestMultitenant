@@ -66,9 +66,8 @@ function NavItem({ href, label, icon, isActive, isCollapsed }: { href: string; l
   );
 }
 
-function handleLogout() {
-  AuthClient.clearTokens();
-  emit('auth:logout', undefined);
+async function handleLogout() {
+  await AuthClient.logout(true);
 }
 
 function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: { isCollapsed: boolean; isMobile?: boolean; onClose?: () => void; onToggle: () => void }) {

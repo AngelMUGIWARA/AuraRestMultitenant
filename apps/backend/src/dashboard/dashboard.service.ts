@@ -40,14 +40,14 @@ export class DashboardService {
     return d;
   }
 
-  async getStats(schemaName: string): Promise<DashboardStatsDto> {
+  async getStats(schemaName: string, branchId?: string): Promise<DashboardStatsDto> {
     const thisMonth = this.monthStart();
     const prevMonth = this.monthStart(1);
 
     const [counts, monthlyRevenue, prevRevenue] = await Promise.all([
-      this.repo.getCounts(schemaName, thisMonth),
-      this.repo.getRevenueBetween(schemaName, thisMonth, new Date()),
-      this.repo.getRevenueBetween(schemaName, prevMonth, thisMonth),
+      this.repo.getCounts(schemaName, thisMonth, branchId),
+      this.repo.getRevenueBetween(schemaName, thisMonth, new Date(), branchId),
+      this.repo.getRevenueBetween(schemaName, prevMonth, thisMonth, branchId),
     ]);
 
     // Sin mes anterior no hay base de comparación: 0% en lugar de infinito.
@@ -68,11 +68,11 @@ export class DashboardService {
     };
   }
 
-  async getRevenueChart(schemaName: string): Promise<RevenuePointDto[]> {
+  async getRevenueChart(schemaName: string, branchId?: string): Promise<RevenuePointDto[]> {
     const since = this.monthStart(REVENUE_MONTHS - 1);
     const [orders, branchDates] = await Promise.all([
-      this.repo.getPaidOrdersSince(schemaName, since),
-      this.repo.getBranchCreationDates(schemaName),
+      this.repo.getPaidOrdersSince(schemaName, since, branchId),
+      this.repo.getBranchCreationDates(schemaName, branchId),
     ]);
 
     const points: RevenuePointDto[] = [];
@@ -95,8 +95,9 @@ export class DashboardService {
   async getRecentActivity(
     schemaName: string,
     limit: number,
+    branchId?: string,
   ): Promise<ActivityItemDto[]> {
-    const logs = await this.repo.getRecentActivity(schemaName, limit);
+    const logs = await this.repo.getRecentActivity(schemaName, limit, branchId);
     return logs.map((log) => ({
       id: log.id,
       type: this.mapActivityType(log.action, log.entity),
@@ -110,10 +111,9 @@ export class DashboardService {
 
   async getBranchesSummary(
     schemaName: string,
-    // Slug, no id: cuando el tenant se resuelve desde el JWT el middleware
-    // solo escribe { schemaName, slug } en el request (ver TenantMiddleware).
     tenantSlug: string,
     limit: number,
+    branchId?: string,
   ): Promise<BranchSummaryDto[]> {
     const [tenant, { branches, orderTotals }] = await Promise.all([
       this.systemDb.tenant.findUnique({
@@ -124,6 +124,7 @@ export class DashboardService {
         schemaName,
         limit,
         this.monthStart(),
+        branchId,
       ),
     ]);
 

@@ -3,10 +3,8 @@ import { AuthClient } from '@maison/auth-client';
 import type { LoginPayload, LoginResponse } from '@maison/types';
 
 export const authService = {
-  login: (payload: LoginPayload, tenantSlug: string) =>
-    apiClient.post<LoginResponse>('/auth/login', payload, {
-      headers: { 'x-tenant-slug': tenantSlug },
-    }),
+  login: (payload: LoginPayload) =>
+    apiClient.post<LoginResponse>('/auth/login', payload),
 
   logout: () => {
     const rt = AuthClient.getRefreshToken();

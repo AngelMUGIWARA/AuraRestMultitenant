@@ -91,6 +91,45 @@ export class AuthService {
     return this.createSessionAndTokens(user, payload);
   }
 
+  async loginWithoutTenant(dto: LoginDto): Promise<AuthResponseDto> {
+    const tenants = await this.prisma.tenant.findMany({
+      where: { status: 'ACTIVE' },
+    });
+
+    for (const tenant of tenants) {
+      try {
+        const db = this.tenantPrisma.getClient(tenant.schemaName);
+        const user = await db.user.findUnique({ where: { email: dto.email } });
+
+        if (user) {
+          const valid = await bcrypt.compare(dto.password, user.passwordHash);
+          if (!valid) throw new UnauthorizedException('Credenciales incorrectas');
+
+          if (user.status !== 'ACTIVE') {
+            throw new UnauthorizedException('Usuario inactivo o suspendido');
+          }
+
+          const payload = {
+            sub: user.id,
+            email: user.email,
+            role: user.role as string,
+            tenantSlug: tenant.slug,
+            tenantSchemaName: tenant.schemaName,
+            mustChangePassword: user.mustChangePassword,
+          };
+
+          return this.createSessionAndTokens(user, payload);
+        }
+      } catch (e: any) {
+        if (e.message?.includes('Credenciales') || e.message?.includes('inactivo')) {
+          throw e;
+        }
+      }
+    }
+
+    throw new UnauthorizedException('Credenciales incorrectas');
+  }
+
   /* ── Change Password ───────────────────────────────────────── */
 
   async changePassword(

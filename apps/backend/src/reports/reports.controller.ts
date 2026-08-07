@@ -34,7 +34,7 @@ export class ReportsController {
 
   @Get('sales')
   @Roles('OWNER', 'MANAGER')
-  @ApiOperation({ summary: 'Reporte de ventas por período' })
+  @ApiOperation({ summary: 'Reporte de ventas por período (opcional: filtrar por branchId)' })
   @ApiResponse({ status: 200, type: SalesReportResponseDto })
   @ApiResponse({ status: 401, description: 'No autenticado' })
   @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
@@ -47,7 +47,7 @@ export class ReportsController {
 
   @Get('products')
   @Roles('OWNER', 'MANAGER')
-  @ApiOperation({ summary: 'Productos más vendidos por período' })
+  @ApiOperation({ summary: 'Productos más vendidos por período (opcional: filtrar por branchId)' })
   @ApiResponse({ status: 200, type: ProductsReportResponseDto })
   getProductsReport(
     @CurrentTenant() tenant: TenantContext,
@@ -58,7 +58,7 @@ export class ReportsController {
 
   @Get('payments')
   @Roles('OWNER', 'MANAGER')
-  @ApiOperation({ summary: 'Reporte de métodos de pago por período' })
+  @ApiOperation({ summary: 'Reporte de métodos de pago por período (opcional: filtrar por branchId)' })
   @ApiResponse({ status: 200, type: PaymentsReportResponseDto })
   getPaymentsReport(
     @CurrentTenant() tenant: TenantContext,
@@ -69,7 +69,7 @@ export class ReportsController {
 
   @Get('peak-hours')
   @Roles('OWNER', 'MANAGER')
-  @ApiOperation({ summary: 'Horarios de mayor actividad por período' })
+  @ApiOperation({ summary: 'Horarios de mayor actividad por período (opcional: filtrar por branchId)' })
   @ApiResponse({ status: 200, type: PeakHoursReportResponseDto })
   getPeakHoursReport(
     @CurrentTenant() tenant: TenantContext,

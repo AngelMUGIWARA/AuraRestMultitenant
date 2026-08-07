@@ -9,6 +9,7 @@ import type {
 export interface ReportQueryParams {
   startDate?: string;
   endDate?: string;
+  branchId?: string;
 }
 
 export const reportsService = {
@@ -40,6 +41,7 @@ export const reportsService = {
       type,
       ...(params?.startDate && { startDate: params.startDate }),
       ...(params?.endDate && { endDate: params.endDate }),
+      ...(params?.branchId && { branchId: params.branchId }),
     });
 
     const token = localStorage.getItem("maison_access_token");
