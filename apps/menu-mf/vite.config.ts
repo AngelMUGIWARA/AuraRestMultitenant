@@ -30,8 +30,9 @@ export default defineConfig({
     target: 'esnext',
     minify: 'terser',
     terserOptions: {
-      compress: { drop_console: false, unused: true, passes: 2 },
+      compress: { drop_console: true, unused: true, passes: 2 },
       mangle: true,
+      format: { comments: false },
     },
     sourcemap: false,
     cssCodeSplit: true,
@@ -63,5 +64,9 @@ export default defineConfig({
   resolve: { dedupe: ['react', 'react-dom'] },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', '@maison/ui', '@maison/api-client', '@maison/auth-client'],
+  },
+
+  esbuild: {
+    drop: ['console', 'debugger'],
   },
 });

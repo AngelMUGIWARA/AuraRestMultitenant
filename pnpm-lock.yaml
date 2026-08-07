@@ -809,6 +809,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@maison/auth-client':
+        specifier: workspace:*
+        version: link:../auth-client
       '@maison/event-bus':
         specifier: workspace:*
         version: link:../event-bus
