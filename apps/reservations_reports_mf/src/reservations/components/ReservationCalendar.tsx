@@ -39,7 +39,7 @@ export function ReservationCalendar({ branchId }: ReservationCalendarProps) {
         dateFrom,
         dateTo,
         branchId,
-        limit: 1000, // Obtener todas las del mes
+        limit: 1000,
       });
 
       const reservations = (response && 'data' in response) ? (response as any).data : response;
@@ -51,17 +51,16 @@ export function ReservationCalendar({ branchId }: ReservationCalendarProps) {
       data.forEach((r: Reservation) => {
         const reservDate = new Date(r.date ? `${r.date}T00:00:00` : r.createdAt);
         const day = reservDate.getDate();
-        const key = day;
 
-        if (!dayMap.has(key)) {
-          dayMap.set(key, {
+        if (!dayMap.has(day)) {
+          dayMap.set(day, {
             date: reservDate.toISOString().slice(0, 10),
             count: 0,
             reservations: [],
           });
         }
 
-        const dayData = dayMap.get(key)!;
+        const dayData = dayMap.get(day)!;
         dayData.count += 1;
         dayData.reservations.push(r);
       });
@@ -76,6 +75,11 @@ export function ReservationCalendar({ branchId }: ReservationCalendarProps) {
   }
 
   const monthName = currentMonth.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === currentMonth.getFullYear() &&
+                         today.getMonth() === currentMonth.getMonth();
+  const todayDate = isCurrentMonth ? today.getDate() : null;
+
   const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
 
@@ -85,25 +89,25 @@ export function ReservationCalendar({ branchId }: ReservationCalendarProps) {
 
   if (isLoading) {
     return (
-      <div className="card p-5 animate-pulse">
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-4 bg-surface-2 rounded w-3/4"></div>
-          ))}
+      <div className="card p-4 animate-pulse">
+        <div className="space-y-2">
+          <div className="h-5 bg-surface-2 rounded w-1/3"></div>
+          <div className="h-32 bg-surface-2 rounded"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="card p-5">
+    <div className="card p-4">
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-maison-cream capitalize">{monthName}</h3>
-        <div className="flex gap-1">
+        <div className="flex gap-2">
           <button
             type="button"
             onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-            className="p-1 hover:bg-surface-2 rounded text-maison-cream-muted hover:text-maison-cream transition-colors"
+            className="px-2 py-1 rounded border border-maison-border text-maison-cream-muted hover:text-maison-cream hover:bg-surface-2 transition-colors text-sm"
             aria-label="Mes anterior"
           >
             ←
@@ -111,7 +115,7 @@ export function ReservationCalendar({ branchId }: ReservationCalendarProps) {
           <button
             type="button"
             onClick={() => setCurrentMonth(new Date())}
-            className="px-2 py-1 text-2xs hover:bg-surface-2 rounded text-maison-cream-muted hover:text-maison-cream transition-colors"
+            className="px-3 py-1 rounded border border-maison-border text-maison-cream-muted hover:text-maison-cream hover:bg-surface-2 transition-colors text-xs font-medium"
             aria-label="Hoy"
           >
             Hoy
@@ -119,7 +123,7 @@ export function ReservationCalendar({ branchId }: ReservationCalendarProps) {
           <button
             type="button"
             onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-            className="p-1 hover:bg-surface-2 rounded text-maison-cream-muted hover:text-maison-cream transition-colors"
+            className="px-2 py-1 rounded border border-maison-border text-maison-cream-muted hover:text-maison-cream hover:bg-surface-2 transition-colors text-sm"
             aria-label="Próximo mes"
           >
             →
@@ -127,40 +131,45 @@ export function ReservationCalendar({ branchId }: ReservationCalendarProps) {
         </div>
       </div>
 
-      {/* Day headers */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 gap-px mb-1 bg-surface-2 p-1 rounded">
         {weekDays.map((day) => (
-          <div key={day} className="text-center text-2xs font-medium text-maison-cream-muted py-1">
+          <div key={day} className="text-center text-xs font-semibold text-maison-cream-muted py-2 bg-surface-1 rounded">
             {day}
           </div>
         ))}
       </div>
 
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-px bg-surface-2 p-1 rounded">
         {emptyDays.map((i) => (
-          <div key={`empty-${i}`} className="aspect-square" />
+          <div key={`empty-${i}`} className="aspect-square bg-surface-1" />
         ))}
         {dayNumbers.map((day) => {
           const dayData = days.get(day);
+          const isToday = day === todayDate;
           return (
             <button
               key={day}
               type="button"
               onClick={() => {}}
               className={`
-                aspect-square rounded text-2xs font-medium transition-colors
-                ${dayData && dayData.count > 0
-                  ? 'bg-maison-gold-bg text-maison-gold hover:bg-maison-gold/20'
-                  : 'text-maison-cream-muted hover:bg-surface-2'
+                aspect-square rounded-sm text-xs font-medium transition-all
+                ${isToday
+                  ? 'bg-maison-gold/20 text-maison-gold border border-maison-gold'
+                  : dayData && dayData.count > 0
+                    ? 'bg-maison-gold-bg text-maison-gold border border-maison-gold/30 hover:bg-maison-gold/10'
+                    : 'bg-surface-1 text-maison-cream-muted hover:bg-surface-2 border border-transparent'
                 }
               `}
               title={dayData ? `${dayData.count} reservación(es)` : undefined}
             >
-              <div className="flex flex-col items-center justify-center h-full">
-                <span>{day}</span>
+              <div className="flex flex-col items-center justify-center h-full gap-0.5">
+                <span className="font-semibold">{day}</span>
                 {dayData && dayData.count > 0 && (
-                  <span className="text-[10px] leading-none">{dayData.count}</span>
+                  <span className="text-[9px] leading-tight opacity-75">
+                    {dayData.count === 1 ? '●' : `●●`}
+                  </span>
                 )}
               </div>
             </button>

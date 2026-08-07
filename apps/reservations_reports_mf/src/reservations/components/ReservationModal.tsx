@@ -85,7 +85,10 @@ export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: Reser
         setIsLoadingBranches(true);
         branchesService
             .getAll()
-            .then((res) => setBranchOptions((res.data ?? []).filter((b) => b.isActive !== false)))
+            .then((res) => {
+                const branches = (res && 'data' in res) ? res.data : (res as any);
+                setBranchOptions(Array.isArray(branches) ? branches : (branches?.data ?? []))
+            })
             .catch(() => setBranchOptions([]))
             .finally(() => setIsLoadingBranches(false));
     }, [isOpen, needsBranchPicker]);
