@@ -18,6 +18,7 @@ import {
 } from '@maison/ui';
 import type { ReservationStatus } from '@maison/types';
 import { ReservationModal } from '../components/ReservationModal';
+import { ReservationCalendar } from '../components/ReservationCalendar';
 import { reservationsService } from '../services/reservations.service';
 
 /* ─── Constants ─────────────────────────────────────────────────── */
@@ -468,24 +469,7 @@ export default function ReservacionesPage() {
 
         {/* Right: Mini calendar + Quick stats */}
         <div className="flex flex-col gap-4">
-          {isLoading ? (
-            <MiniCalendarSkeleton />
-          ) : (
-            <div className="card p-5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-maison-cream">Calendario</h3>
-                <span className="text-2xs text-maison-cream-dim capitalize">
-                  {new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}
-                </span>
-              </div>
-              <EmptyState
-                icon={<IconCalendar className="h-5 w-5" />}
-                title="Vista de calendario"
-                description="Disponible cuando el API esté conectado."
-                className="py-10"
-              />
-            </div>
-          )}
+          <ReservationCalendar branchId={selectedBranch.isGlobal ? undefined : selectedBranch.id} />
 
           {/* Today's summary */}
           <section className="card p-5" aria-labelledby="today-summary-title">
