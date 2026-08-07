@@ -371,21 +371,28 @@ export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: Reser
                     </div>
 
                     {/* Botones de Acción */}
-                    <div className="flex justify-end space-x-3 pt-2 border-t border-maison-border">
+                    <div className="flex justify-end gap-2 pt-4 border-t border-maison-border">
                         <button
                             type="button"
                             disabled={isSubmitting}
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-maison-cream-muted hover:text-maison-cream transition-colors disabled:opacity-50"
+                            className="px-4 py-2.5 text-sm font-medium rounded-lg border border-maison-border text-maison-cream-muted hover:text-maison-cream hover:bg-surface-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="px-4 py-2 text-sm font-medium bg-maison-cream text-surface-1 rounded-lg hover:bg-white transition-colors disabled:opacity-50 flex items-center"
+                            className="px-4 py-2.5 text-sm font-medium bg-maison-cream text-surface-1 rounded-lg hover:bg-white active:bg-maison-cream-dim focus:outline-none focus:ring-2 focus:ring-maison-cream focus:ring-offset-2 focus:ring-offset-surface-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                         >
-                            {isSubmitting ? 'Guardando...' : 'Crear Reservación'}
+                            {isSubmitting ? (
+                                <>
+                                    <span className="inline-block animate-spin mr-2">⟳</span>
+                                    Guardando...
+                                </>
+                            ) : (
+                                'Crear Reservación'
+                            )}
                         </button>
                     </div>
 

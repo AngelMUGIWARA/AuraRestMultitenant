@@ -51,11 +51,11 @@ const STATUS_DOT: Record<string, string> = {
 
 const STATUS_TABS: { value: ReservationStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'Todas' },
-  { value: 'pending', label: 'Pendientes' },
-  { value: 'confirmed', label: 'Confirmadas' },
-  { value: 'arrived', label: 'En mesa' },
-  { value: 'completed', label: 'Completadas' },
-  { value: 'cancelled', label: 'Canceladas' },
+  { value: 'PENDING', label: 'Pendientes' },
+  { value: 'CONFIRMED', label: 'Confirmadas' },
+  { value: 'ARRIVED', label: 'En mesa' },
+  { value: 'COMPLETED', label: 'Completadas' },
+  { value: 'CANCELLED', label: 'Canceladas' },
 ];
 
 /* ─── Skeletons ─────────────────────────────────────────────────── */
@@ -431,9 +431,9 @@ export default function ReservacionesPage() {
                 description={
                   hasError
                     ? 'Verifica la conexión con el API del servidor.'
-                    : activeStatus !== 'all'
+                    : activeStatus !== 'all' && RESERVATION_STATUS_LABELS[activeStatus as ReservationStatus]
                       ? `No hay reservaciones con el estado "${RESERVATION_STATUS_LABELS[activeStatus as ReservationStatus]}".`
-                      : 'No hay reservaciones para hoy en esta sucursal.'
+                      : 'No hay reservaciones registradas.'
                 }
                 className="py-16"
               />

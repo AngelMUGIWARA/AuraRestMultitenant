@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt, Min, Max, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, Max, IsUUID, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ReservationQueryDto {
@@ -32,4 +32,16 @@ export class ReservationQueryDto {
     @IsOptional()
     @IsUUID()
     branchId?: string;
+
+    @ApiPropertyOptional({ description: 'Fecha inicio en formato YYYY-MM-DD' })
+    @IsOptional()
+    @IsString()
+    @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'dateFrom debe estar en formato YYYY-MM-DD' })
+    dateFrom?: string;
+
+    @ApiPropertyOptional({ description: 'Fecha fin en formato YYYY-MM-DD' })
+    @IsOptional()
+    @IsString()
+    @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'dateTo debe estar en formato YYYY-MM-DD' })
+    dateTo?: string;
 }

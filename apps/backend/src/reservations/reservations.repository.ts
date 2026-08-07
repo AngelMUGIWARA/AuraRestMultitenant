@@ -245,12 +245,41 @@ export class ReservationRepository {
       ];
     }
 
-    return client.reservation.findMany({
-      where: whereClause,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    // Agregar filtros de fecha si se proporcionan
+    if (filters?.dateFrom || filters?.dateTo) {
+      whereClause.scheduledAt = {};
+      if (filters.dateFrom) {
+        whereClause.scheduledAt.gte = new Date(`${filters.dateFrom}T00:00:00.000Z`);
+      }
+      if (filters.dateTo) {
+        whereClause.scheduledAt.lte = new Date(`${filters.dateTo}T23:59:59.999Z`);
+      }
+    }
+
+    // Paginación
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      client.reservation.findMany({
+        where: whereClause,
+        orderBy: {
+          scheduledAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      client.reservation.count({ where: whereClause }),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   /**
