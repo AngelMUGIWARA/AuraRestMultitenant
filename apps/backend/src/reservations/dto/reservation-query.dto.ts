@@ -30,7 +30,7 @@ export class ReservationQueryDto {
 
     @ApiPropertyOptional({ description: 'Filtrar por sucursal (requerido para roles limitados)' })
     @IsOptional()
-    @IsUUID()
+    @IsString()
     branchId?: string;
 
     @ApiPropertyOptional({ description: 'Fecha inicio en formato YYYY-MM-DD' })

@@ -100,6 +100,8 @@ function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: SidebarCon
   const pathname = usePathname();
   const isOwner = AuthClient.getRole() === 'OWNER';
   const nav = isOwner ? OWNER_NAV : ADMIN_NAV;
+  const userEmail = AuthClient.getUser()?.email ?? '';
+  const role = AuthClient.getRole() ?? 'Usuario';
 
   async function handleLogout() {
     await AuthClient.logout(true);
@@ -121,7 +123,7 @@ function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: SidebarCon
               Maison
             </span>
             <span className="text-2xs font-semibold uppercase tracking-widest text-maison-cream-dim">
-              {isOwner ? 'Owner' : 'Admin'}
+              {role}
             </span>
           </div>
         )}
@@ -181,11 +183,11 @@ function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: SidebarCon
                 style={{ background: 'linear-gradient(140deg, rgb(var(--color-border)) 0%, rgb(var(--color-muted)) 100%)' }}
                 aria-hidden="true"
               >
-                SA
+                {(role?.slice(0, 2) ?? 'US').toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium text-maison-cream">Super Admin</p>
-                <p className="truncate text-2xs text-maison-cream-dim">admin@maison.mx</p>
+                <p className="truncate text-xs font-medium text-maison-cream">{role}</p>
+                {userEmail && <p className="truncate text-2xs text-maison-cream-dim">{userEmail}</p>}
               </div>
               <IconLogOut className="h-3.5 w-3.5 flex-shrink-0 text-maison-cream-dim opacity-0 transition-opacity group-hover:opacity-100" />
             </div>

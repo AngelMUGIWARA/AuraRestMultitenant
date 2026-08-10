@@ -86,8 +86,15 @@ export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: Reser
         branchesService
             .getAll()
             .then((res) => {
-                const branches = (res && 'data' in res) ? res.data : (res as any);
-                setBranchOptions(Array.isArray(branches) ? branches : (branches?.data ?? []))
+                // Desempaquetar respuesta: { data: Branch[], total: number }
+                const response = (res && 'data' in res) ? res.data : res;
+                const branches = Array.isArray(response)
+                    ? response
+                    : (response?.data ?? (Array.isArray(response?.branches) ? response.branches : []));
+
+                // Filtrar solo sucursales activas
+                const activeBranches = branches.filter((b: any) => b.isActive !== false && b.status !== 'INACTIVE');
+                setBranchOptions(activeBranches);
             })
             .catch(() => setBranchOptions([]))
             .finally(() => setIsLoadingBranches(false));

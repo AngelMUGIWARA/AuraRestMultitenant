@@ -101,8 +101,8 @@ export class DashboardService {
     return logs.map((log) => ({
       id: log.id,
       type: this.mapActivityType(log.action, log.entity),
-      title: this.humanizeAction(log.action),
-      description: `${log.entity} en ${log.branch.name}`,
+      title: this.translateAction(log.action, log.entity),
+      description: this.buildDescription(log.action, log.entity, log.branch.name),
       timestamp: log.createdAt.toISOString(),
       actorId: log.user.id,
       actorName: log.user.name,
@@ -153,15 +153,48 @@ export class DashboardService {
 
   private mapActivityType(action: string, entity: string): string {
     if (action.includes('BRANCH_CREATED')) return 'tenant_created';
+    if (action.includes('BRANCH_ACTIVATED')) return 'tenant_created';
     if (action.includes('BRANCH_DEACTIVATED')) return 'tenant_suspended';
+    if (action.includes('RESERVATION_CREATED')) return 'user_registered';
+    if (action.includes('RESERVATION_STATUS_CHANGED')) return 'user_registered';
     if (entity === 'PAYMENT') return 'payment_received';
     if (entity === 'MENU' || entity === 'MENU_ITEM') return 'menu_published';
     return 'user_registered';
   }
 
-  private humanizeAction(action: string): string {
-    // BRANCH_CREATED -> "Branch created"
+  private translateAction(action: string, entity: string): string {
+    const actionUpper = action.toUpperCase();
+
+    // Reservaciones
+    if (actionUpper.includes('RESERVATION_CREATED')) return 'Reservación creada';
+    if (actionUpper.includes('RESERVATION_STATUS_CHANGED')) return 'Estado de reservación actualizado';
+    if (actionUpper.includes('RESERVATION_CANCELLED')) return 'Reservación cancelada';
+
+    // Sucursales
+    if (actionUpper.includes('BRANCH_CREATED')) return 'Sucursal creada';
+    if (actionUpper.includes('BRANCH_ACTIVATED')) return 'Sucursal activada';
+    if (actionUpper.includes('BRANCH_DEACTIVATED')) return 'Sucursal desactivada';
+
+    // Otros
+    if (actionUpper.includes('MENU_PUBLISHED')) return 'Menú publicado';
+    if (actionUpper.includes('USER_REGISTERED')) return 'Usuario registrado';
+    if (actionUpper.includes('PAYMENT')) return 'Pago recibido';
+
+    // Fallback
     const text = action.toLowerCase().replace(/_/g, ' ');
     return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+
+  private buildDescription(action: string, entity: string, branchName: string): string {
+    const actionUpper = action.toUpperCase();
+
+    // Construir descripción sin valores técnicos
+    if (actionUpper.includes('RESERVATION')) {
+      return `en ${branchName}`;
+    }
+    if (actionUpper.includes('BRANCH')) {
+      return branchName;
+    }
+    return `en ${branchName}`;
   }
 }

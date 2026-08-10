@@ -10,5 +10,7 @@ interface BranchesListResponse {
 }
 
 export const branchesService = {
-  getAll: () => apiClient.get<BranchesListResponse>('/admin/branches'),
+  getAll: () => apiClient.get<BranchesListResponse>('/admin/branches', {
+    params: { status: 'active' }
+  }),
 };

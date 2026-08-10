@@ -25,7 +25,6 @@ export function ReservationCalendar({ branchId }: ReservationCalendarProps) {
     try {
       setIsLoading(true);
 
-      // Obtener todos los días del mes
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth();
       const firstDay = new Date(year, month, 1);
@@ -34,7 +33,6 @@ export function ReservationCalendar({ branchId }: ReservationCalendarProps) {
       const dateFrom = firstDay.toISOString().slice(0, 10);
       const dateTo = lastDay.toISOString().slice(0, 10);
 
-      // Llamar API con filtros de fecha y sucursal
       const response = await reservationsService.getAll({
         dateFrom,
         dateTo,
@@ -45,7 +43,6 @@ export function ReservationCalendar({ branchId }: ReservationCalendarProps) {
       const reservations = (response && 'data' in response) ? (response as any).data : response;
       const data = Array.isArray(reservations) ? reservations : (reservations?.data || []);
 
-      // Agrupar por día
       const dayMap = new Map<number, DayReservations>();
 
       data.forEach((r: Reservation) => {
@@ -100,7 +97,6 @@ export function ReservationCalendar({ branchId }: ReservationCalendarProps) {
 
   return (
     <div className="card p-4">
-      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-maison-cream capitalize">{monthName}</h3>
         <div className="flex gap-2">
@@ -131,47 +127,74 @@ export function ReservationCalendar({ branchId }: ReservationCalendarProps) {
         </div>
       </div>
 
-      {/* Weekday headers */}
-      <div className="grid grid-cols-7 gap-px mb-1 bg-surface-2 p-1 rounded">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', backgroundColor: 'rgb(var(--color-surface-2))', padding: '4px', borderRadius: '6px', marginBottom: '4px' }}>
         {weekDays.map((day) => (
-          <div key={day} className="text-center text-xs font-semibold text-maison-cream-muted py-2 bg-surface-1 rounded">
+          <div key={day} style={{ textAlign: 'center', fontSize: '12px', fontWeight: '600', color: 'rgb(var(--color-muted))', padding: '8px 4px', backgroundColor: 'rgb(var(--color-surface))', borderRadius: '4px' }}>
             {day}
           </div>
         ))}
       </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-px bg-surface-2 p-1 rounded">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', backgroundColor: 'rgb(var(--color-surface-2))', padding: '4px', borderRadius: '6px' }}>
         {emptyDays.map((i) => (
-          <div key={`empty-${i}`} className="aspect-square bg-surface-1" />
+          <div key={`empty-${i}`} style={{ aspectRatio: '1', backgroundColor: 'rgb(var(--color-surface))' }} />
         ))}
         {dayNumbers.map((day) => {
           const dayData = days.get(day);
           const isToday = day === todayDate;
+          const bgColor = isToday
+            ? 'rgb(212, 151, 90, 0.2)'
+            : dayData && dayData.count > 0
+              ? 'var(--color-warning-bg)'
+              : 'rgb(var(--color-surface))';
+          const textColor = isToday
+            ? 'rgb(212, 151, 90)'
+            : dayData && dayData.count > 0
+              ? 'rgb(212, 151, 90)'
+              : 'rgb(var(--color-muted))';
+          const borderColor = isToday
+            ? 'rgb(212, 151, 90)'
+            : dayData && dayData.count > 0
+              ? 'rgba(212, 151, 90, 0.3)'
+              : 'transparent';
+
           return (
             <button
               key={day}
               type="button"
               onClick={() => {}}
-              className={`
-                aspect-square rounded-sm text-xs font-medium transition-all
-                ${isToday
-                  ? 'bg-maison-gold/20 text-maison-gold border border-maison-gold'
-                  : dayData && dayData.count > 0
-                    ? 'bg-maison-gold-bg text-maison-gold border border-maison-gold/30 hover:bg-maison-gold/10'
-                    : 'bg-surface-1 text-maison-cream-muted hover:bg-surface-2 border border-transparent'
+              style={{
+                aspectRatio: '1',
+                borderRadius: '4px',
+                fontSize: '12px',
+                fontWeight: '500',
+                transition: 'all 0.2s',
+                backgroundColor: bgColor,
+                color: textColor,
+                border: `1px solid ${borderColor}`,
+                cursor: dayData ? 'pointer' : 'default',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+              }}
+              onMouseEnter={(e) => {
+                if (dayData) {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgba(212, 151, 90, 0.1)';
                 }
-              `}
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = bgColor;
+              }}
               title={dayData ? `${dayData.count} reservación(es)` : undefined}
             >
-              <div className="flex flex-col items-center justify-center h-full gap-0.5">
-                <span className="font-semibold">{day}</span>
-                {dayData && dayData.count > 0 && (
-                  <span className="text-[9px] leading-tight opacity-75">
-                    {dayData.count === 1 ? '●' : `●●`}
-                  </span>
-                )}
-              </div>
+              <span style={{ fontWeight: '600' }}>{day}</span>
+              {dayData && dayData.count > 0 && (
+                <span style={{ fontSize: '9px', lineHeight: '1', opacity: 0.75 }}>
+                  {dayData.count === 1 ? '●' : '●●'}
+                </span>
+              )}
             </button>
           );
         })}
