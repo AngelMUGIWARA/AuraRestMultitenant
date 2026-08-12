@@ -1,3 +1,4 @@
+import { BranchProvider } from '@maison/ui';
 import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
@@ -10,9 +11,13 @@ import SettingsPage from './pages/SettingsPage';
 // ADMIN) renderizaba la misma pantalla que /admin/users en vez del
 // dashboard con métricas y el listado de sucursales.
 export default function AdminApp() {
-  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/dashboard-admin';
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/dashboard';
 
-  if (pathname.startsWith('/admin/settings')) return <SettingsPage />;
-  if (pathname.startsWith('/admin/users')) return <UsersPage />;
-  return <DashboardPage />;
+  const content = (() => {
+    if (pathname.startsWith('/admin/settings')) return <SettingsPage />;
+    if (pathname.startsWith('/admin/users')) return <UsersPage />;
+    return <DashboardPage />;
+  })();
+
+  return <BranchProvider>{content}</BranchProvider>;
 }
