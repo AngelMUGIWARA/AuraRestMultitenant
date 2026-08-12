@@ -232,6 +232,8 @@ export interface CreateBranchPayload {
   capacity?: number;
   managerName?: string;
   openingHours?: string;
+  tableCount?: number;
+  defaultCapacity?: number;
 }
 
 // ─── User ─────────────────────────────────────────────────────────────────────
