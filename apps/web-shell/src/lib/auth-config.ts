@@ -14,18 +14,18 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
   '/settings': ['OWNER', 'SUPER_ADMIN'],
   '/inventario': ['OWNER', 'SUPER_ADMIN'],
 
-  // ADMIN dashboard (SUPER_ADMIN only)
-  '/dashboard-admin': ['SUPER_ADMIN'],
-  '/admin': ['SUPER_ADMIN'],
-  '/admin/dashboard': ['SUPER_ADMIN'],
-  '/admin/settings': ['SUPER_ADMIN'],
-  '/admin/users': ['SUPER_ADMIN'],
-  '/categorias': ['SUPER_ADMIN'],
-  '/menus': ['SUPER_ADMIN'],
+  // ADMIN dashboard (SUPER_ADMIN and MANAGER)
+  '/dashboard-admin': ['SUPER_ADMIN', 'MANAGER'],
+  '/admin': ['SUPER_ADMIN', 'MANAGER'],
+  '/admin/dashboard': ['SUPER_ADMIN', 'MANAGER'],
+  '/admin/settings': ['SUPER_ADMIN', 'MANAGER'],
+  '/admin/users': ['SUPER_ADMIN', 'MANAGER'],
+  '/categorias': ['SUPER_ADMIN', 'MANAGER'],
+  '/menus': ['SUPER_ADMIN', 'MANAGER'],
   '/orders': ['SUPER_ADMIN', 'MANAGER'],
-  '/analytics': ['SUPER_ADMIN'],
-  '/integrations': ['SUPER_ADMIN'],
-  '/logs': ['SUPER_ADMIN'],
+  '/analytics': ['SUPER_ADMIN', 'MANAGER'],
+  '/integrations': ['SUPER_ADMIN', 'MANAGER'],
+  '/logs': ['SUPER_ADMIN', 'MANAGER'],
 
   // CASHIER (CASHIER y SUPER_ADMIN)
   '/cashier': ['CASHIER', 'SUPER_ADMIN'],
