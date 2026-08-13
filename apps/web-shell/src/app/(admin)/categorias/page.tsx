@@ -1,7 +1,7 @@
 'use client';
 
-import { RemoteLoader } from '@/components/shell/RemoteLoader';
+import { LazyMF } from '@/components/shell/LazyMF';
 
 export default function Page() {
-  return <RemoteLoader remote="menu_mf" module="./App" />;
+  return <LazyMF remote="menu_mf" module="./App" lazy={true} />;
 }

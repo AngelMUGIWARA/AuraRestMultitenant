@@ -6,6 +6,7 @@ export const API_BASE_URL =
 
 export const ROLE_ROUTES: Record<string, string> = {
   OWNER:         '/dashboard',
+  SUPER_ADMIN:   '/admin/dashboard',
   MANAGER:       '/waiter-orders',
   WAITER:        '/waiter/tables',
   CASHIER:       '/cashier',
@@ -49,7 +50,7 @@ export const ADMIN_NAV = [
 
 export const OWNER_NAV = [
   {
-    label: 'Visión General',
+    label: 'General',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { href: '/reportes', label: 'Reportes', icon: 'analytics' },

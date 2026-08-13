@@ -34,19 +34,17 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Iniciar sesión (requiere header x-tenant-slug)', operationId: 'auth_login' })
+  @ApiOperation({ summary: 'Iniciar sesión (detecta automáticamente el tenant)', operationId: 'auth_login' })
   @ApiResponse({ status: 200, type: AuthResponseDto })
-  @ApiResponse({ status: 401, description: 'Credenciales inválidas o tenant no identificado' })
+  @ApiResponse({ status: 401, description: 'Credenciales inválidas' })
   login(
     @Body() dto: LoginDto,
     @CurrentTenant() tenant: TenantContext,
   ): Promise<AuthResponseDto> {
-    if (!tenant) {
-      throw new UnauthorizedException(
-        'Tenant no identificado. Incluye el header x-tenant-slug.',
-      );
+    if (tenant) {
+      return this.authService.login(dto, tenant.schemaName);
     }
-    return this.authService.login(dto, tenant.schemaName);
+    return this.authService.loginWithoutTenant(dto);
   }
 
   @Public()

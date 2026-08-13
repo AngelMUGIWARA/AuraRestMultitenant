@@ -96,6 +96,7 @@ export class ReportsRepository {
           gte: startDate,
           lte: endDate,
         },
+        ...(query.branchId && { branchId: query.branchId }),
       },
       include: {
         payments: true,
@@ -122,6 +123,7 @@ export class ReportsRepository {
             gte: startDate,
             lte: endDate,
           },
+          ...(query.branchId && { branchId: query.branchId }),
         },
       },
       _sum: {
@@ -158,6 +160,7 @@ export class ReportsRepository {
           gte: startDate,
           lte: endDate,
         },
+        ...(query.branchId && { order: { branchId: query.branchId } }),
       },
       _sum: {
         amount: true,
@@ -186,6 +189,7 @@ export class ReportsRepository {
               gte: startDate,
               lte: endDate,
             },
+            ...(query.branchId && { branchId: query.branchId }),
           },
           menuItem: {
             name: { contains: query.menuItem, mode: 'insensitive' },
@@ -216,6 +220,7 @@ export class ReportsRepository {
           gte: startDate,
           lte: endDate,
         },
+        ...(query.branchId && { branchId: query.branchId }),
       },
       select: {
         createdAt: true,

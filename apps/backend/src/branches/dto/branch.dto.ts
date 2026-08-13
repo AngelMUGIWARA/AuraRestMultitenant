@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsIn, IsNotEmpty, IsOptional, IsString, IsInt } from 'class-validator';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 
 export class CreateBranchDto {
@@ -22,6 +22,16 @@ export class CreateBranchDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @ApiPropertyOptional({ example: 10, description: 'Cantidad de mesas a crear inicialmente' })
+  @IsOptional()
+  @IsInt()
+  tableCount?: number;
+
+  @ApiPropertyOptional({ example: 4, description: 'Capacidad inicial de cada mesa' })
+  @IsOptional()
+  @IsInt()
+  defaultCapacity?: number;
 }
 
 export class UpdateBranchDto {

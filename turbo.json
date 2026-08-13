@@ -1,0 +1,38 @@
+{
+  "$schema": "https://turbo.build/json-schema.json",
+  "globalEnv": ["NODE_ENV", "API_URL", "DATABASE_URL"],
+  "cacheDir": ".turbo",
+  "tasks": {
+    "build": {
+      "cache": true,
+      "outputs": ["dist/**", "out/**", ".next/**", "build/**", "dist-web/**"],
+      "env": ["NODE_ENV"],
+      "dependsOn": ["^build"]
+    },
+    "build:shell": {
+      "cache": true,
+      "outputs": ["out/**", ".next/**"],
+      "env": ["NODE_ENV"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "dev:shell": {
+      "cache": false,
+      "persistent": true
+    },
+    "dev:backend": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "cache": true,
+      "outputs": [".eslintcache"]
+    },
+    "test": {
+      "cache": true,
+      "outputs": ["coverage/**"]
+    }
+  }
+}
