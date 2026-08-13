@@ -28,6 +28,11 @@ export class TablesService {
   }
 
   async create(schemaName: string, dto: CreateTableDto) {
+    // Validar que branchId está presente
+    if (!dto.branchId) {
+      throw new ConflictException('branchId es requerido para crear una mesa');
+    }
+
     // Validar que la sucursal existe
     const existing = await this.tablesRepo.findByNumberAndBranch(
       schemaName,
@@ -42,6 +47,7 @@ export class TablesService {
 
     const table = await this.tablesRepo.create(schemaName, {
       ...dto,
+      branchId: dto.branchId,
       status: 'AVAILABLE',
       isActive: true,
     });

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { Branch } from '@maison/types';
 import { Modal } from '@maison/ui';
 import { branchesService } from '../../services/branches.service';
-import { TablesSection } from './TablesSection';
+import { TablesSection, type TablesSectionRef } from './TablesSection';
+import { tablesService } from '../../services/tables.service';
 
 interface BranchModalProps {
   open: boolean;
@@ -20,6 +21,8 @@ const LABEL = 'text-2xs font-semibold uppercase tracking-widest text-maison-crea
 // email o capacity (que sí existen en el tipo Branch de @maison/types pero
 // el modelo Prisma todavía no) haría que la petición completa fallara con 400.
 export function BranchModal({ open, onClose, onSuccess, branch }: BranchModalProps) {
+  const tablesSectionRef = useRef<TablesSectionRef>(null);
+
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
@@ -51,8 +54,71 @@ export function BranchModal({ open, onClose, onSuccess, branch }: BranchModalPro
 
     try {
       if (branch) {
-        await branchesService.update(branch.id, { name, address, phone: phone || undefined });
+        // Modo edición: guardar branch + mesas pendientes
+        console.info('[BRANCH SAVE] Mode: edit, branchId:', branch.id);
+
+        // Paso 1: Actualizar sucursal
+        console.info('[BRANCH SAVE] Updating branch:', { name, address, phone });
+        await branchesService.update(branch.id, {
+          name,
+          address,
+          phone: phone || undefined
+        });
+        console.info('[BRANCH SAVE] Branch updated successfully');
+
+        // Paso 2: Aplicar cambios de mesas pendientes
+        const pendingChanges = tablesSectionRef.current?.getPendingChanges();
+        if (pendingChanges) {
+          // Crear nuevas mesas
+          if (pendingChanges.newTables) {
+            const { quantity, capacity } = pendingChanges.newTables;
+            const response = await tablesSectionRef.current.refetchTables();
+
+            // Refetch tables first to get current max number
+            const maxNumber = await (async () => {
+              const res = await tablesService.getByBranch(branch.id);
+              return res.data && res.data.length > 0
+                ? Math.max(...res.data.map(t => t.number))
+                : 0;
+            })();
+
+            console.info('[BRANCH SAVE] Creating tables:', { quantity, capacity, startNumber: maxNumber + 1 });
+
+            for (let i = 0; i < quantity; i++) {
+              const number = maxNumber + i + 1;
+              console.info('[BRANCH SAVE] Create payload:', { number, capacity, branchId: branch.id });
+              await tablesService.create(branch.id, { number, capacity });
+              console.info('[BRANCH SAVE] Table created:', number);
+            }
+          }
+
+          // Actualizar mesas existentes
+          if (pendingChanges.tableUpdates.length > 0) {
+            console.info('[BRANCH SAVE] Updating tables:', pendingChanges.tableUpdates);
+            for (const { tableId, capacity } of pendingChanges.tableUpdates) {
+              await tablesService.update(branch.id, tableId, { capacity });
+              console.info('[BRANCH SAVE] Table updated:', tableId);
+            }
+          }
+
+          // Desactivar mesas
+          if (pendingChanges.tableRemovals.length > 0) {
+            console.info('[BRANCH SAVE] Removing tables:', pendingChanges.tableRemovals);
+            for (const tableId of pendingChanges.tableRemovals) {
+              await tablesService.delete(branch.id, tableId);
+              console.info('[BRANCH SAVE] Table removed:', tableId);
+            }
+          }
+
+          // Limpiar cambios pendientes después de guardar
+          tablesSectionRef.current?.clearPendingChanges();
+        }
+
+        console.info('[BRANCH SAVE] Refetching tables after all operations');
+        await tablesSectionRef.current?.refetchTables();
       } else {
+        // Modo creación: guardar branch con mesas iniciales
+        console.info('[BRANCH SAVE] Mode: create');
         await branchesService.create({
           name,
           address,
@@ -60,11 +126,15 @@ export function BranchModal({ open, onClose, onSuccess, branch }: BranchModalPro
           tableCount,
           defaultCapacity: tableCount > 0 ? defaultCapacity : undefined,
         });
+        console.info('[BRANCH SAVE] Branch created successfully');
       }
+
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar la sucursal');
+      console.error('[BRANCH SAVE] Error:', err);
+      const message = err instanceof Error ? err.message : 'No se pudo guardar la sucursal';
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -152,7 +222,7 @@ export function BranchModal({ open, onClose, onSuccess, branch }: BranchModalPro
         )}
 
         {!isNew && branch && (
-          <TablesSection branchId={branch.id} />
+          <TablesSection ref={tablesSectionRef} branchId={branch.id} isEditing={true} />
         )}
 
         {error && (
