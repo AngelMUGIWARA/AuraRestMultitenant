@@ -17,10 +17,10 @@ export class CreateTableDto {
   @Min(1)
   capacity: number;
 
-  @ApiProperty({ example: 'clx...' })
+  @ApiPropertyOptional({ example: 'clx...' })
   @IsString()
-  @IsNotEmpty()
-  branchId: string;
+  @IsOptional()
+  branchId?: string;
 
   @ApiPropertyOptional({ example: 'Terraza' })
   @IsString()

@@ -33,8 +33,8 @@ export class ReportsController {
   constructor(private readonly service: ReportsService) {}
 
   @Get('sales')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
-  @ApiOperation({ summary: 'Reporte de ventas por período' })
+  @Roles('OWNER', 'MANAGER')
+  @ApiOperation({ summary: 'Reporte de ventas por período (opcional: filtrar por branchId)' })
   @ApiResponse({ status: 200, type: SalesReportResponseDto })
   @ApiResponse({ status: 401, description: 'No autenticado' })
   @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
@@ -46,8 +46,8 @@ export class ReportsController {
   }
 
   @Get('products')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
-  @ApiOperation({ summary: 'Productos más vendidos por período' })
+  @Roles('OWNER', 'MANAGER')
+  @ApiOperation({ summary: 'Productos más vendidos por período (opcional: filtrar por branchId)' })
   @ApiResponse({ status: 200, type: ProductsReportResponseDto })
   getProductsReport(
     @CurrentTenant() tenant: TenantContext,
@@ -57,8 +57,8 @@ export class ReportsController {
   }
 
   @Get('payments')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
-  @ApiOperation({ summary: 'Reporte de métodos de pago por período' })
+  @Roles('OWNER', 'MANAGER')
+  @ApiOperation({ summary: 'Reporte de métodos de pago por período (opcional: filtrar por branchId)' })
   @ApiResponse({ status: 200, type: PaymentsReportResponseDto })
   getPaymentsReport(
     @CurrentTenant() tenant: TenantContext,
@@ -68,8 +68,8 @@ export class ReportsController {
   }
 
   @Get('peak-hours')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
-  @ApiOperation({ summary: 'Horarios de mayor actividad por período' })
+  @Roles('OWNER', 'MANAGER')
+  @ApiOperation({ summary: 'Horarios de mayor actividad por período (opcional: filtrar por branchId)' })
   @ApiResponse({ status: 200, type: PeakHoursReportResponseDto })
   getPeakHoursReport(
     @CurrentTenant() tenant: TenantContext,
@@ -79,7 +79,7 @@ export class ReportsController {
   }
 
   @Get('export')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({ summary: 'Exportar reporte como CSV' })
   @ApiResponse({ status: 200, type: 'Archivo CSV' })
   async exportReport(

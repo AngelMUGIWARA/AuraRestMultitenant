@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { TablesRepository } from './tables.repository';
 import { TableStatus } from '../generated/prisma-tenant';
+import { CreateTableDto } from './dto/create-table.dto';
+import { UpdateTableDto } from './dto/update-table.dto';
 
 @Injectable()
 export class TablesService {
@@ -25,6 +27,73 @@ export class TablesService {
     return this.toResponse(updated);
   }
 
+  async create(schemaName: string, dto: CreateTableDto) {
+    // Validar que branchId está presente
+    if (!dto.branchId) {
+      throw new ConflictException('branchId es requerido para crear una mesa');
+    }
+
+    // Validar que la sucursal existe
+    const existing = await this.tablesRepo.findByNumberAndBranch(
+      schemaName,
+      dto.number,
+      dto.branchId,
+    );
+    if (existing) {
+      throw new ConflictException(
+        `Ya existe la Mesa ${dto.number} en esta sucursal`,
+      );
+    }
+
+    const table = await this.tablesRepo.create(schemaName, {
+      ...dto,
+      branchId: dto.branchId,
+      status: 'AVAILABLE',
+      isActive: true,
+    });
+    return this.toResponse(table);
+  }
+
+  async update(schemaName: string, id: string, dto: UpdateTableDto) {
+    const table = await this.tablesRepo.findById(schemaName, id);
+    if (!table) throw new NotFoundException('Mesa no encontrada');
+
+    // Si se cambia el número, validar que no exista otro con ese número en la misma sucursal
+    if (dto.number !== undefined && dto.number !== table.number) {
+      const existing = await this.tablesRepo.findByNumberAndBranch(
+        schemaName,
+        dto.number,
+        table.branchId,
+      );
+      if (existing) {
+        throw new ConflictException(
+          `Ya existe la Mesa ${dto.number} en esta sucursal`,
+        );
+      }
+    }
+
+    const updated = await this.tablesRepo.update(schemaName, id, dto);
+    return this.toResponse(updated);
+  }
+
+  async delete(schemaName: string, id: string) {
+    const table = await this.tablesRepo.findById(schemaName, id);
+    if (!table) throw new NotFoundException('Mesa no encontrada');
+
+    // Si tiene historial (órdenes o reservaciones), desactivar
+    const hasHistory = await this.tablesRepo.hasHistory(schemaName, id);
+    if (hasHistory) {
+      const updated = await this.tablesRepo.update(schemaName, id, {
+        isActive: false,
+      });
+      return this.toResponse(updated);
+    }
+
+    // Si no tiene historial, eliminar
+    await this.tablesRepo.delete(schemaName, id);
+    return { success: true, message: 'Mesa eliminada' };
+  }
+
   private toResponse(table: any) {
     return {
       id: table.id,
@@ -34,6 +103,7 @@ export class TablesService {
       status: table.status as TableStatus,
       locationZone: table.locationZone || null,
       isActive: table.isActive,
+      branchId: table.branchId,
       createdAt: table.createdAt?.toISOString(),
       updatedAt: table.updatedAt?.toISOString(),
     };

@@ -6,7 +6,7 @@ import { BranchProvider } from '@maison/ui';
 
 export default function ChefGroupLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AuthGuard allowedRoles={['CHEF', 'KITCHEN_STAFF']}>
+    <AuthGuard allowedRoles={['KITCHEN_STAFF']}>
       <BranchProvider>
         <ChefLayout>{children}</ChefLayout>
       </BranchProvider>

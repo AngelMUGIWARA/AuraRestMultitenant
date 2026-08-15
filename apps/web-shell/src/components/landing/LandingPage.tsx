@@ -91,10 +91,8 @@ const MODULES = [
 
 const ROLES = [
   { code: 'OWNER', desc: 'Visión completa del negocio y de todas las sucursales.' },
-  { code: 'ADMIN', desc: 'Gestión administrativa total de la sucursal.' },
   { code: 'MANAGER', desc: 'Operación diaria: stock, turnos y alertas.' },
-  { code: 'CHEF', desc: 'Cocina, recetas y disponibilidad de insumos.' },
-  { code: 'KITCHEN_STAFF', desc: 'Consulta operativa de disponibilidad.' },
+  { code: 'KITCHEN_STAFF', desc: 'Cocina: recetas, consumo/merma de insumos y disponibilidad.' },
   { code: 'WAITER', desc: 'Mesas, comandas y estatus de servicio.' },
   { code: 'CASHIER', desc: 'Cobro, cortes y conciliación de caja.' },
 ] as const;

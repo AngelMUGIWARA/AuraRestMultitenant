@@ -50,7 +50,7 @@ export class CategoriesController {
   constructor(private readonly service: CategoriesService) {}
 
   @Get()
-  @Roles("OWNER", "ADMIN", "MANAGER")
+  @Roles("OWNER", "MANAGER")
   @ApiOperation({ summary: "Listar categorías", operationId: "categories_findAll" })
   @ApiResponse({ status: 200, type: [CategoryResponseDto] })
   @ApiQuery({ name: "isActive", required: false, type: Boolean })
@@ -69,7 +69,7 @@ export class CategoriesController {
   }
 
   @Get("stats")
-  @Roles("OWNER", "ADMIN", "MANAGER")
+  @Roles("OWNER", "MANAGER")
   @ApiOperation({ summary: "Estadísticas de categorías", operationId: "categories_getStats" })
   @ApiResponse({ status: 200, type: CategoryStatsDto })
   getStats(@CurrentTenant() tenant: TenantContext) {
@@ -77,7 +77,7 @@ export class CategoriesController {
   }
 
   @Get(":id")
-  @Roles("OWNER", "ADMIN", "MANAGER")
+  @Roles("OWNER", "MANAGER")
   @ApiOperation({ summary: "Obtener categoría por ID", operationId: "categories_findOne" })
   @ApiResponse({ status: 200, type: CategoryResponseDto })
   @ApiResponse({ status: 404, description: "Categoría no encontrada" })
@@ -86,7 +86,7 @@ export class CategoriesController {
   }
 
   @Post()
-  @Roles("OWNER", "ADMIN")
+  @Roles("OWNER")
   @ApiOperation({ summary: "Crear categoría", operationId: "categories_create" })
   @ApiResponse({ status: 201, type: CategoryResponseDto })
   create(
@@ -97,7 +97,7 @@ export class CategoriesController {
   }
 
   @Put(":id")
-  @Roles("OWNER", "ADMIN")
+  @Roles("OWNER")
   @ApiOperation({ summary: "Actualizar categoría", operationId: "categories_update" })
   @ApiResponse({ status: 200, type: CategoryResponseDto })
   update(
@@ -109,7 +109,7 @@ export class CategoriesController {
   }
 
   @Delete(":id")
-  @Roles("OWNER", "ADMIN")
+  @Roles("OWNER")
   @ApiOperation({ summary: "Eliminar categoría (soft-delete)", operationId: "categories_remove" })
   @ApiResponse({ status: 200, description: "Categoría desactivada" })
   remove(@CurrentTenant() tenant: TenantContext, @Param("id") id: string) {

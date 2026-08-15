@@ -1,7 +1,7 @@
 'use client';
 
-import { RemoteLoader } from '@/components/shell/RemoteLoader';
+import { LazyMF } from '@/components/shell/LazyMF';
 
 export default function LoginPage() {
-  return <RemoteLoader remote="auth_mf" module="./App" />;
+  return <LazyMF remote="core_auth_dashboard_mf" module="./AuthApp" />;
 }

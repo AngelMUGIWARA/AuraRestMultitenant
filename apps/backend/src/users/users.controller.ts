@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -31,23 +32,31 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
+import { TransformInterceptor } from '../common/interceptors/transform.interceptor';
 import { ChangeUserStatusDto } from './dto/change-user-status.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PaginatedUsersDto, UserResponseDto } from './dto/user-response.dto';
+import {
+  PaginatedUsersDto,
+  UserResponseDto,
+  UserStatsDto,
+} from './dto/user-response.dto';
 import { UsersService } from './users.service';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT')
 @ApiSecurity('TenantSlug')
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
+// Envuelve la respuesta en { data, message, success, timestamp }: es el
+// contrato ApiResponse<T> de @maison/types que consume el frontend.
+@UseInterceptors(TransformInterceptor)
 @Controller('admin/users')
 export class UsersController {
   constructor(private readonly service: UsersService) {}
 
   @Get()
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({ summary: 'Listar usuarios del tenant' })
   @ApiResponse({ status: 200, type: PaginatedUsersDto })
   findAll(
@@ -57,8 +66,18 @@ export class UsersController {
     return this.service.findAll(tenant.schemaName, pagination);
   }
 
+  // Debe declararse ANTES de @Get(':id'): de lo contrario la ruta param
+  // captura "stats" como si fuera un id y responde 404.
+  @Get('stats')
+  @Roles('OWNER', 'MANAGER')
+  @ApiOperation({ summary: 'Estadísticas de usuarios del tenant' })
+  @ApiResponse({ status: 200, type: UserStatsDto })
+  getStats(@CurrentTenant() tenant: TenantContext): Promise<UserStatsDto> {
+    return this.service.getStats(tenant.schemaName);
+  }
+
   @Get(':id')
-  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({ summary: 'Obtener un usuario por ID' })
   @ApiResponse({ status: 200, type: UserResponseDto })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
@@ -70,7 +89,7 @@ export class UsersController {
   }
 
   @Post()
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Crear un nuevo usuario' })
   @ApiResponse({ status: 201, type: UserResponseDto })
   @ApiResponse({ status: 409, description: 'Email ya registrado' })
@@ -82,7 +101,7 @@ export class UsersController {
   }
 
   @Post('invite')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Invitar a un usuario (crea cuenta provisional)' })
   @ApiResponse({ status: 201, type: UserResponseDto })
   @ApiResponse({ status: 409, description: 'Email ya registrado' })
@@ -94,7 +113,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Actualizar un usuario' })
   @ApiResponse({ status: 200, type: UserResponseDto })
   update(
@@ -106,7 +125,7 @@ export class UsersController {
   }
 
   @Patch(':id/status')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Cambiar el estado de un usuario' })
   @ApiResponse({ status: 200, type: UserResponseDto })
   changeStatus(
@@ -118,7 +137,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles('OWNER', 'ADMIN')
+  @Roles('OWNER')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Eliminar un usuario' })
   @ApiResponse({ status: 204 })

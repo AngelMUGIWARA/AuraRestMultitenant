@@ -1,0 +1,27 @@
+
+@media print {
+
+  /* Ocultar elementos que no deben imprimirse */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Quitar estilos generales del navegador */
+  body {
+    background: white !important;
+  }
+
+  /* Aprovechar toda la hoja */
+  .print-menu-container {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Configuración de hoja */
+  @page {
+    size: letter;
+    margin: 1.5cm;
+  }
+
+}

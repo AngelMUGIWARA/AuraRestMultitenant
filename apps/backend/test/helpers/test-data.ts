@@ -56,12 +56,14 @@ export const mockOwnerUser = {
   branchId: BRANCH_ID,
 };
 
+// El rol ADMIN se retiró y se fusionó en OWNER (ver ANALISIS_ROLES_Y_TENANTS.md);
+// se conserva el nombre del fixture para no tocar los specs que lo importan.
 export const mockAdminUser = {
   id: ADMIN_USER_ID,
   name: 'Admin User',
   email: 'admin@test.com',
   passwordHash: ACTIVE_PASSWORD_HASH,
-  role: 'ADMIN',
+  role: 'OWNER',
   status: 'ACTIVE',
   branchId: BRANCH_ID,
 };
@@ -76,12 +78,14 @@ export const mockWaiterUser = {
   branchId: BRANCH_ID,
 };
 
+// El rol CHEF se retiró y se fusionó en KITCHEN_STAFF (ver ANALISIS_ROLES_Y_TENANTS.md);
+// se conserva el nombre del fixture para no tocar los specs que lo importan.
 export const mockChefUser = {
   id: CHEF_USER_ID,
   name: 'Chef User',
   email: 'chef@test.com',
   passwordHash: ACTIVE_PASSWORD_HASH,
-  role: 'CHEF',
+  role: 'KITCHEN_STAFF',
   status: 'ACTIVE',
   branchId: BRANCH_ID,
 };
@@ -94,6 +98,23 @@ export const mockCashierUser = {
   role: 'CASHIER',
   status: 'ACTIVE',
   branchId: BRANCH_ID,
+};
+
+export const SUPER_ADMIN_ID = 'super-admin-001';
+
+export const mockSuperAdmin = {
+  id: SUPER_ADMIN_ID,
+  name: 'Plataforma Admin',
+  email: 'superadmin@aurarest.dev',
+  passwordHash: ACTIVE_PASSWORD_HASH,
+  status: 'ACTIVE',
+};
+
+export const mockInactiveSuperAdmin = {
+  ...mockSuperAdmin,
+  id: 'super-admin-002',
+  email: 'inactive-superadmin@aurarest.dev',
+  status: 'INACTIVE',
 };
 
 export const mockInactiveUser = {

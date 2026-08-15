@@ -44,7 +44,7 @@ import {
 export class KitchenController {
   constructor(private readonly kitchenService: KitchenService) {}
 
-  @Roles('ADMIN', 'OWNER', 'WAITER')
+  @Roles('OWNER', 'WAITER')
   @Post('tickets')
   @ApiOperation({
     summary: 'Crear un ticket de cocina a partir de una orden',
@@ -76,7 +76,7 @@ export class KitchenController {
     );
   }
 
-  @Roles('ADMIN', 'OWNER', 'MANAGER', 'CHEF', 'KITCHEN_STAFF', 'WAITER')
+  @Roles('OWNER', 'MANAGER', 'KITCHEN_STAFF', 'WAITER')
   @Get('tickets')
   @ApiOperation({
     summary: 'Listar tickets de cocina con filtros y paginación',
@@ -94,7 +94,7 @@ export class KitchenController {
     return this.kitchenService.findTickets(tenant.schemaName, query);
   }
 
-  @Roles('ADMIN', 'OWNER', 'MANAGER', 'CHEF', 'KITCHEN_STAFF', 'WAITER')
+  @Roles('OWNER', 'MANAGER', 'KITCHEN_STAFF', 'WAITER')
   @Get('tickets/:id')
   @ApiOperation({
     summary: 'Obtener un ticket de cocina por ID',
@@ -114,7 +114,7 @@ export class KitchenController {
     return this.kitchenService.findById(tenant.schemaName, id);
   }
 
-  @Roles('ADMIN', 'OWNER', 'MANAGER', 'CHEF', 'KITCHEN_STAFF')
+  @Roles('OWNER', 'MANAGER', 'KITCHEN_STAFF')
   @Patch('tickets/:id/status')
   @ApiOperation({
     summary: 'Actualizar estado del ticket de cocina',
@@ -147,7 +147,7 @@ export class KitchenController {
     );
   }
 
-  @Roles('ADMIN', 'OWNER', 'MANAGER', 'CHEF', 'KITCHEN_STAFF')
+  @Roles('OWNER', 'MANAGER', 'KITCHEN_STAFF')
   @Patch('items/:id/status')
   @ApiOperation({
     summary: 'Actualizar estado de un item de cocina',

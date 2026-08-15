@@ -41,7 +41,7 @@ export class CreateInventoryItemDto {
   @IsIn(INVENTORY_UNITS)
   unit: InventoryUnitDto;
 
-  @ApiPropertyOptional({ description: "Costo por unidad (solo OWNER/ADMIN)" })
+  @ApiPropertyOptional({ description: "Costo por unidad (solo OWNER)" })
   @IsOptional()
   @IsNumber()
   @Min(0)

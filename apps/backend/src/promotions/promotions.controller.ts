@@ -26,7 +26,7 @@ import { UpdatePromotionDto } from './dto/update-promotion.dto';
 export class PromotionsController {
   constructor(private readonly promotionsService: PromotionsService) {}
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER')
+  @Roles('MANAGER', 'OWNER')
   @Post()
   @ApiOperation({ summary: 'Crear promoción', operationId: 'promotions_create' })
   @ApiResponse({ status: 201, type: PromotionResponseDto })
@@ -37,7 +37,7 @@ export class PromotionsController {
     return this.promotionsService.create(tenant.schemaName, dto);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER')
   @Get()
   @ApiOperation({ summary: 'Listar promociones', operationId: 'promotions_findAll' })
   @ApiResponse({ status: 200, type: [PromotionResponseDto] })
@@ -45,7 +45,7 @@ export class PromotionsController {
     return this.promotionsService.findAll(tenant.schemaName);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER', 'CASHIER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER')
   @Get('active')
   @ApiOperation({ summary: 'Listar promociones activas', operationId: 'promotions_findActive' })
   @ApiResponse({ status: 200, type: [PromotionResponseDto] })
@@ -53,7 +53,7 @@ export class PromotionsController {
     return this.promotionsService.findActive(tenant.schemaName);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER')
+  @Roles('MANAGER', 'OWNER')
   @Get(':id')
   @ApiOperation({ summary: 'Obtener promoción por ID', operationId: 'promotions_findById' })
   @ApiResponse({ status: 200, type: PromotionResponseDto })
@@ -65,7 +65,7 @@ export class PromotionsController {
     return this.promotionsService.findById(tenant.schemaName, id);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER')
+  @Roles('MANAGER', 'OWNER')
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar promoción', operationId: 'promotions_update' })
   @ApiResponse({ status: 200, type: PromotionResponseDto })
@@ -77,7 +77,7 @@ export class PromotionsController {
     return this.promotionsService.update(tenant.schemaName, id, dto);
   }
 
-  @Roles('ADMIN', 'MANAGER', 'OWNER')
+  @Roles('MANAGER', 'OWNER')
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar promoción', operationId: 'promotions_delete' })
   @ApiResponse({ status: 200, description: 'Promoción eliminada' })

@@ -18,11 +18,9 @@ datasource db {
 
 enum UserRole {
   OWNER
-  ADMIN
   MANAGER
   WAITER
   CASHIER
-  CHEF
   KITCHEN_STAFF
 }
 
@@ -266,6 +264,7 @@ model RestaurantTable {
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
+  branch       Branch      @relation(fields: [branchId], references: [id], onDelete: Restrict)
   orders       Order[]
   reservations Reservation[]
 
@@ -630,6 +629,7 @@ model Branch {
   receipts       Receipt[]
   kitchenTickets KitchenTicket[]
   cashRegisters  CashRegister[]
+  tables         RestaurantTable[]
 
   inventoryStocks    InventoryStock[]
   inventoryMovements InventoryMovement[]

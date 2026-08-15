@@ -49,7 +49,7 @@ export default function InventarioPage() {
   const { selectedBranch } = useBranch();
   const branchId = selectedBranch.id;
 
-  const isAdmin = role === 'OWNER' || role === 'ADMIN';
+  const isAdmin = role === 'OWNER';
   const canMove = (MOVEMENT_TYPES_BY_ROLE[role] ?? []).length > 0;
 
   const tabs = useMemo<TabId[]>(

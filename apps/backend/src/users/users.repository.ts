@@ -31,6 +31,23 @@ export class UsersRepository {
     return { data, total };
   }
 
+  /**
+   * Conteos agregados para el panel de administración.
+   * Se resuelven en paralelo; los groupBy evitan una consulta por cada
+   * estado/rol.
+   */
+  async getStats(schemaName: string, since: Date) {
+    const db = this.db(schemaName);
+    const [total, byStatus, byRole, pending, newSince] = await Promise.all([
+      db.user.count(),
+      db.user.groupBy({ by: ['status'], _count: { _all: true } }),
+      db.user.groupBy({ by: ['role'], _count: { _all: true } }),
+      db.user.count({ where: { mustChangePassword: true } }),
+      db.user.count({ where: { createdAt: { gte: since } } }),
+    ]);
+    return { total, byStatus, byRole, pending, newSince };
+  }
+
   async findById(schemaName: string, id: string) {
     return this.db(schemaName).user.findUnique({
       where: { id },

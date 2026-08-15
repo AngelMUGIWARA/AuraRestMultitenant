@@ -19,6 +19,14 @@ export class SalesReportQueryDto {
     endDate?: string;
 
     @ApiPropertyOptional({
+        description: 'ID de la sucursal (omitir para Global)',
+        example: '123e4567-e89b-12d3-a456-426614174000',
+    })
+    @IsOptional()
+    @IsString()
+    branchId?: string;
+
+    @ApiPropertyOptional({
         description:
             'Solo para /peak-hours: filtra por nombre de platillo (coincidencia parcial, insensible a mayúsculas). Si no hay match, el resultado viene vacío en vez de fallar.',
         example: 'pizza',

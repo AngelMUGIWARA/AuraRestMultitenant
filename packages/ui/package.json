@@ -12,6 +12,7 @@
     "react-dom": ">=18"
   },
   "dependencies": {
+    "@maison/auth-client": "workspace:*",
     "@maison/event-bus": "workspace:*",
     "@maison/types": "workspace:*"
   },

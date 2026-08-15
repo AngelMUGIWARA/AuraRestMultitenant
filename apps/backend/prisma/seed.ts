@@ -3,7 +3,7 @@
  *
  * Crea un tenant de prueba y pobla su schema con:
  *  - 1 tenant (public.tenants)
- *  - 3 usuarios (owner, mesero, cajero)
+ *  - 6 usuarios (owner x2, gerente, mesero, cajero, kitchen staff)
  *  - 4 categorías + 12 platillos
  *  - 6 mesas
  *  - 1 orden de ejemplo con 2 items (IN_PROGRESS)
@@ -12,8 +12,8 @@
  *    meses anteriores del año — todas con fechas relativas a "hoy" para
  *    seguir siendo válidas sin importar cuándo se corra el seed.
  *  - Inventario: 3 proveedores, 15 insumos, stock en sucursal central,
- *    movimientos de compra/consumo/merma/ajuste (auditados por owner,
- *    admin y chef) y recetas platillo→insumo.
+ *    movimientos de compra/consumo/merma/ajuste (auditados por owner y
+ *    kitchen staff) y recetas platillo→insumo.
  *
  * Uso:
  *   pnpm --filter backend exec ts-node prisma/seed.ts
@@ -89,10 +89,13 @@ async function main() {
       where: { email: 'admin@demo.com' },
       update: {},
       create: {
-        name: 'Laura Admin',
+        // El rol ADMIN se retiró (ver ANALISIS_ROLES_Y_TENANTS.md) y se
+        // fusionó en OWNER — se conserva esta cuenta como segundo owner
+        // de demo (mismas credenciales de siempre).
+        name: 'Laura Owner',
         email: 'admin@demo.com',
         passwordHash: await hash('Admin123'),
-        role: 'ADMIN',
+        role: 'OWNER',
         status: 'ACTIVE',
         phone: '+52 55 1111 0002',
       },
@@ -123,10 +126,12 @@ async function main() {
       where: { email: 'chef@demo.com' },
       update: {},
       create: {
-        name: 'Marco Chef',
+        // El rol CHEF se retiró y se fusionó en KITCHEN_STAFF (ya existía
+        // en el enum) — se conserva el email/password de siempre.
+        name: 'Marco Cocina',
         email: 'chef@demo.com',
         passwordHash: await hash('Chef1234'),
-        role: 'CHEF',
+        role: 'KITCHEN_STAFF',
         status: 'ACTIVE',
       },
     }),
@@ -150,13 +155,12 @@ async function main() {
   if (roles.length === 0) {
     await Promise.all([
       tenantDb.role.create({ data: { name: 'OWNER' } }),
-      tenantDb.role.create({ data: { name: 'ADMIN' } }),
       tenantDb.role.create({ data: { name: 'MANAGER' } }),
       tenantDb.role.create({ data: { name: 'WAITER' } }),
       tenantDb.role.create({ data: { name: 'CASHIER' } }),
-      tenantDb.role.create({ data: { name: 'CHEF' } }),
+      tenantDb.role.create({ data: { name: 'KITCHEN_STAFF' } }),
     ]);
-    console.log('✅  Roles: OWNER, ADMIN, MANAGER, WAITER, CASHIER, CHEF');
+    console.log('✅  Roles: OWNER, MANAGER, WAITER, CASHIER, KITCHEN_STAFF');
   }
 
   const branch = await tenantDb.branch.upsert({
@@ -166,8 +170,9 @@ async function main() {
   });
 
   // Asignar algunos users a la branch con roles
+  // (users[0] = Carlos owner@demo.com, users[1] = Laura admin@demo.com — ambos
+  // OWNER ahora, así que comparten roleId)
   const ownerRole = await tenantDb.role.findUnique({ where: { name: 'OWNER' } });
-  const adminRole = await tenantDb.role.findUnique({ where: { name: 'ADMIN' } });
 
   if (ownerRole) {
     await tenantDb.userBranch.upsert({
@@ -175,22 +180,20 @@ async function main() {
       update: {},
       create: { userId: users[0].id, branchId: branch.id, roleId: ownerRole.id },
     });
-  }
-
-  if (adminRole) {
     await tenantDb.userBranch.upsert({
       where: { userId_branchId: { userId: users[1].id, branchId: branch.id } },
       update: {},
-      create: { userId: users[1].id, branchId: branch.id, roleId: adminRole.id },
+      create: { userId: users[1].id, branchId: branch.id, roleId: ownerRole.id },
     });
   }
 
-  // Gerente y chef asignados a la sucursal central — el módulo de inventario
-  // usa UserBranch para limitar a MANAGER/CHEF a sus sucursales autorizadas
+  // Gerente y kitchen staff asignados a la sucursal central — el módulo de
+  // inventario usa UserBranch para limitar a MANAGER/KITCHEN_STAFF a sus
+  // sucursales autorizadas
   const managerRole = await tenantDb.role.findUnique({ where: { name: 'MANAGER' } });
-  const chefRole = await tenantDb.role.findUnique({ where: { name: 'CHEF' } });
+  const kitchenStaffRole = await tenantDb.role.findUnique({ where: { name: 'KITCHEN_STAFF' } });
   const gerente = users.find((u) => u.role === 'MANAGER')!;
-  const chefUser = users.find((u) => u.role === 'CHEF')!;
+  const chefUser = users.find((u) => u.email === 'chef@demo.com')!;
 
   if (managerRole) {
     await tenantDb.userBranch.upsert({
@@ -200,11 +203,11 @@ async function main() {
     });
   }
 
-  if (chefRole) {
+  if (kitchenStaffRole) {
     await tenantDb.userBranch.upsert({
       where: { userId_branchId: { userId: chefUser.id, branchId: branch.id } },
       update: {},
-      create: { userId: chefUser.id, branchId: branch.id, roleId: chefRole.id },
+      create: { userId: chefUser.id, branchId: branch.id, roleId: kitchenStaffRole.id },
     });
   }
 
@@ -337,6 +340,7 @@ async function main() {
       data: {
         folio: 'ORD-0001',
         tableId: mesa3.id,
+        branchId: branch.id,
         userId: mesero.id,
         type: 'DINE_IN',
         status: 'IN_PROGRESS',
@@ -458,6 +462,7 @@ async function main() {
         data: {
           folio: spec.folio,
           tableId: table.id,
+          branchId: table.branchId,
           userId: mesero.id,
           type: 'DINE_IN',
           status: 'PAID',
@@ -496,10 +501,12 @@ async function main() {
 
   // ── 8. Inventario ─────────────────────────────────────────────────────────
   // Proveedores, insumos, stock por sucursal, movimientos auditados por
-  // usuario (owner/admin/chef) y recetas que vinculan platillos con insumos.
-  const owner = users.find((u) => u.role === 'OWNER')!;
-  const admin = users.find((u) => u.role === 'ADMIN')!;
-  const chef = users.find((u) => u.role === 'CHEF')!;
+  // usuario (owner/admin/kitchen staff) y recetas que vinculan platillos con
+  // insumos. Se busca por email, no por role, porque owner@demo.com y
+  // admin@demo.com comparten role=OWNER desde que se retiró ADMIN.
+  const owner = users.find((u) => u.email === 'owner@demo.com')!;
+  const admin = users.find((u) => u.email === 'admin@demo.com')!;
+  const chef = users.find((u) => u.email === 'chef@demo.com')!;
 
   // 8.a Proveedores
   const [provCarnes, provAbarrotes, provBebidas] = await Promise.all([
@@ -579,7 +586,7 @@ async function main() {
   // 8.c Movimientos — solo en la primera corrida para no duplicar el kardex
   const existingMovements = await tenantDb.inventoryMovement.count();
   if (existingMovements === 0) {
-    // Compra inicial registrada por la ADMIN (Laura)
+    // Compra inicial registrada por Laura (owner)
     for (const spec of inventorySpecs) {
       const item = inventoryItems.get(spec.name)!;
       await tenantDb.inventoryMovement.create({
@@ -598,7 +605,7 @@ async function main() {
       });
     }
 
-    // Consumos del servicio registrados por el CHEF (Marco)
+    // Consumos del servicio registrados por Marco (kitchen staff)
     const consumptions = [
       { name: 'Arrachera', quantity: 4.5, reference: 'ORD-0001' },
       { name: 'Mole Negro', quantity: 1.2, reference: 'ORD-0003' },
@@ -621,7 +628,7 @@ async function main() {
       });
     }
 
-    // Merma registrada por el CHEF
+    // Merma registrada por el kitchen staff
     await tenantDb.inventoryMovement.create({
       data: {
         itemId: inventoryItems.get('Huachinango')!.id,
@@ -674,7 +681,7 @@ async function main() {
   }
   console.log(`✅  Stock:     ${inventorySpecs.length} items en sucursal ${branch.slug} (2 bajo mínimo)`);
 
-  // 8.e Recetas — vinculan platillos del menú con insumos (visibilidad CHEF)
+  // 8.e Recetas — vinculan platillos del menú con insumos (visibilidad KITCHEN_STAFF)
   const recipes: Array<{ dish: string; ingredients: Array<{ item: string; quantity: number; notes?: string }> }> = [
     {
       dish: 'Arrachera a las Brasas',
@@ -753,18 +760,18 @@ async function main() {
 
   // ─── Resumen de credenciales ──────────────────────────────────────────────
   console.log(`
-╔══════════════════════════════════════════════════════════════╗
-║              CREDENCIALES DE PRUEBA                          ║
-╠══════════════════════════════════════════════════════════════╣
-║  Header requerido:  x-tenant-slug: demo                      ║
-╠══════════════════════════════════════════════════════════════╣
-║  OWNER    owner@demo.com    / Owner123                       ║
-║  ADMIN    admin@demo.com    / Admin123                       ║
-║  MANAGER  gerente@demo.com  / Gerente123                     ║
-║  WAITER   mesero@demo.com   / Mesero123                      ║
-║  CASHIER  cajero@demo.com   / Cajero123                      ║
-║  CHEF     chef@demo.com     / Chef1234                       ║
-╚══════════════════════════════════════════════════════════════╝
+╔═══════════════════════════════════════════════╗
+║              CREDENCIALES DE PRUEBA           ║
+╠═══════════════════════════════════════════════╣
+║  Header requerido:  x-tenant-slug: demo       ║
+╠═══════════════════════════════════════════════╣
+║  OWNER          owner@demo.com    / Owner123  ║
+║  OWNER          admin@demo.com    / Admin123  ║
+║  MANAGER        gerente@demo.com  / Gerente123║
+║  WAITER         mesero@demo.com   / Mesero123 ║
+║  CASHIER        cajero@demo.com   / Cajero123 ║
+║  KITCHEN_STAFF  chef@demo.com     / Chef1234  ║
+╚═══════════════════════════════════════════════╝
 
   Login:  POST http://localhost:4000/api/v1/auth/login
   Docs:   http://localhost:4000/api/docs
