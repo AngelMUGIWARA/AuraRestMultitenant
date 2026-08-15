@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { TablesRepository } from './tables.repository';
 import { TableStatus } from '../generated/prisma-tenant';
+import type { Prisma } from '../generated/prisma-tenant';
 import { CreateTableDto } from './dto/create-table.dto';
 import { UpdateTableDto } from './dto/update-table.dto';
 
@@ -45,9 +46,10 @@ export class TablesService {
       );
     }
 
+    const { branchId, ...rest } = dto;
     const table = await this.tablesRepo.create(schemaName, {
-      ...dto,
-      branchId: dto.branchId,
+      ...rest,
+      branch: { connect: { id: branchId } },
       status: 'AVAILABLE',
       isActive: true,
     });
@@ -72,7 +74,13 @@ export class TablesService {
       }
     }
 
-    const updated = await this.tablesRepo.update(schemaName, id, dto);
+    const { branchId, ...rest } = dto;
+    const data: Prisma.RestaurantTableUpdateInput = { ...rest };
+    if (branchId !== undefined) {
+      data.branch = { connect: { id: branchId } };
+    }
+
+    const updated = await this.tablesRepo.update(schemaName, id, data);
     return this.toResponse(updated);
   }
 
