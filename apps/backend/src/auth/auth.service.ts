@@ -49,6 +49,24 @@ export class AuthService {
     return randomBytes(16).toString('hex');
   }
 
+  /**
+   * Resuelve la sucursal asignada al usuario para el rol con el que inicia
+   * sesión. Se usa para poblar el claim `branchId` del JWT, que permite a
+   * roles como MANAGER/CASHIER/WAITER operar dentro de su rama.
+   */
+  private async resolveBranchId(
+    db: any,
+    userId: string,
+    role: string,
+  ): Promise<string | undefined> {
+    const assignment = await db.userBranch.findFirst({
+      where: { userId, role: { name: role } },
+      orderBy: { createdAt: 'asc' },
+      select: { branchId: true },
+    });
+    return assignment?.branchId ?? undefined;
+  }
+
   private generateFamilyId(): string {
     return randomBytes(16).toString('hex');
   }
@@ -79,10 +97,17 @@ export class AuthService {
       where: { schemaName: tenantSchemaName },
     });
 
+    const branchId = await this.resolveBranchId(
+      db,
+      user.id,
+      user.role as string,
+    );
+
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role as string,
+      branchId,
       tenantSlug: tenant?.slug ?? '',
       tenantSchemaName,
       mustChangePassword: user.mustChangePassword,
@@ -109,10 +134,17 @@ export class AuthService {
             throw new UnauthorizedException('Usuario inactivo o suspendido');
           }
 
+          const branchId = await this.resolveBranchId(
+            db,
+            user.id,
+            user.role as string,
+          );
+
           const payload = {
             sub: user.id,
             email: user.email,
             role: user.role as string,
+            branchId,
             tenantSlug: tenant.slug,
             tenantSchemaName: tenant.schemaName,
             mustChangePassword: user.mustChangePassword,
@@ -235,10 +267,17 @@ export class AuthService {
       where: { schemaName: tenantSchemaName },
     });
 
+    const branchId = await this.resolveBranchId(
+      db,
+      user.id,
+      user.role as string,
+    );
+
     const newPayload = {
       sub: user.id,
       email: user.email,
       role: user.role as string,
+      branchId,
       tenantSlug: tenant?.slug ?? '',
       tenantSchemaName,
       mustChangePassword: user.mustChangePassword,

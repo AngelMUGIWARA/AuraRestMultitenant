@@ -1,41 +1,41 @@
 'use client';
 
-import { loadRemote, init } from '@module-federation/runtime';
-import { MFE_URLS } from './federation';
+import { loadRemote, registerRemotes } from '@module-federation/runtime';
 
-// Cache para remotos ya cargados
-const loadedRemotes = new Set<string>();
+// Cache para remotos ya registrados en la instancia global
+const registeredRemotes = new Set<string>();
 
 /**
  * Carga dinámicamente un remoto (para lazy-loading).
- * Inicializa el remoto si aún no ha sido cargado.
+ *
+ * IMPORTANTE: NO se debe llamar a `init()` aquí. `init()` crea una NUEVA
+ * instancia de FederationInstance (módulo-escopo) y la asigna como la instancia
+ * que usan todas las llamadas posteriores a `loadRemote()`. Si se inicializa
+ * un remoto con `init({ name: 'menu_mf' })`, TODOS los `loadRemote()` siguientes
+ * intentan resolver contra esa instancia (que solo conoce menu_mf) y fallan con
+ * RUNTIME-004 "Cannot find remote ... in runtime menu_mf".
+ *
+ * Los 6 remotos ya están pre-registrados en `initFederation()` (instancia
+ * 'web_shell'), así que basta con `loadRemote()`. Para remotos NO pre-registrados
+ * se usa `registerRemotes()`, que los añade a la instancia actual SIN reemplazarla.
  */
 export async function loadRemoteDynamically(
   remoteName: string,
   modulePath: string
 ): Promise<{ default: any }> {
-  // Si el remoto aún no está cargado, inicializalo
-  if (!loadedRemotes.has(remoteName)) {
+  if (!registeredRemotes.has(remoteName)) {
     const mfeUrl = getMFEUrl(remoteName);
 
     if (!mfeUrl) {
       throw new Error(`No hay URL configurada para el remoto: ${remoteName}`);
     }
 
-    // Registra y inicializa el remoto
-    try {
-      init({
-        name: remoteName,
-        remotes: [
-          { name: remoteName, entry: mfeUrl, type: 'module' },
-        ],
-      });
+    // Añade el remoto a la instancia global actual (web_shell) sin sustituirla.
+    registerRemotes([
+      { name: remoteName, entry: mfeUrl, type: 'module' },
+    ]);
 
-      loadedRemotes.add(remoteName);
-    } catch (err) {
-      console.error(`Error al inicializar remoto ${remoteName}:`, err);
-      throw err;
-    }
+    registeredRemotes.add(remoteName);
   }
 
   // Carga el módulo del remoto

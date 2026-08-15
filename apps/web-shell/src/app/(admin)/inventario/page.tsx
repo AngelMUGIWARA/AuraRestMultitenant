@@ -50,14 +50,15 @@ export default function InventarioPage() {
   const branchId = selectedBranch.id;
 
   const isAdmin = role === 'OWNER' || role === 'MANAGER';
+  const isOwner = role === 'OWNER';
   const canMove = (MOVEMENT_TYPES_BY_ROLE[role] ?? []).length > 0;
 
   const tabs = useMemo<TabId[]>(
     () =>
-      isAdmin
+      isOwner
         ? ['despensa', 'kardex', 'alertas', 'recetas', 'proveedores', 'disponibilidad']
         : ['despensa', 'kardex', 'alertas', 'recetas', 'disponibilidad'],
-    [isAdmin],
+    [isOwner],
   );
   const [tab, setTab] = useState<TabId>('despensa');
 
@@ -67,7 +68,7 @@ export default function InventarioPage() {
   const alerts = useStockAlerts(branchId);
   const movements = useInventoryMovements({ branchId });
   const availability = useMenuAvailability(branchId);
-  const suppliers = useSuppliers(isAdmin);
+  const suppliers = useSuppliers(isOwner);
 
   // Modales
   const [movementOpen, setMovementOpen] = useState(false);
@@ -132,7 +133,7 @@ export default function InventarioPage() {
               Registrar movimiento
             </button>
           )}
-          {isAdmin && (
+          {isOwner && (
             <button
               type="button"
               onClick={() => { setEditingItem(null); setItemModalOpen(true); }}
@@ -218,7 +219,7 @@ export default function InventarioPage() {
             <ItemsTable
               items={items.data ?? []}
               showCosts={isAdmin}
-              onEdit={isAdmin ? (item) => { setEditingItem(item); setItemModalOpen(true); } : undefined}
+              onEdit={isOwner ? (item) => { setEditingItem(item); setItemModalOpen(true); } : undefined}
             />
           )
         )}
@@ -266,7 +267,7 @@ export default function InventarioPage() {
           />
         )}
 
-        {tab === 'proveedores' && isAdmin && (
+        {tab === 'proveedores' && isOwner && (
           suppliers.isLoading ? (
             <TableSkeleton />
           ) : (
@@ -297,7 +298,7 @@ export default function InventarioPage() {
         initialType={movementPreset.type}
       />
 
-      {isAdmin && (
+      {isOwner && (
         <ItemModal
           open={itemModalOpen}
           onClose={() => setItemModalOpen(false)}

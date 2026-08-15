@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ApiClient } from '@maison/api-client';
+import { apiClient } from '@maison/api-client';
 import { EmptyState, Skeleton } from '@maison/ui';
 import { IconUsers } from '@maison/ui';
 import type { User } from '@maison/types';
@@ -15,8 +15,8 @@ export default function UsersPage() {
     const fetchUsers = async () => {
       try {
         setIsLoading(true);
-        const response = await ApiClient.get<{ data: User[] }>('/admin/users');
-        setUsers(response.data);
+        const response = await apiClient.get<{ data: { data: User[] } }>('/admin/users');
+        setUsers(response.data.data ?? []);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar usuarios');
@@ -95,7 +95,7 @@ export default function UsersPage() {
           <tbody>
             {users.map((user) => (
               <tr key={user.id} className="border-b border-maison-border hover:bg-surface-2">
-                <td className="px-4 py-3 text-maison-cream">{user.fullName || 'Sin nombre'}</td>
+                <td className="px-4 py-3 text-maison-cream">{user.name || 'Sin nombre'}</td>
                 <td className="px-4 py-3 text-maison-cream-muted">{user.email}</td>
                 <td className="px-4 py-3">
                   <span className="badge text-xs font-medium px-2 py-1 rounded bg-maison-amber-glow text-maison-amber">
@@ -105,10 +105,10 @@ export default function UsersPage() {
                 <td className="px-4 py-3">
                   <span
                     className={`text-xs font-medium ${
-                      user.isActive ? 'text-maison-sage' : 'text-maison-ruby'
+                      user.status === 'ACTIVE' ? 'text-maison-sage' : 'text-maison-ruby'
                     }`}
                   >
-                    {user.isActive ? 'Activo' : 'Inactivo'}
+                    {user.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
                   </span>
                 </td>
               </tr>

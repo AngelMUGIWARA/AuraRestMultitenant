@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ApiClient } from '@maison/api-client';
+import { apiClient } from '@maison/api-client';
 import { EmptyState, Skeleton } from '@maison/ui';
-import { IconBuilding } from '@maison/ui';
+import { IconMapPin } from '@maison/ui';
 import type { Branch } from '@maison/types';
 
 export default function SucursalesPage() {
@@ -15,8 +15,8 @@ export default function SucursalesPage() {
     const fetchBranches = async () => {
       try {
         setIsLoading(true);
-        const response = await ApiClient.get<{ data: Branch[] }>('/admin/branches');
-        setBranches(response.data);
+        const response = await apiClient.get<{ data: { data: Branch[] } }>('/admin/branches');
+        setBranches(response.data.data ?? []);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar sucursales');
@@ -65,7 +65,7 @@ export default function SucursalesPage() {
         </header>
         <div className="card">
           <EmptyState
-            icon={<IconBuilding className="h-6 w-6" />}
+            icon={<IconMapPin className="h-6 w-6" />}
             title="Sin sucursales"
             description="No hay sucursales configuradas en el sistema."
             className="py-20"
@@ -88,9 +88,6 @@ export default function SucursalesPage() {
             <div className="flex items-start justify-between gap-3 mb-4">
               <div className="flex-1">
                 <h3 className="font-medium text-maison-cream text-lg">{branch.name}</h3>
-                {branch.description && (
-                  <p className="text-xs text-maison-cream-muted mt-1">{branch.description}</p>
-                )}
               </div>
               <span
                 className={`badge text-xs font-medium px-2 py-1 rounded-full ${
@@ -108,9 +105,11 @@ export default function SucursalesPage() {
             )}
 
             <div className="mt-4 pt-4 border-t border-maison-border">
-              <p className="text-2xs text-maison-cream-dim">
-                Creada: {new Date(branch.createdAt).toLocaleDateString('es-ES')}
-              </p>
+              {branch.createdAt && (
+                <p className="text-2xs text-maison-cream-dim">
+                  Creada: {new Date(branch.createdAt).toLocaleDateString('es-ES')}
+                </p>
+              )}
             </div>
           </div>
         ))}

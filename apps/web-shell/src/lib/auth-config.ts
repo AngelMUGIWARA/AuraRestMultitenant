@@ -6,13 +6,13 @@ import type { UserRole } from '@maison/types';
  * Nota: ADMIN en URLs (/admin/*) corresponde al rol SUPER_ADMIN.
  */
 export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
-  // OWNER dashboard (roles: OWNER, SUPER_ADMIN)
+  // OWNER dashboard (roles: OWNER, SUPER_ADMIN, MANAGER)
   '/dashboard': ['OWNER', 'SUPER_ADMIN'],
-  '/reportes': ['OWNER', 'SUPER_ADMIN'],
-  '/reservaciones': ['OWNER', 'SUPER_ADMIN'],
-  '/sucursales': ['OWNER', 'SUPER_ADMIN'],
+  '/reportes': ['OWNER', 'SUPER_ADMIN', 'MANAGER'],
+  '/reservaciones': ['OWNER', 'SUPER_ADMIN', 'MANAGER'],
+  '/sucursales': ['OWNER', 'SUPER_ADMIN', 'MANAGER'],
   '/settings': ['OWNER', 'SUPER_ADMIN'],
-  '/inventario': ['OWNER', 'SUPER_ADMIN'],
+  '/inventario': ['OWNER', 'SUPER_ADMIN', 'MANAGER'],
 
   // ADMIN dashboard (SUPER_ADMIN and MANAGER)
   '/dashboard-admin': ['SUPER_ADMIN', 'MANAGER'],
@@ -50,7 +50,7 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
  */
 export const DEFAULT_ROUTE_BY_ROLE: Record<UserRole, string> = {
   OWNER: '/dashboard',
-  MANAGER: '/waiter-orders',
+  MANAGER: '/dashboard-admin',
   WAITER: '/waiter/tables',
   CASHIER: '/cashier',
   KITCHEN_STAFF: '/chef/dashboard',

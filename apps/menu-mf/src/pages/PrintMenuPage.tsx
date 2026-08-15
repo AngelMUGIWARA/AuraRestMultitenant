@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useBranch } from '@maison/ui';
 import { usePrintableMenu } from '../hooks/usePrintableMenu';
 import { formatCurrency } from '../utils';
@@ -5,11 +6,16 @@ import './PrintMenuPage.css';
 
 export default function PrintMenuPage() {
   const { selectedBranch } = useBranch();
+  const navigate = useNavigate();
 
   const { menu, loading, error } = usePrintableMenu(selectedBranch.id);
 
   function handlePrint() {
     window.print();
+  }
+
+  function handleBack() {
+    navigate(-1);
   }
 
   if (loading) {
@@ -35,6 +41,13 @@ export default function PrintMenuPage() {
             className="btn-primary"
         >
             🖨️ Imprimir menú
+        </button>
+        <button
+            type="button"
+            onClick={handleBack}
+            className="btn-ghost ml-3"
+        >
+            ← Volver a menús
         </button>
         </div>
 

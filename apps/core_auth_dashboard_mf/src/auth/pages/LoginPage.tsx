@@ -4,7 +4,7 @@ import { useLogin } from '../hooks/useLogin';
 
 const ROLE_ROUTES: Record<string, string> = {
   OWNER:         '/dashboard',
-  MANAGER:       '/waiter-orders',
+  MANAGER:       '/dashboard-admin',
   WAITER:        '/waiter/tables',
   CASHIER:       '/cashier',
   KITCHEN_STAFF: '/chef/dashboard',

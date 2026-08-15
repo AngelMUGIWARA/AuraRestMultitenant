@@ -7,6 +7,7 @@ export interface JwtPayload {
   sub: string;
   email: string;
   role: string;
+  branchId?: string;
   tenantSlug: string;
   tenantSchemaName: string;
 }
@@ -27,6 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: payload.sub,
       email: payload.email,
       role: payload.role,
+      branchId: payload.branchId,
       tenantSlug: payload.tenantSlug,
       tenantSchemaName: payload.tenantSchemaName,
     };
