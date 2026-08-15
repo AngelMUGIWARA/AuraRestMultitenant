@@ -8,6 +8,10 @@ export function useVoiceSeed() {
   const [error, setError] = useState<string | null>(null);
   const [savedUsername, setSavedUsername] = useState<string | null>(null);
 
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [generatedSeedWord, setGeneratedSeedWord] = useState<string | null>(null);
+
   async function submit(payload: VoiceSeedPayload): Promise<boolean> {
     setIsSaving(true);
     setError(null);
@@ -30,5 +34,32 @@ export function useVoiceSeed() {
     }
   }
 
-  return { submit, isSaving, error, savedUsername };
+  async function generate(): Promise<void> {
+    setIsGenerating(true);
+    setGenerateError(null);
+    setGeneratedSeedWord(null);
+    try {
+      const response = await voiceSeedService.generateVoiceSeed();
+      setGeneratedSeedWord(response.seedWord);
+    } catch (err) {
+      if (err instanceof ApiClientError && err.statusCode === 403) {
+        setGenerateError('No tienes permiso para generar una palabra clave de voz.');
+      } else {
+        setGenerateError('No se pudo generar la palabra clave. Verifica tu conexión e intenta de nuevo.');
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  return {
+    submit,
+    isSaving,
+    error,
+    savedUsername,
+    generate,
+    isGenerating,
+    generateError,
+    generatedSeedWord,
+  };
 }
