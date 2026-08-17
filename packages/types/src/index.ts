@@ -925,11 +925,14 @@ export interface TableFilters {
 
 export interface VoiceSeedPayload {
   voiceUsername: string;
-  seedWord: string;
 }
 
 export interface VoiceSeedResponse {
   voiceUsername: string;
+}
+
+export interface VoiceSeedGenerateResponse {
+  seedWord: string;
 }
 
 // ─── Reports ──────────────────────────────────────────────────────────────────
