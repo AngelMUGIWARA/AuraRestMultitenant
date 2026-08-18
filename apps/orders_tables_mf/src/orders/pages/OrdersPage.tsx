@@ -60,12 +60,12 @@ const STATUS_CONFIG: Record<
     emoji: '📦',
   },
   paid: {
-    label: 'Pagado',
-    badge: 'badge-active badge',
-    border: 'border-l-maison-sage',
-    dot: 'bg-maison-sage',
-    accentBg: 'from-maison-sage/5',
-    emoji: '💳',
+    label: 'Entregado',
+    badge: 'badge badge-inactive',
+    border: 'border-l-maison-cream-dim',
+    dot: 'bg-maison-cream-dim',
+    accentBg: 'from-maison-cream-dim/5',
+    emoji: '📦',
   },
   cancelled: {
     label: 'Cancelado',
@@ -422,13 +422,13 @@ export default function OrdersPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Search */}
         <div className="relative max-w-xs flex-1">
-          <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-maison-cream-dim" />
+          <IconSearch className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-maison-cream-dim" />
           <input
             type="search"
             placeholder="Buscar por # o cliente..."
             value={filters.search ?? ''}
             onChange={(e) => setFilters({ search: e.target.value || undefined })}
-            className="input-base w-full pl-9 rounded-xl"
+            className="h-9 w-full rounded-xl border border-maison-border bg-surface-2 pl-8 pr-3 text-sm leading-9 text-maison-cream placeholder:text-maison-cream-dim outline-none transition-colors focus:border-maison-amber focus:ring-1 focus:ring-maison-amber/20"
             aria-label="Buscar pedidos"
           />
         </div>

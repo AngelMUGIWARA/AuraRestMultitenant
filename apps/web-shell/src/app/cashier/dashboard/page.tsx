@@ -61,7 +61,7 @@ const STATUS_BADGES: Record<string, { label: string; color: string }> = {
   preparing: { label: 'En preparación', color: 'bg-blue-500/15 text-blue-400' },
   ready: { label: 'Listo', color: 'bg-emerald-500/15 text-emerald-400' },
   delivered: { label: 'Entregado', color: 'bg-emerald-500/15 text-emerald-400' },
-  paid: { label: 'Pagado', color: 'bg-emerald-500/15 text-emerald-400' },
+  paid: { label: 'Entregado', color: 'bg-emerald-500/15 text-emerald-400' },
   cancelled: { label: 'Cancelado', color: 'bg-red-500/15 text-red-400' },
 };
 
