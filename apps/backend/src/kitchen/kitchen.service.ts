@@ -12,6 +12,7 @@ import { CreateKitchenTicketDto } from './dto/create-kitchen-ticket.dto';
 import { UpdateKitchenTicketStatusDto } from './dto/update-kitchen-ticket-status.dto';
 import { UpdateKitchenItemStatusDto } from './dto/update-kitchen-item-status.dto';
 import { ListKitchenTicketsQueryDto } from './dto/list-kitchen-tickets-query.dto';
+import { KitchenGateway } from './kitchen.gateway';
 
 const TICKET_TRANSITIONS: Record<string, string[]> = {
   PENDING: ['PREPARING', 'CANCELLED'],
@@ -37,6 +38,7 @@ export class KitchenService {
   constructor(
     private readonly repo: KitchenRepository,
     private readonly activityLogRepo: ActivityLogRepository,
+    private readonly gateway: KitchenGateway,
   ) {}
 
   async createTicket(
@@ -111,6 +113,7 @@ export class KitchenService {
           tx,
         );
 
+        this.gateway.broadcastQueue();
         return this.toResponse(ticket);
       });
     } catch (error: any) {
@@ -125,6 +128,7 @@ export class KitchenService {
             throw new ConflictException(
               'Ya existe un ticket de cocina para esta orden.',
             );
+            this.gateway.broadcastQueue();
           }
         }
         throw new ConflictException(
@@ -267,6 +271,7 @@ export class KitchenService {
         tx,
       );
 
+      this.gateway.broadcastQueue();
       return this.toResponse(updated);
     });
   }
@@ -335,6 +340,7 @@ export class KitchenService {
         },
         tx,
       );
+      this.gateway.broadcastQueue();
 
       const allItems = await this.repo.findTicketItems(
         schemaName,

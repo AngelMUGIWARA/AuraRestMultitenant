@@ -33,6 +33,8 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
   // KITCHEN (KITCHEN_STAFF y SUPER_ADMIN)
   '/kitchen': ['KITCHEN_STAFF', 'SUPER_ADMIN'],
   '/chef/dashboard': ['KITCHEN_STAFF', 'SUPER_ADMIN'],
+  '/chef/pedidos': ['KITCHEN_STAFF', 'SUPER_ADMIN'],
+  '/chef/inventario': ['KITCHEN_STAFF', 'SUPER_ADMIN'],
 
   // WAITER / Manager - órdenes
   '/waiter-orders': ['WAITER', 'MANAGER', 'SUPER_ADMIN'],

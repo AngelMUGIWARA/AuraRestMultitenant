@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { on, emit } from '@maison/event-bus';
 import { kitchenService } from '../services/kitchen.service';
 import type { KitchenTicket, KitchenTicketStatus, OrderStatus } from '@maison/types';
@@ -27,36 +28,55 @@ export function useKitchenQueue() {
   useEffect(() => {
     fetchQueue(branchId);
 
-    // Try WebSocket — fallback to polling if unavailable
-    let ws: WebSocket | null = null;
+    let socket: Socket | null = null;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-    try {
-      const wsUrl = ((import.meta as any).env?.VITE_KITCHEN_WS_URL as string | undefined) ?? 'ws://localhost:3001/kitchen/queue';
-      ws = new WebSocket(wsUrl);
-      ws.onopen = () => setWsConnected(true);
-      ws.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data as string) as { tickets: KitchenTicket[] };
-          setTickets(data.tickets);
-        } catch {}
-      };
-      ws.onerror = () => {
-        setWsConnected(false);
-        ws?.close();
-        // fallback polling
+    const startPolling = () => {
+      if (!pollTimer) {
         pollTimer = setInterval(() => fetchQueue(branchId), POLL_INTERVAL_MS);
-      };
-      ws.onclose = () => setWsConnected(false);
-    } catch {
-      pollTimer = setInterval(() => fetchQueue(branchId), POLL_INTERVAL_MS);
-    }
+      }
+    };
 
-    // Subscribe to event-bus events for instant updates
+    const connectSocket = () => {
+      // Extraer el token de donde lo almacenes en tu app (localStorage, cookies, etc.)
+      const token = localStorage.getItem('token') || ''; 
+      const baseUrl = ((import.meta as any).env?.VITE_API_URL as string | undefined) ?? 'http://localhost:4000';
+
+      // Conectarse al namespace /kitchen configurado en NestJS
+      socket = io(`${baseUrl}/kitchen`, {
+        query: { token },
+        transports: ['websocket', 'polling'],
+      });
+
+      socket.on('connect', () => {
+        setWsConnected(true);
+        if (pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+      });
+
+      // El gateway emite 'queueUpdated' cuando hay cambios, llamamos a fetchQueue
+      socket.on('queueUpdated', () => {
+        fetchQueue(branchId);
+      });
+
+      socket.on('connect_error', () => {
+        setWsConnected(false);
+        startPolling();
+      });
+
+      socket.on('disconnect', () => {
+        setWsConnected(false);
+        startPolling();
+      });
+    };
+
+    connectSocket();
+
     const offCreated = on('order:created', () => fetchQueue(branchId));
     const offUpdated = on('order:updated', () => fetchQueue(branchId));
 
-    // Subscribe to branch changes
     const offBranch = on('branch:changed', ({ branchId: id, isGlobal }) => {
       const newBranchId = isGlobal ? undefined : id;
       setBranchId(newBranchId);
@@ -64,24 +84,41 @@ export function useKitchenQueue() {
     });
 
     return () => {
-      ws?.close();
+      socket?.disconnect();
       if (pollTimer) clearInterval(pollTimer);
       offCreated();
       offUpdated();
       offBranch();
     };
-  }, [fetchQueue]);
+  }, [fetchQueue, branchId]);
 
-  const updateTicketStatus = useCallback(async (ticketId: string, orderId: string, orderNumber: string, status: KitchenTicketStatus) => {
-    try {
-      await kitchenService.updateTicketStatus(ticketId, status);
-      setTickets((prev) => prev.map((t) => t.id === ticketId ? { ...t, status } : t));
-      // Publish status change so orders-mf and cashier-mf can react
-      emit('order:status-changed', { orderId, orderNumber, status: status as unknown as OrderStatus });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar estado');
-    }
-  }, []);
-
+  const updateTicketStatus = useCallback(
+    async (
+      ticketId: string,
+      orderId: string,
+      orderNumber: string,
+      status: KitchenTicketStatus,
+      version: number,
+      reason?: string,
+    ) => {
+      try {
+        await kitchenService.updateTicketStatus(ticketId, { status, version, reason });
+        // Optimistic update: increment version locally
+        setTickets((prev) =>
+          prev.map((t) =>
+            t.id === ticketId ? { ...t, status, version: version + 1 } : t,
+          ),
+        );
+        emit('order:status-changed', {
+          orderId,
+          orderNumber,
+          status: status as unknown as OrderStatus,
+        });
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Error al actualizar estado');
+      }
+    },
+    [],
+  );
   return { tickets, isLoading, error, wsConnected, updateTicketStatus };
 }

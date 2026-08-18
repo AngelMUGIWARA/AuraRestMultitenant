@@ -18,3 +18,15 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 }
+
+export namespace JwtAuthGuard {
+  export function extractRoleFromToken(token: string): string | null {
+    try {
+      const payload = require('jsonwebtoken').decode(token) as any;
+      return payload?.role ?? null;
+    } catch {
+      return null;
+    }
+  }
+}
+
