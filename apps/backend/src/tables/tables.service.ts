@@ -49,7 +49,7 @@ export class TablesService {
     const { branchId, ...rest } = dto;
     const table = await this.tablesRepo.create(schemaName, {
       ...rest,
-      branch: { connect: { id: branchId } },
+      branchId,
       status: 'AVAILABLE',
       isActive: true,
     });
@@ -75,10 +75,10 @@ export class TablesService {
     }
 
     const { branchId, ...rest } = dto;
-    const data: Prisma.RestaurantTableUpdateInput = { ...rest };
-    if (branchId !== undefined) {
-      data.branch = { connect: { id: branchId } };
-    }
+    const data: Prisma.RestaurantTableUpdateInput = {
+      ...rest,
+      ...(branchId !== undefined ? { branchId } : {}),
+    };
 
     const updated = await this.tablesRepo.update(schemaName, id, data);
     return this.toResponse(updated);
