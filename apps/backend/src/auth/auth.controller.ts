@@ -7,7 +7,13 @@ import {
   HttpStatus,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiSecurity,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -16,13 +22,20 @@ import { LogoutDto } from './dto/logout.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { VoiceSeedDto } from './dto/voice-seed.dto';
+import { VoiceSeedGenerateResponseDto } from './dto/voice-seed-generate-response.dto';
 import { VoiceLoginDto } from './dto/voice-login.dto';
 import { VoiceLoginResponseDto } from './dto/voice-login-response.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { AuthRefreshThrottle } from '../common/decorators/auth-refresh-throttle.decorator';
-import { CurrentTenant, TenantContext } from '../common/decorators/current-tenant.decorator';
-import { CurrentUser, AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import {
+  CurrentTenant,
+  TenantContext,
+} from '../common/decorators/current-tenant.decorator';
+import {
+  CurrentUser,
+  AuthenticatedUser,
+} from '../common/decorators/current-user.decorator';
 
 @ApiTags('Auth')
 @ApiSecurity('TenantSlug')
@@ -34,7 +47,10 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Iniciar sesión (detecta automáticamente el tenant)', operationId: 'auth_login' })
+  @ApiOperation({
+    summary: 'Iniciar sesión (detecta automáticamente el tenant)',
+    operationId: 'auth_login',
+  })
   @ApiResponse({ status: 200, type: AuthResponseDto })
   @ApiResponse({ status: 401, description: 'Credenciales inválidas' })
   login(
@@ -52,9 +68,15 @@ export class AuthController {
   @Throttle({ 'auth-refresh': {} })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Renovar access token usando refresh token', operationId: 'auth_refresh' })
+  @ApiOperation({
+    summary: 'Renovar access token usando refresh token',
+    operationId: 'auth_refresh',
+  })
   @ApiResponse({ status: 200, type: AuthResponseDto })
-  @ApiResponse({ status: 401, description: 'Refresh token inválido o expirado' })
+  @ApiResponse({
+    status: 401,
+    description: 'Refresh token inválido o expirado',
+  })
   refresh(@Body() dto: RefreshDto): Promise<AuthResponseDto> {
     return this.authService.refreshToken(dto.refreshToken);
   }
@@ -62,7 +84,10 @@ export class AuthController {
   @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cerrar sesion y revocar refresh token', operationId: 'auth_logout' })
+  @ApiOperation({
+    summary: 'Cerrar sesion y revocar refresh token',
+    operationId: 'auth_logout',
+  })
   @ApiResponse({ status: 200, description: 'Sesion cerrada' })
   logout(@Body() dto: LogoutDto): Promise<{ message: string }> {
     return this.authService.logout(dto.refreshToken);
@@ -71,9 +96,15 @@ export class AuthController {
   @ApiBearerAuth('JWT')
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cambiar la contraseña del usuario autenticado', operationId: 'auth_changePassword' })
+  @ApiOperation({
+    summary: 'Cambiar la contraseña del usuario autenticado',
+    operationId: 'auth_changePassword',
+  })
   @ApiResponse({ status: 200, description: 'Contraseña actualizada' })
-  @ApiResponse({ status: 401, description: 'Contraseña actual incorrecta o credenciales inválidas' })
+  @ApiResponse({
+    status: 401,
+    description: 'Contraseña actual incorrecta o credenciales inválidas',
+  })
   changePassword(
     @CurrentUser() user: AuthenticatedUser,
     @CurrentTenant() tenant: TenantContext,
@@ -88,14 +119,15 @@ export class AuthController {
   }
 
   @ApiBearerAuth('JWT')
-  @Roles('OWNER')
+  @Roles('OWNER', 'MANAGER')
   @Patch('voice-seed')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Configurar la palabra clave de voz para autenticarse ante la skill de Alexa (requiere JWT normal, solo OWNER)',
+    summary:
+      'Configurar el nombre de usuario de voz para la skill de Alexa (requiere JWT normal, solo OWNER)',
     operationId: 'auth_setVoiceSeed',
   })
-  @ApiResponse({ status: 200, description: 'Palabra clave de voz configurada' })
+  @ApiResponse({ status: 200, description: 'voiceUsername configurado' })
   @ApiResponse({ status: 403, description: 'Rol no autorizado' })
   @ApiResponse({ status: 409, description: 'voiceUsername ya está en uso' })
   setVoiceSeed(
@@ -111,12 +143,41 @@ export class AuthController {
     return this.authService.setVoiceSeed(user.id, tenant.schemaName, dto);
   }
 
+  @ApiBearerAuth('JWT')
+  @Roles('OWNER', 'MANAGER')
+  @Post('voice-seed/generate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Generar una nueva palabra clave de voz aleatoria, de un solo uso (requiere JWT normal, solo OWNER/MANAGER)',
+    operationId: 'auth_generateVoiceSeed',
+  })
+  @ApiResponse({
+    status: 200,
+    type: VoiceSeedGenerateResponseDto,
+    description:
+      'Palabra clave generada — se muestra en texto plano solo en esta respuesta',
+  })
+  @ApiResponse({ status: 403, description: 'Rol no autorizado' })
+  generateVoiceSeed(
+    @CurrentUser() user: AuthenticatedUser,
+    @CurrentTenant() tenant: TenantContext,
+  ): Promise<VoiceSeedGenerateResponseDto> {
+    if (!tenant) {
+      throw new UnauthorizedException(
+        'Tenant no identificado. Incluye el header x-tenant-slug.',
+      );
+    }
+    return this.authService.generateVoiceSeed(user.id, tenant.schemaName);
+  }
+
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('voice-login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Validar la palabra clave de voz (llamado por la skill de Alexa, requiere header x-tenant-slug)',
+    summary:
+      'Validar la palabra clave de voz (llamado por la skill de Alexa, requiere header x-tenant-slug)',
     operationId: 'auth_voiceLogin',
   })
   @ApiResponse({ status: 200, type: VoiceLoginResponseDto })

@@ -20,6 +20,7 @@ import {
   INVITATION_NOTIFIER,
   InvitationNotifier,
 } from '../notifications/invitation-notifier.interface';
+import { PlanLimitsService } from '../common/plan-limits/plan-limits.service';
 
 const TEMP_PASSWORD_BYTES = 16;
 
@@ -35,6 +36,7 @@ export class UsersService {
     private readonly repo: UsersRepository,
     @Inject(INVITATION_NOTIFIER)
     private readonly invitationNotifier: InvitationNotifier,
+    private readonly planLimits: PlanLimitsService,
   ) {}
 
   async findAll(
@@ -98,6 +100,9 @@ export class UsersService {
     if (existing) {
       throw new ConflictException(`El email ${dto.email} ya está registrado`);
     }
+    const currentStaff = await this.repo.countStaff(schemaName);
+    await this.planLimits.assertWithinLimit(schemaName, 'staff', currentStaff);
+
     return this.repo.create(schemaName, dto);
   }
 
@@ -106,6 +111,8 @@ export class UsersService {
     if (existing) {
       throw new ConflictException(`El email ${dto.email} ya está registrado`);
     }
+    const currentStaff = await this.repo.countStaff(schemaName);
+    await this.planLimits.assertWithinLimit(schemaName, 'staff', currentStaff);
 
     this.invitationNotifier.assertAvailable();
 

@@ -14,10 +14,12 @@ import { TenantPrismaService } from '../database/tenant-prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { VoiceSeedDto } from './dto/voice-seed.dto';
+import { VoiceSeedGenerateResponseDto } from './dto/voice-seed-generate-response.dto';
 import { VoiceLoginDto } from './dto/voice-login.dto';
 import { VoiceLoginResponseDto } from './dto/voice-login-response.dto';
+import { pickRandomSeedWords } from './voice-seed-words';
 
-const VOICE_ROLES = ['OWNER'];
+const VOICE_ROLES = ['OWNER', 'MANAGER'];
 
 @Injectable()
 export class AuthService {
@@ -38,7 +40,10 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {
     this.refreshSecret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
-    this.refreshExpiresIn = this.config.get<string>('JWT_REFRESH_EXPIRES_IN', '7d');
+    this.refreshExpiresIn = this.config.get<string>(
+      'JWT_REFRESH_EXPIRES_IN',
+      '7d',
+    );
   }
 
   static hashToken(token: string): string {
@@ -47,6 +52,24 @@ export class AuthService {
 
   private generateJti(): string {
     return randomBytes(16).toString('hex');
+  }
+
+  /**
+   * Resuelve la sucursal asignada al usuario para el rol con el que inicia
+   * sesión. Se usa para poblar el claim `branchId` del JWT, que permite a
+   * roles como MANAGER/CASHIER/WAITER operar dentro de su rama.
+   */
+  private async resolveBranchId(
+    db: any,
+    userId: string,
+    role: string,
+  ): Promise<string | undefined> {
+    const assignment = await db.userBranch.findFirst({
+      where: { userId, role: { name: role } },
+      orderBy: { createdAt: 'asc' },
+      select: { branchId: true },
+    });
+    return assignment?.branchId ?? undefined;
   }
 
   private generateFamilyId(): string {
@@ -62,7 +85,10 @@ export class AuthService {
 
   /* ── Login ───────────────────────────────────────────────────── */
 
-  async login(dto: LoginDto, tenantSchemaName: string): Promise<AuthResponseDto> {
+  async login(
+    dto: LoginDto,
+    tenantSchemaName: string,
+  ): Promise<AuthResponseDto> {
     const db = this.tenantPrisma.getClient(tenantSchemaName);
 
     const user = await db.user.findUnique({ where: { email: dto.email } });
@@ -79,10 +105,17 @@ export class AuthService {
       where: { schemaName: tenantSchemaName },
     });
 
+    const branchId = await this.resolveBranchId(
+      db,
+      user.id,
+      user.role as string,
+    );
+
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role as string,
+      branchId,
       tenantSlug: tenant?.slug ?? '',
       tenantSchemaName,
       mustChangePassword: user.mustChangePassword,
@@ -103,16 +136,24 @@ export class AuthService {
 
         if (user) {
           const valid = await bcrypt.compare(dto.password, user.passwordHash);
-          if (!valid) throw new UnauthorizedException('Credenciales incorrectas');
+          if (!valid)
+            throw new UnauthorizedException('Credenciales incorrectas');
 
           if (user.status !== 'ACTIVE') {
             throw new UnauthorizedException('Usuario inactivo o suspendido');
           }
 
+          const branchId = await this.resolveBranchId(
+            db,
+            user.id,
+            user.role as string,
+          );
+
           const payload = {
             sub: user.id,
             email: user.email,
             role: user.role as string,
+            branchId,
             tenantSlug: tenant.slug,
             tenantSchemaName: tenant.schemaName,
             mustChangePassword: user.mustChangePassword,
@@ -121,7 +162,10 @@ export class AuthService {
           return this.createSessionAndTokens(user, payload);
         }
       } catch (e: any) {
-        if (e.message?.includes('Credenciales') || e.message?.includes('inactivo')) {
+        if (
+          e.message?.includes('Credenciales') ||
+          e.message?.includes('inactivo')
+        ) {
           throw e;
         }
       }
@@ -235,10 +279,17 @@ export class AuthService {
       where: { schemaName: tenantSchemaName },
     });
 
+    const branchId = await this.resolveBranchId(
+      db,
+      user.id,
+      user.role as string,
+    );
+
     const newPayload = {
       sub: user.id,
       email: user.email,
       role: user.role as string,
+      branchId,
       tenantSlug: tenant?.slug ?? '',
       tenantSchemaName,
       mustChangePassword: user.mustChangePassword,
@@ -247,7 +298,11 @@ export class AuthService {
     const newJti = this.generateJti();
     const newFamilyId = familyId || this.generateFamilyId();
 
-    const { mustChangePassword: _mcp, ...refreshData } = { ...newPayload, jti: newJti, familyId: newFamilyId };
+    const { mustChangePassword: _mcp, ...refreshData } = {
+      ...newPayload,
+      jti: newJti,
+      familyId: newFamilyId,
+    };
 
     const newRefreshToken = this.jwt.sign(refreshData, {
       secret: this.refreshSecret,
@@ -337,17 +392,32 @@ export class AuthService {
       );
     }
 
+    await db.user.update({
+      where: { id: userId },
+      data: { voiceUsername },
+    });
+
+    return { voiceUsername };
+  }
+
+  async generateVoiceSeed(
+    userId: string,
+    tenantSchemaName: string,
+  ): Promise<VoiceSeedGenerateResponseDto> {
+    const db = this.tenantPrisma.getClient(tenantSchemaName);
+    const seedWord = pickRandomSeedWords(3).join(' ');
+
     const voiceSeedHash = await bcrypt.hash(
-      dto.seedWord,
+      seedWord,
       Number(process.env.BCRYPT_ROUNDS ?? 10),
     );
 
     await db.user.update({
       where: { id: userId },
-      data: { voiceUsername, voiceSeedHash },
+      data: { voiceSeedHash },
     });
 
-    return { voiceUsername };
+    return { seedWord };
   }
 
   /* ── Voice Login ─────────────────────────────────────────────── */
@@ -375,13 +445,26 @@ export class AuthService {
       return invalid;
     }
 
+    // Un solo uso: se quema la seed en el mismo request que la valida
+    // exitosamente. voiceUsername no se toca — se mantiene estable.
+    await db.user.update({
+      where: { id: user.id },
+      data: { voiceSeedHash: null },
+    });
+
     return { valid: true, name: user.name, role: user.role };
   }
 
   /* ── Internal helpers ────────────────────────────────────────── */
 
   private async createSessionAndTokens(
-    user: { id: string; name: string; email: string; role: string; mustChangePassword?: boolean },
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      mustChangePassword?: boolean;
+    },
     payload: Record<string, unknown>,
   ): Promise<AuthResponseDto> {
     const jti = this.generateJti();

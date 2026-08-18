@@ -17,6 +17,10 @@ export class UsersRepository {
     return this.tenantPrisma.getClient(schemaName);
   }
 
+  async countStaff(schemaName: string) {
+    return this.db(schemaName).user.count({ where: { role: { not: 'OWNER' } } });
+  }
+
   async findAll(schemaName: string, params: { skip: number; take: number }) {
     const db = this.db(schemaName);
     const [data, total] = await Promise.all([

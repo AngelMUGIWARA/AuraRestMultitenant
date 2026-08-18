@@ -1,41 +1,64 @@
 'use client';
 
 import { loadRemote, registerRemotes } from '@module-federation/runtime';
-import { MFE_URLS } from './federation';
+import { initFederation, MFE_URLS } from './federation';
 
-// Cache para remotos ya cargados
-const loadedRemotes = new Set<string>();
+// Cache para remotos ya registrados en la instancia global
+const registeredRemotes = new Set<string>();
+
+const MFE_URL_MAP: Record<string, string> = {
+  core_auth_dashboard_mf: MFE_URLS.core_auth_dashboard,
+  orders_tables_mf: MFE_URLS.orders_tables,
+  reservations_reports_mf: MFE_URLS.reservations_reports,
+  kitchen_mf: MFE_URLS.kitchen_mf,
+  cashier_mf: MFE_URLS.cashier_mf,
+  menu_mf: MFE_URLS.menu_mf,
+};
+
+function getMFEUrl(remoteName: string): string | undefined {
+  return MFE_URL_MAP[remoteName];
+}
 
 /**
  * Carga dinámicamente un remoto (para lazy-loading).
- * Registra el remoto dinámicamente si aún no ha sido cargado.
  *
- * IMPORTANTE: Usa registerRemotes en lugar de init() para NO
- * sobreescribir la identidad del host (web_shell). El bug anterior
- * usaba init({ name: remoteName }) que cambiaba hostName a
- * "cashier_mf" u otro remote, causando RUNTIME-004.
+ * IMPORTANTE: NO crea una instancia de runtime por remoto. @module-federation/runtime
+ * enlaza el `loadRemote` global a la ÚLTIMA instancia creada por `init()`, así que un
+ * init() por-remoto robaba el runtime global y hacía fallar las cargas posteriores
+ * (#RUNTIME-004, hostName del último remoto lazy). Todos los remotos están registrados
+ * en la instancia única `web_shell` (ver initFederation), por lo que basta con
+ * asegurar que esa instancia exista y delegar en el `loadRemote` global. El remoteEntry
+ * se sigue buscando bajo demanda en el primer uso (lazy).
+ * IMPORTANTE: NO se debe llamar a `init()` aquí. `init()` crea una NUEVA
+ * instancia de FederationInstance (módulo-escopo) y la asigna como la instancia
+ * que usan todas las llamadas posteriores a `loadRemote()`. Si se inicializa
+ * un remoto con `init({ name: 'menu_mf' })`, TODOS los `loadRemote()` siguientes
+ * intentan resolver contra esa instancia (que solo conoce menu_mf) y fallan con
+ * RUNTIME-004 "Cannot find remote ... in runtime menu_mf".
+ *
+ * Los 6 remotos ya están pre-registrados en `initFederation()` (instancia
+ * 'web_shell'), así que basta con `loadRemote()`. Para remotos NO pre-registrados
+ * se usa `registerRemotes()`, que los añade a la instancia actual SIN reemplazarla.
  */
 export async function loadRemoteDynamically(
   remoteName: string,
   modulePath: string
 ): Promise<{ default: any }> {
-  if (!loadedRemotes.has(remoteName)) {
+  initFederation();
+
+  if (!registeredRemotes.has(remoteName)) {
     const mfeUrl = getMFEUrl(remoteName);
 
     if (!mfeUrl) {
       throw new Error(`No hay URL configurada para el remoto: ${remoteName}`);
     }
 
-    try {
-      registerRemotes([
-        { name: remoteName, entry: mfeUrl, type: 'module' },
-      ], { force: false });
+    // Añade el remoto a la instancia global actual (web_shell) sin sustituirla.
+    registerRemotes([
+      { name: remoteName, entry: mfeUrl, type: 'module' },
+    ]);
 
-      loadedRemotes.add(remoteName);
-    } catch (err) {
-      console.error(`Error al registrar remoto ${remoteName}:`, err);
-      throw err;
-    }
+    registeredRemotes.add(remoteName);
   }
 
   const expose = modulePath.startsWith('./') ? modulePath.slice(2) : modulePath;
@@ -46,20 +69,4 @@ export async function loadRemoteDynamically(
   }
 
   return module;
-}
-
-/**
- * Obtiene la URL del remoto según su nombre.
- */
-function getMFEUrl(remoteName: string): string | null {
-  const mfeUrls = {
-    core_auth_dashboard_mf: process.env.NEXT_PUBLIC_MFE_CORE_AUTH_DASHBOARD_URL ?? 'http://localhost:5011/remoteEntry.js',
-    orders_tables_mf: process.env.NEXT_PUBLIC_MFE_ORDERS_TABLES_URL ?? 'http://localhost:5012/remoteEntry.js',
-    reservations_reports_mf: process.env.NEXT_PUBLIC_MFE_RESERVATIONS_REPORTS_URL ?? 'http://localhost:5013/remoteEntry.js',
-    kitchen_mf: process.env.NEXT_PUBLIC_MFE_KITCHEN_URL ?? 'http://localhost:5005/remoteEntry.js',
-    cashier_mf: process.env.NEXT_PUBLIC_MFE_CASHIER_URL ?? 'http://localhost:5006/remoteEntry.js',
-    menu_mf: process.env.NEXT_PUBLIC_MFE_MENU_URL ?? 'http://localhost:5003/remoteEntry.js',
-  };
-
-  return (mfeUrls as Record<string, string>)[remoteName] ?? null;
 }

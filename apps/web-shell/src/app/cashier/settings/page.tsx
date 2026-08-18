@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Skeleton } from '@maison/ui';
+import { useTheme } from '@/context/ThemeContext';
 
 const STORAGE_KEY = 'maison:cashier:settings';
 
@@ -65,7 +66,7 @@ function Toggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface-0 ${
-          checked ? 'bg-accent' : 'bg-surface-3'
+          checked ? 'bg-emerald-500' : 'bg-surface-3'
         }`}
       >
         <span
@@ -79,6 +80,7 @@ function Toggle({
 }
 
 export default function CashierSettingsPage() {
+  const { theme, toggleTheme } = useTheme();
   const [settings, setSettings] = useState<CashierSettings>(DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -132,6 +134,17 @@ export default function CashierSettingsPage() {
         <h1 className="text-xl font-semibold text-maison-cream">Configuración</h1>
         <p className="text-xs text-maison-cream-dim">Preferencias de la terminal de caja</p>
       </div>
+
+      {/* Apariencia */}
+      <section className="space-y-3">
+        <h2 className="section-label">Apariencia</h2>
+        <Toggle
+          label="Modo oscuro"
+          description="Utilizar colores oscuros en el sistema"
+          checked={theme === 'dark'}
+          onChange={() => toggleTheme()}
+        />
+      </section>
 
       {/* Impresión */}
       <section className="space-y-3">
