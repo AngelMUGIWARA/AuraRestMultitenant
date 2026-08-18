@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { AuthClient } from '@maison/auth-client';
 import { cn } from '@/lib/utils';
 import { ADMIN_NAV, OWNER_NAV } from '@/lib/constants';
-import { useSidebar } from '@/context/SidebarContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 import {
   IconDashboard, IconAnalytics,
   IconInventory, IconCategories, IconCalendar,
