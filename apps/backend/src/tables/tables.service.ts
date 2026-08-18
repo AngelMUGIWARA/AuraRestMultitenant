@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { TablesRepository } from './tables.repository';
-import { TableStatus } from '../generated/prisma-tenant';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma-tenant';
+import { TableStatus } from '../generated/prisma-tenant';
 import { CreateTableDto } from './dto/create-table.dto';
 import { UpdateTableDto } from './dto/update-table.dto';
+import { TablesRepository } from './tables.repository';
 
 @Injectable()
 export class TablesService {
