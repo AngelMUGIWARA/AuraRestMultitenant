@@ -140,8 +140,33 @@ export class OrdersRepository {
     orderId: string,
     tx?: Prisma.TransactionClient,
   ) {
+    const order = await this.db(schemaName, tx).order.findUnique({
+      where: { id: orderId },
+      include: {
+        orderItems: { include: { menuItem: true } },
+      },
+    });
+
+    const items = (order?.orderItems ?? []).map((oi) => ({
+      orderItemId: oi.id,
+      menuItemName: oi.menuItem?.name ?? 'Item',
+      quantity: oi.quantity,
+      notes: oi.notes ?? undefined,
+    }));
+
     return this.db(schemaName, tx).kitchenTicket.create({
-      data: { orderId },
+      data: {
+        orderId,
+        items: {
+          create: items.map((item) => ({
+            orderItemId: item.orderItemId,
+            menuItemName: item.menuItemName,
+            quantity: item.quantity,
+            notes: item.notes,
+            status: 'PENDING' as const,
+          })),
+        },
+      },
     });
   }
 

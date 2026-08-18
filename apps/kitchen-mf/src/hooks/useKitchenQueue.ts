@@ -69,7 +69,6 @@ export function useKitchenQueue() {
     const offCreated = on('order:created', () => fetchQueue(branchIdRef.current));
     const offUpdated = on('order:updated', () => fetchQueue(branchIdRef.current));
 
-    // Subscribe to branch changes
     const offBranch = on('branch:changed', ({ branchId: id, isGlobal }) => {
       const newBranchId = isGlobal ? undefined : id;
       setBranchId(newBranchId);
@@ -83,18 +82,35 @@ export function useKitchenQueue() {
       offUpdated();
       offBranch();
     };
-  }, [fetchQueue]);
+  }, [fetchQueue, branchId]);
 
-  const updateTicketStatus = useCallback(async (ticketId: string, orderId: string, orderNumber: string, status: KitchenTicketStatus) => {
-    try {
-      await kitchenService.updateTicketStatus(ticketId, status);
-      setTickets((prev) => prev.map((t) => t.id === ticketId ? { ...t, status } : t));
-      // Publish status change so orders-mf and cashier-mf can react
-      emit('order:status-changed', { orderId, orderNumber, status: status as unknown as OrderStatus });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar estado');
-    }
-  }, []);
-
+  const updateTicketStatus = useCallback(
+    async (
+      ticketId: string,
+      orderId: string,
+      orderNumber: string,
+      status: KitchenTicketStatus,
+      version: number,
+      reason?: string,
+    ) => {
+      try {
+        await kitchenService.updateTicketStatus(ticketId, { status, version, reason });
+        // Optimistic update: increment version locally
+        setTickets((prev) =>
+          prev.map((t) =>
+            t.id === ticketId ? { ...t, status, version: version + 1 } : t,
+          ),
+        );
+        emit('order:status-changed', {
+          orderId,
+          orderNumber,
+          status: status as unknown as OrderStatus,
+        });
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Error al actualizar estado');
+      }
+    },
+    [],
+  );
   return { tickets, isLoading, error, wsConnected, updateTicketStatus };
 }

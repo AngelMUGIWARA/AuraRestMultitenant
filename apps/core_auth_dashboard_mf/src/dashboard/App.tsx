@@ -7,6 +7,8 @@ import { OWNER_NAV } from './constants';
 import DashboardPage from './pages/DashboardPage';
 import SucursalesPage from './pages/SucursalesPage';
 import SettingsPage from './pages/SettingsPage';
+import { AuthClient } from '@maison/auth-client';
+import { AdminTopbar } from './components/layout/AdminTopbar';
 
 // Embeddable content-only export for web-shell (no AdminShell, sidebar, or layout)
 function DashboardContent() {
@@ -20,13 +22,32 @@ function DashboardContent() {
   );
 }
 
-// Default export for web-shell: embeddable content only (no AdminShell, sidebar, or topbar)
+// Default export for web-shell
 export default function OwnerApp() {
   const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/dashboard';
+  const role = AuthClient.getRole();
 
+  if (role === 'KITCHEN_STAFF') {
+    return (
+      <MemoryRouter initialEntries={[initialPath]} initialIndex={0}>
+        <AdminTopbar />
+        <DashboardContent />
+      </MemoryRouter>
+    );
+  }
+
+  // Default layout for other roles (admin, owner, etc.)
   return (
     <MemoryRouter initialEntries={[initialPath]} initialIndex={0}>
-      <DashboardContent />
+      <BranchProvider>
+        <SidebarProvider>
+          <NavProvider nav={OWNER_NAV}>
+            <AdminShell>
+              <DashboardContent />
+            </AdminShell>
+          </NavProvider>
+        </SidebarProvider>
+      </BranchProvider>
     </MemoryRouter>
   );
 }

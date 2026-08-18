@@ -14,6 +14,7 @@ export default function CreateOrderPage() {
   const tableId = searchParams.get('tableId');
   const {
     menuItems, cart, cartTotal, customerName, setCustomerName,
+    orderNotes, setOrderNotes,
     addItem, removeItem, updateQuantity, updateNotes,
     submitOrder, isSubmitting, isLoadingMenu, error,
   } = useCreateOrder(tableId ?? undefined);
@@ -68,13 +69,20 @@ export default function CreateOrderPage() {
       )}
 
       {/* Customer Name */}
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-3 space-y-2">
         <input
           type="text"
           placeholder="Nombre del cliente (opcional)"
           value={customerName}
           onChange={(e) => setCustomerName(e.target.value)}
           className="w-full rounded-lg border border-maison-border bg-surface-1 px-3 py-2 text-sm text-maison-cream placeholder:text-maison-cream-dim focus:border-maison-amber focus:outline-none"
+        />
+        <textarea
+          placeholder="Notas generales del pedido (opcional)"
+          value={orderNotes}
+          onChange={(e) => setOrderNotes(e.target.value)}
+          rows={2}
+          className="w-full resize-none rounded-lg border border-maison-border bg-surface-1 px-3 py-2 text-sm text-maison-cream placeholder:text-maison-cream-dim focus:border-maison-amber focus:outline-none"
         />
       </div>
 
