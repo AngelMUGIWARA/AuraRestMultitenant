@@ -144,7 +144,7 @@ function SidebarContent({
               Maison
             </span>
             <span className="text-2xs font-semibold uppercase tracking-widest text-maison-cream-dim">
-              Admin
+              {role}
             </span>
           </div>
         )}

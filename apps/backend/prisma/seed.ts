@@ -340,6 +340,7 @@ async function main() {
       data: {
         folio: 'ORD-0001',
         tableId: mesa3.id,
+        branchId: branch.id,
         userId: mesero.id,
         type: 'DINE_IN',
         status: 'IN_PROGRESS',
@@ -461,6 +462,7 @@ async function main() {
         data: {
           folio: spec.folio,
           tableId: table.id,
+          branchId: table.branchId,
           userId: mesero.id,
           type: 'DINE_IN',
           status: 'PAID',

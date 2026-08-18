@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DateRangeFilter } from '../components/DateRangeFilter';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 import { StatCard, StatCardSkeleton, EmptyState, IconAnalytics } from '@maison/ui';
+import { useBranchFilter } from '../hooks/useBranchFilter';
 import { useReportsData } from '../hooks/useReportsData';
 import { exportReportsToPdf } from '../utils/pdfExport';
 import { reportsService } from '../services/reports.service';
@@ -18,17 +19,23 @@ function formatCurrency(value: number): string {
 }
 
 export default function ReportesPage() {
+  const { branchId } = useBranchFilter();
   const currentYear = new Date().getFullYear();
-  const [filterParams, setFilterParams] = useState({ 
-    startDate: `${currentYear}-01-01`, 
+  const [filterParams, setFilterParams] = useState({
+    startDate: `${currentYear}-01-01`,
     endDate: new Date().toISOString().slice(0, 10),
+    branchId,
   });
 
   const { data, isLoading, error, refetch } = useReportsData(filterParams);
 
+  useEffect(() => {
+    setFilterParams((prev) => ({ ...prev, branchId }));
+  }, [branchId]);
+
   function handleFilter(startDate: string, endDate: string) {
-    setFilterParams({ startDate, endDate });
-    refetch({ startDate, endDate });
+    setFilterParams({ startDate, endDate, branchId });
+    refetch({ startDate, endDate, branchId });
   }
 
   const [isExporting, setIsExporting] = useState<string | null>(null);

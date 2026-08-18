@@ -49,8 +49,10 @@ function useBreadcrumb() {
 }
 
 export function OwnerTopbar() {
+  const pathname = usePathname();
   const crumbs = useBreadcrumb();
   const { openMobile } = useSidebar();
+  const showBranchSelector = !pathname.startsWith('/dashboard');
 
   return (
     <header className="sticky top-0 z-10 flex h-[60px] items-center gap-2 border-b border-maison-border bg-surface-1 px-4 transition-colors lg:px-5">
@@ -83,9 +85,11 @@ export function OwnerTopbar() {
       <span className="text-sm font-medium text-maison-cream sm:hidden">
         {crumbs[crumbs.length - 1]?.label ?? 'Admin'}
       </span>
-      <div className="ml-3 hidden md:block">
-        <BranchSelector />
-      </div>
+      {showBranchSelector && (
+        <div className="ml-3 hidden md:block">
+          <BranchSelector />
+        </div>
+      )}
       <GlobalSearch />
       <div className="ml-auto flex items-center gap-1.5">
         <ThemeToggle />

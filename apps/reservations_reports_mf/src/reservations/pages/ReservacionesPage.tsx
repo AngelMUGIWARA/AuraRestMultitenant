@@ -18,6 +18,7 @@ import {
 } from '@maison/ui';
 import type { ReservationStatus } from '@maison/types';
 import { ReservationModal } from '../components/ReservationModal';
+import { ReservationCalendar } from '../components/ReservationCalendar';
 import { reservationsService } from '../services/reservations.service';
 
 /* ─── Constants ─────────────────────────────────────────────────── */
@@ -51,11 +52,11 @@ const STATUS_DOT: Record<string, string> = {
 
 const STATUS_TABS: { value: ReservationStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'Todas' },
-  { value: 'pending', label: 'Pendientes' },
-  { value: 'confirmed', label: 'Confirmadas' },
-  { value: 'arrived', label: 'En mesa' },
-  { value: 'completed', label: 'Completadas' },
-  { value: 'cancelled', label: 'Canceladas' },
+  { value: 'PENDING', label: 'Pendientes' },
+  { value: 'CONFIRMED', label: 'Confirmadas' },
+  { value: 'ARRIVED', label: 'En mesa' },
+  { value: 'COMPLETED', label: 'Completadas' },
+  { value: 'CANCELLED', label: 'Canceladas' },
 ];
 
 /* ─── Skeletons ─────────────────────────────────────────────────── */
@@ -430,10 +431,10 @@ export default function ReservacionesPage() {
                 }
                 description={
                   hasError
-                    ? 'Verifica la conexión con el API del servidor.'
-                    : activeStatus !== 'all'
+                    ? 'No pudimos conectar con el servidor. Intenta nuevamente en unos momentos.'
+                    : activeStatus !== 'all' && RESERVATION_STATUS_LABELS[activeStatus as ReservationStatus]
                       ? `No hay reservaciones con el estado "${RESERVATION_STATUS_LABELS[activeStatus as ReservationStatus]}".`
-                      : 'No hay reservaciones para hoy en esta sucursal.'
+                      : 'No hay reservaciones registradas.'
                 }
                 className="py-16"
               />
@@ -468,24 +469,7 @@ export default function ReservacionesPage() {
 
         {/* Right: Mini calendar + Quick stats */}
         <div className="flex flex-col gap-4">
-          {isLoading ? (
-            <MiniCalendarSkeleton />
-          ) : (
-            <div className="card p-5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-maison-cream">Calendario</h3>
-                <span className="text-2xs text-maison-cream-dim capitalize">
-                  {new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}
-                </span>
-              </div>
-              <EmptyState
-                icon={<IconCalendar className="h-5 w-5" />}
-                title="Vista de calendario"
-                description="Disponible cuando el API esté conectado."
-                className="py-10"
-              />
-            </div>
-          )}
+          <ReservationCalendar branchId={selectedBranch.isGlobal ? undefined : selectedBranch.id} />
 
           {/* Today's summary */}
           <section className="card p-5" aria-labelledby="today-summary-title">

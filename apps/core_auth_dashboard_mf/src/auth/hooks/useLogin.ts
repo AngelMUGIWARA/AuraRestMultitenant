@@ -7,7 +7,6 @@ import { authService } from '../services/auth.service';
 interface LoginForm {
   email: string;
   password: string;
-  tenantSlug: string;
 }
 
 export function useLogin() {
@@ -18,10 +17,7 @@ export function useLogin() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await authService.login(
-        { email: form.email, password: form.password },
-        form.tenantSlug,
-      );
+      const response = await authService.login(form);
       AuthClient.setToken(response.accessToken);
       AuthClient.setRefreshToken(response.refreshToken);
       emit('auth:login', { user: response.user, token: response.accessToken });

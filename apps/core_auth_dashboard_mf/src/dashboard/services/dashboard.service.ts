@@ -14,11 +14,11 @@ export interface BranchSummary {
 }
 
 export const dashboardService = {
-  getStats: () => apiClient.get<ApiResponse<DashboardStats>>('/admin/dashboard/stats'),
-  getRevenueChart: (period = 'monthly') =>
-    apiClient.get<ApiResponse<RevenueDataPoint[]>>('/admin/dashboard/revenue', { params: { period } }),
-  getRecentActivity: (limit = 10) =>
-    apiClient.get<ApiResponse<ActivityItem[]>>('/admin/dashboard/activity', { params: { limit } }),
-  getBranchesSummary: (limit = 5) =>
-    apiClient.get<ApiResponse<BranchSummary[]>>('/admin/dashboard/branches-summary', { params: { limit } }),
+  getStats: (branchId?: string) => apiClient.get<ApiResponse<DashboardStats>>('/admin/dashboard/stats', { params: { ...(branchId && { branchId }) } }),
+  getRevenueChart: (period = 'monthly', branchId?: string) =>
+    apiClient.get<ApiResponse<RevenueDataPoint[]>>('/admin/dashboard/revenue', { params: { period, ...(branchId && { branchId }) } }),
+  getRecentActivity: (limit = 10, branchId?: string) =>
+    apiClient.get<ApiResponse<ActivityItem[]>>('/admin/dashboard/activity', { params: { limit, ...(branchId && { branchId }) } }),
+  getBranchesSummary: (limit = 5, branchId?: string) =>
+    apiClient.get<ApiResponse<BranchSummary[]>>('/admin/dashboard/branches-summary', { params: { limit, ...(branchId && { branchId }) } }),
 };

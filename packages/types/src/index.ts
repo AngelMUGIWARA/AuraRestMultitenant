@@ -232,6 +232,8 @@ export interface CreateBranchPayload {
   capacity?: number;
   managerName?: string;
   openingHours?: string;
+  tableCount?: number;
+  defaultCapacity?: number;
 }
 
 // ─── User ─────────────────────────────────────────────────────────────────────
@@ -923,11 +925,14 @@ export interface TableFilters {
 
 export interface VoiceSeedPayload {
   voiceUsername: string;
-  seedWord: string;
 }
 
 export interface VoiceSeedResponse {
   voiceUsername: string;
+}
+
+export interface VoiceSeedGenerateResponse {
+  seedWord: string;
 }
 
 // ─── Reports ──────────────────────────────────────────────────────────────────

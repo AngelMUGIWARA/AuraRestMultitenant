@@ -36,10 +36,18 @@ useEffect(() => {
   // Fallback: la prop branchId (global → undefined).
   const branchFilter = filters.branchId ?? (branchId !== 'global' && branchId ? branchId : undefined);
 
+  // DEBUG: Mostrar exactamente qué se envía
+  console.log('[useReservations] REQUEST', {
+    branchId: branchId,
+    branchFilter: branchFilter,
+    filters: filters,
+    fullRequest: { ...filters, branchId: branchFilter }
+  });
+
   Promise.all([
     // ¡CORREGIDO!: Ahora pasa branchFilter en lugar de branchId crudo
-    reservationsService.getStats(branchFilter), 
-    reservationsService.getAll({ ...filters, branchId: branchFilter }), 
+    reservationsService.getStats(branchFilter),
+    reservationsService.getAll({ ...filters, branchId: branchFilter }),
   ])
     .then(([statsRes, reservationsRes]) => {
       if (!cancelled) {
@@ -57,6 +65,15 @@ useEffect(() => {
     })
     .catch((e: unknown) => {
       if (!cancelled) {
+        console.error('[useReservations] ERROR', {
+          error: e,
+          message: e instanceof Error ? e.message : String(e),
+          status: (e as any)?.response?.status,
+          statusText: (e as any)?.response?.statusText,
+          url: (e as any)?.response?.config?.url,
+          params: (e as any)?.response?.config?.params,
+          data: (e as any)?.response?.data,
+        });
         setError(e instanceof Error ? e : new Error('Error al cargar datos del servidor'));
       }
     })

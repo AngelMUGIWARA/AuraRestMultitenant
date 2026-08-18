@@ -23,10 +23,39 @@ export class TablesRepository {
     return this.db(schemaName).restaurantTable.findUnique({ where: { id } });
   }
 
+  async findByNumberAndBranch(schemaName: string, number: number, branchId: string) {
+    return this.db(schemaName).restaurantTable.findUnique({
+      where: { number_branchId: { number, branchId } },
+    });
+  }
+
   async updateStatus(schemaName: string, id: string, status: TableStatus) {
     return this.db(schemaName).restaurantTable.update({
       where: { id },
       data: { status },
     });
+  }
+
+  async create(schemaName: string, data: Prisma.RestaurantTableCreateInput) {
+    return this.db(schemaName).restaurantTable.create({ data });
+  }
+
+  async update(schemaName: string, id: string, data: Prisma.RestaurantTableUpdateInput) {
+    return this.db(schemaName).restaurantTable.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async delete(schemaName: string, id: string) {
+    return this.db(schemaName).restaurantTable.delete({ where: { id } });
+  }
+
+  async hasHistory(schemaName: string, tableId: string): Promise<boolean> {
+    const [orderCount, reservationCount] = await Promise.all([
+      this.db(schemaName).order.count({ where: { tableId } }),
+      this.db(schemaName).reservation.count({ where: { tableId } }),
+    ]);
+    return orderCount > 0 || reservationCount > 0;
   }
 }

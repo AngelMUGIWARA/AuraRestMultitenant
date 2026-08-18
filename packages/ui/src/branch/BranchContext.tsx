@@ -114,7 +114,7 @@ export function BranchProvider({ children, initialBranches = [] }: BranchProvide
         }
 
         const response = await client.get<ApiResponse<PaginatedResponse<Branch>>>('/admin/branches', {
-          params: { page: 1, limit: 100 },
+          params: { page: 1, limit: 100, status: 'active' },
         });
 
         if (!cancelled) {

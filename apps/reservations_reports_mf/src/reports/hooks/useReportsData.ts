@@ -63,7 +63,7 @@ export function useReportsData(params?: ReportQueryParams) {
     return () => {
       cleanup.then((fn) => fn?.());
     };
-  }, [params?.startDate, params?.endDate, fetchAll]);
+  }, [params?.startDate, params?.endDate, params?.branchId, fetchAll]);
 
   return { data, isLoading, error, refetch: fetchAll };
 }

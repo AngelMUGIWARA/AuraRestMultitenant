@@ -114,10 +114,12 @@ export class ReservationsService {
     const userRole = user?.role?.toUpperCase() || 'WAITER';
 
     // Aplicar scope automático para roles limitados
-    const filters: any = {};
+    const filters: any = { page: query.page || 1, limit: query.limit || 20 };
 
     if (query.status) filters.status = query.status;
     if (query.search) filters.search = query.search;
+    if (query.dateFrom) filters.dateFrom = query.dateFrom;
+    if (query.dateTo) filters.dateTo = query.dateTo;
 
     // Si el usuario tiene role limitado, forzar su branchId
     if (userRole === 'MANAGER' || userRole === 'CASHIER' || userRole === 'WAITER') {
@@ -132,11 +134,14 @@ export class ReservationsService {
       if (query.branchId) filters.branchId = query.branchId;
     }
 
-    const reservations = await this.reservationRepo.findAll(schema, filters);
+    const result = await this.reservationRepo.findAll(schema, filters);
 
     return {
-      data: reservations.map((r) => this.transformReservation(r)),
-      meta: { total: reservations.length },
+      data: result.data.map((r) => this.transformReservation(r)),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages,
     };
   }
 
@@ -242,12 +247,13 @@ export class ReservationsService {
       effectiveBranchId = user.branchId;
     }
 
-    const filter: any = {};
+    const filter: any = { limit: 10000 }; // Obtener todas para calcular stats
     if (effectiveBranchId) {
       filter.branchId = effectiveBranchId;
     }
 
-    const reservations = await this.reservationRepo.findAll(schema, filter);
+    const result = await this.reservationRepo.findAll(schema, filter);
+    const reservations = result.data;
 
     const totalToday = reservations.length;
     const confirmedToday = reservations.filter(

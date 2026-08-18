@@ -15,8 +15,10 @@ export class DashboardRepository {
     return this.tenantPrisma.getClient(schemaName);
   }
 
-  async getCounts(schemaName: string, monthStart: Date) {
+  async getCounts(schemaName: string, monthStart: Date, branchId?: string) {
     const db = this.db(schemaName);
+    const branchFilter = branchId ? { id: branchId } : undefined;
+
     const [
       totalBranches,
       activeBranches,
@@ -24,11 +26,11 @@ export class DashboardRepository {
       totalUsers,
       activeUsers,
     ] = await Promise.all([
-      db.branch.count(),
-      db.branch.count({ where: { isActive: true } }),
-      db.branch.count({ where: { createdAt: { gte: monthStart } } }),
-      db.user.count(),
-      db.user.count({ where: { status: 'ACTIVE' } }),
+      db.branch.count({ where: branchFilter }),
+      db.branch.count({ where: { ...branchFilter, isActive: true } }),
+      db.branch.count({ where: { ...branchFilter, createdAt: { gte: monthStart } } }),
+      branchId ? db.user.count({ where: { userBranches: { some: { branchId } } } }) : db.user.count(),
+      branchId ? db.user.count({ where: { status: 'ACTIVE', userBranches: { some: { branchId } } } }) : db.user.count({ where: { status: 'ACTIVE' } }),
     ]);
     return {
       totalBranches,
@@ -40,34 +42,35 @@ export class DashboardRepository {
   }
 
   /** Suma de órdenes PAID en [gte, lt). */
-  async getRevenueBetween(schemaName: string, gte: Date, lt: Date) {
+  async getRevenueBetween(schemaName: string, gte: Date, lt: Date, branchId?: string) {
     const result = await this.db(schemaName).order.aggregate({
-      where: { status: 'PAID', createdAt: { gte, lt } },
+      where: { status: 'PAID', createdAt: { gte, lt }, ...(branchId && { branchId }) },
       _sum: { total: true },
     });
     return Number(result._sum.total ?? 0);
   }
 
   /** Órdenes PAID desde una fecha, para agrupar por mes en el service. */
-  async getPaidOrdersSince(schemaName: string, since: Date) {
+  async getPaidOrdersSince(schemaName: string, since: Date, branchId?: string) {
     return this.db(schemaName).order.findMany({
-      where: { status: 'PAID', createdAt: { gte: since } },
+      where: { status: 'PAID', createdAt: { gte: since }, ...(branchId && { branchId }) },
       select: { total: true, createdAt: true },
     });
   }
 
   /** Fechas de alta de sucursales, para calcular cuántas existían por mes. */
-  async getBranchCreationDates(schemaName: string) {
+  async getBranchCreationDates(schemaName: string, branchId?: string) {
     return this.db(schemaName).branch.findMany({
-      where: { isActive: true },
+      where: { isActive: true, ...(branchId && { id: branchId }) },
       select: { createdAt: true },
     });
   }
 
-  async getRecentActivity(schemaName: string, limit: number) {
+  async getRecentActivity(schemaName: string, limit: number, branchId?: string) {
     return this.db(schemaName).activityLog.findMany({
       take: limit,
       orderBy: { createdAt: 'desc' },
+      where: branchId ? { branchId } : undefined,
       include: {
         user: { select: { id: true, name: true } },
         branch: { select: { name: true } },
@@ -79,16 +82,18 @@ export class DashboardRepository {
     schemaName: string,
     limit: number,
     monthStart: Date,
+    branchId?: string,
   ) {
     const db = this.db(schemaName);
     const [branches, orderTotals] = await Promise.all([
       db.branch.findMany({
         take: limit,
         orderBy: { createdAt: 'desc' },
+        where: branchId ? { id: branchId } : undefined,
       }),
       db.order.groupBy({
         by: ['branchId'],
-        where: { status: 'PAID', createdAt: { gte: monthStart } },
+        where: { status: 'PAID', createdAt: { gte: monthStart }, ...(branchId && { branchId }) },
         _sum: { total: true },
         _count: { _all: true },
       }),

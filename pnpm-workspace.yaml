@@ -10,6 +10,15 @@ packages:
 
   - 'packages/*'
   - 'dev-cli'
+
+shamhoist-ignore:
+  - '@types/**'
+  - 'eslint*'
+  - 'prettier*'
+  - '@testing-library/**'
+
+node-linker: 'hoisted'
+
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true

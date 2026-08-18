@@ -39,41 +39,46 @@ export class DashboardController {
 
   @Get('stats')
   @Roles('OWNER', 'MANAGER')
-  @ApiOperation({ summary: 'Métricas generales del tenant', operationId: 'dashboard_getStats' })
+  @ApiOperation({ summary: 'Métricas generales del tenant (opcional: filtrar por branchId)', operationId: 'dashboard_getStats' })
   @ApiResponse({ status: 200, type: DashboardStatsDto })
-  getStats(@CurrentTenant() tenant: TenantContext): Promise<DashboardStatsDto> {
-    return this.service.getStats(tenant.schemaName);
+  getStats(
+    @CurrentTenant() tenant: TenantContext,
+    @Query('branchId') branchId?: string,
+  ): Promise<DashboardStatsDto> {
+    return this.service.getStats(tenant.schemaName, branchId);
   }
 
   @Get('revenue')
   @Roles('OWNER', 'MANAGER')
   @ApiOperation({
-    summary: 'Ingresos mensuales (órdenes PAID) de los últimos meses',
+    summary: 'Ingresos mensuales (órdenes PAID) de los últimos meses (opcional: filtrar por branchId)',
     operationId: 'dashboard_getRevenue',
   })
   @ApiResponse({ status: 200, type: RevenuePointDto, isArray: true })
   getRevenue(
     @CurrentTenant() tenant: TenantContext,
-    @Query() _query: RevenueQueryDto,
+    @Query() query: RevenueQueryDto,
   ): Promise<RevenuePointDto[]> {
-    return this.service.getRevenueChart(tenant.schemaName);
+    const branchId = (query as any).branchId;
+    return this.service.getRevenueChart(tenant.schemaName, branchId);
   }
 
   @Get('activity')
   @Roles('OWNER', 'MANAGER')
-  @ApiOperation({ summary: 'Actividad reciente del tenant', operationId: 'dashboard_getActivity' })
+  @ApiOperation({ summary: 'Actividad reciente del tenant (opcional: filtrar por branchId)', operationId: 'dashboard_getActivity' })
   @ApiResponse({ status: 200, type: ActivityItemDto, isArray: true })
   getActivity(
     @CurrentTenant() tenant: TenantContext,
     @Query() query: ActivityQueryDto,
   ): Promise<ActivityItemDto[]> {
-    return this.service.getRecentActivity(tenant.schemaName, query.limit ?? 8);
+    const branchId = (query as any).branchId;
+    return this.service.getRecentActivity(tenant.schemaName, query.limit ?? 8, branchId);
   }
 
   @Get('branches-summary')
   @Roles('OWNER', 'MANAGER')
   @ApiOperation({
-    summary: 'Resumen por sucursal (ingresos y pedidos del mes en curso)',
+    summary: 'Resumen por sucursal (ingresos y pedidos del mes en curso, opcional: filtrar por branchId)',
     operationId: 'dashboard_getBranchesSummary',
   })
   @ApiResponse({ status: 200, type: BranchSummaryDto, isArray: true })
@@ -81,10 +86,12 @@ export class DashboardController {
     @CurrentTenant() tenant: TenantContext,
     @Query() query: BranchesSummaryQueryDto,
   ): Promise<BranchSummaryDto[]> {
+    const branchId = (query as any).branchId;
     return this.service.getBranchesSummary(
       tenant.schemaName,
       tenant.slug,
       query.limit ?? 5,
+      branchId,
     );
   }
 }

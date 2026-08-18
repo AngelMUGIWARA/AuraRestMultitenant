@@ -34,11 +34,14 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: false,
+        drop_console: true,
         unused: true,
         passes: 2,
       },
       mangle: true,
+      format: {
+        comments: false,
+      },
     },
     sourcemap: false,
     cssCodeSplit: true,
@@ -96,5 +99,9 @@ export default defineConfig({
       'recharts',
       'jspdf',
     ],
+  },
+
+  esbuild: {
+    drop: ['console', 'debugger'],
   },
 });

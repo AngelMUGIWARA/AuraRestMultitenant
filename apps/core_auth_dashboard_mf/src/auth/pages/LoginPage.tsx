@@ -12,7 +12,6 @@ const ROLE_ROUTES: Record<string, string> = {
 
 export default function LoginPage() {
   const { login, isLoading, error } = useLogin();
-  const [tenantSlug, setTenantSlug] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -24,7 +23,7 @@ export default function LoginPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    await login({ email, password, tenantSlug }, handleSuccess);
+    await login({ email, password }, handleSuccess);
   }
 
   return (
@@ -46,27 +45,6 @@ export default function LoginPage() {
           <h2 className="text-lg font-medium text-maison-cream">Iniciar sesión</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-
-            {/* Tenant slug */}
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-maison-cream-dim uppercase tracking-wider">
-                Restaurante
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-3 flex items-center text-maison-cream-muted text-sm select-none pointer-events-none">
-                  @
-                </span>
-                <input
-                  type="text"
-                  required
-                  autoComplete="organization"
-                  value={tenantSlug}
-                  onChange={(e) => setTenantSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-                  className="w-full bg-surface-2 border border-white/10 rounded-lg pl-7 pr-3 py-2.5 text-sm text-maison-cream placeholder:text-maison-cream-muted focus:outline-none focus:border-maison-amber/50 focus:ring-1 focus:ring-maison-amber/30 transition"
-                  placeholder="mi-restaurante"
-                />
-              </div>
-            </div>
 
             {/* Email */}
             <div className="space-y-1">

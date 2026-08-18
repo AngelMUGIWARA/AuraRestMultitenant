@@ -13,9 +13,4 @@ export class VoiceSeedDto {
       'voiceUsername solo puede contener letras, números, guiones y guiones bajos',
   })
   voiceUsername: string;
-
-  @ApiProperty({ example: 'manzana azul siete' })
-  @IsString()
-  @MinLength(4)
-  seedWord: string;
 }
