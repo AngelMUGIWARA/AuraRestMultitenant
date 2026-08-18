@@ -90,6 +90,25 @@ async function main() {
         data: { createdBy: ownerUser.id },
       });
       console.log('🔄  Movimientos de inventario de admin@demo.com reasignados a owner@demo.com');
+      // Reasignar el resto de datos creados por el usuario legacy antes de
+      // eliminarlo. Las FK requeridas a User bloquean el DELETE (P2003), así
+      // que se mueven al owner válido para no perder historial.
+      await tenantDb.activityLog.updateMany({
+        where: { userId: legacyUser.id },
+        data: { userId: ownerUser.id },
+      });
+      await tenantDb.order.updateMany({
+        where: { userId: legacyUser.id },
+        data: { userId: ownerUser.id },
+      });
+      await tenantDb.cashMovement.updateMany({
+        where: { createdBy: legacyUser.id },
+        data: { createdBy: ownerUser.id },
+      });
+      await tenantDb.cashCount.updateMany({
+        where: { createdBy: legacyUser.id },
+        data: { createdBy: ownerUser.id },
+      });
     }
     // Eliminar asignaciones de sucursal (user_branches) antes de borrar el usuario
     await tenantDb.userBranch.deleteMany({
@@ -179,46 +198,50 @@ async function main() {
     console.log('✅  Roles: OWNER, MANAGER, WAITER, CASHIER, KITCHEN_STAFF');
   }
 
+  // Tres sucursales para que el demo tenga datos en todo el módulo MANAGER
+  // (selector de sucursal, mesas, órdenes, reportes, inventario).
   const branch = await tenantDb.branch.upsert({
     where: { slug: 'central' },
-    update: {},
+    update: { name: 'Sucursal Central', address: 'Centro', phone: '+52 55 0000 0002' },
     create: { name: 'Sucursal Central', slug: 'central', address: 'Centro', phone: '+52 55 0000 0002' },
   });
+  const branchOeste = await tenantDb.branch.upsert({
+    where: { slug: 'oeste' },
+    update: { name: 'Sucursal Oeste', address: 'Av. de las Flores 180, Col. Del Valle', phone: '+52 55 0000 0004' },
+    create: { name: 'Sucursal Oeste', slug: 'oeste', address: 'Av. de las Flores 180, Col. Del Valle', phone: '+52 55 0000 0004' },
+  });
+  const branchNorte = await tenantDb.branch.upsert({
+    where: { slug: 'norte' },
+    update: { name: 'Sucursal Norte', address: 'Av. de los Pinos 245, Zona Norte', phone: '+52 55 0000 0003', email: 'norte@demo.com', manager: 'Sofía Gerente' },
+    create: { name: 'Sucursal Norte', slug: 'norte', address: 'Av. de los Pinos 245, Zona Norte', phone: '+52 55 0000 0003', email: 'norte@demo.com', manager: 'Sofía Gerente' },
+  });
+  const allBranches = [branch, branchOeste, branchNorte];
 
-  // Asignar user a la branch con roles
-  // (users[0] = Carlos owner@demo.com)
+  // Asignar los 5 roles a cada sucursal para que el cambio de sucursal
+  // funcione para todos los usuarios demo.
   const ownerRole = await tenantDb.role.findUnique({ where: { name: 'OWNER' } });
-
-  if (ownerRole) {
-    await tenantDb.userBranch.upsert({
-      where: { userId_branchId: { userId: users[0].id, branchId: branch.id } },
-      update: {},
-      create: { userId: users[0].id, branchId: branch.id, roleId: ownerRole.id },
-    });
-  }
-
-  // Gerente y kitchen staff asignados a la sucursal central — el módulo de
-  // inventario usa UserBranch para limitar a MANAGER/KITCHEN_STAFF a sus
-  // sucursales autorizadas
   const managerRole = await tenantDb.role.findUnique({ where: { name: 'MANAGER' } });
+  const waiterRole = await tenantDb.role.findUnique({ where: { name: 'WAITER' } });
+  const cashierRole = await tenantDb.role.findUnique({ where: { name: 'CASHIER' } });
   const kitchenStaffRole = await tenantDb.role.findUnique({ where: { name: 'KITCHEN_STAFF' } });
-  const gerente = users.find((u) => u.role === 'MANAGER')!;
-  const chefUser = users.find((u) => u.email === 'chef@demo.com')!;
 
-  if (managerRole) {
-    await tenantDb.userBranch.upsert({
-      where: { userId_branchId: { userId: gerente.id, branchId: branch.id } },
-      update: {},
-      create: { userId: gerente.id, branchId: branch.id, roleId: managerRole.id },
-    });
-  }
+  const roleByUser: Array<{ user: (typeof users)[number]; roleId: string | null }> = [
+    { user: users[0], roleId: ownerRole?.id ?? null },       // owner@demo.com
+    { user: users[4], roleId: managerRole?.id ?? null },     // gerente@demo.com
+    { user: users[1], roleId: waiterRole?.id ?? null },      // mesero@demo.com
+    { user: users[2], roleId: cashierRole?.id ?? null },     // cajero@demo.com
+    { user: users[3], roleId: kitchenStaffRole?.id ?? null }, // chef@demo.com
+  ];
 
-  if (kitchenStaffRole) {
-    await tenantDb.userBranch.upsert({
-      where: { userId_branchId: { userId: chefUser.id, branchId: branch.id } },
-      update: {},
-      create: { userId: chefUser.id, branchId: branch.id, roleId: kitchenStaffRole.id },
-    });
+  for (const b of allBranches) {
+    for (const { user, roleId } of roleByUser) {
+      if (!roleId) continue;
+      await tenantDb.userBranch.upsert({
+        where: { userId_branchId: { userId: user.id, branchId: b.id } },
+        update: {},
+        create: { userId: user.id, branchId: b.id, roleId },
+      });
+    }
   }
 
   // ── 2.c Configuración fiscal (Settings) ────────────────────────────────────
@@ -233,12 +256,14 @@ async function main() {
   //   tax = subtotal × rate
   //   total = subtotal + tax
   const DEMO_TAX_RATE = '0.15';
-  await tenantDb.settings.upsert({
-    where: { branchId_key: { branchId: branch.id, key: 'tax_rate' } },
-    update: { value: DEMO_TAX_RATE },
-    create: { branchId: branch.id, key: 'tax_rate', value: DEMO_TAX_RATE },
-  });
-  console.log(`✅  Settings:  tax_rate = ${DEMO_TAX_RATE} (sucursal ${branch.slug})`);
+  for (const b of allBranches) {
+    await tenantDb.settings.upsert({
+      where: { branchId_key: { branchId: b.id, key: 'tax_rate' } },
+      update: { value: DEMO_TAX_RATE },
+      create: { branchId: b.id, key: 'tax_rate', value: DEMO_TAX_RATE },
+    });
+  }
+  console.log(`✅  Settings:  tax_rate = ${DEMO_TAX_RATE} (${allBranches.map((b) => b.slug).join(', ')})`);
 
   // ── 3. Categorías ──────────────────────────────────────────────────────────
   const [entradas, fuertes, bebidas, postres] = await Promise.all([
@@ -304,23 +329,23 @@ async function main() {
     { number: 6, capacity: 2, name: 'Barra 1', locationZone: 'Barra' },
   ];
 
-  for (const table of tables) {
-    await tenantDb.restaurantTable.upsert({
-      where: {
-        number_branchId: { number: table.number,
-          branchId: branch.id // Asegúrate de tener el ID de la sucursal aquí
-        }
-      },
-      update: {},
-      create: {
-        ...table,
-        status: 'AVAILABLE',
-        isActive: true,
-        branchId: branch.id // <--- ESTO ES LO QUE FALTA
-      }
-    });
+  for (const b of allBranches) {
+    for (const table of tables) {
+      await tenantDb.restaurantTable.upsert({
+        where: {
+          number_branchId: { number: table.number, branchId: b.id },
+        },
+        update: {},
+        create: {
+          ...table,
+          status: 'AVAILABLE',
+          isActive: true,
+          branchId: b.id,
+        },
+      });
+    }
   }
-  console.log(`✅  Mesas:    ${tables.length} mesas`);
+  console.log(`✅  Mesas:    ${tables.length} mesas × ${allBranches.length} sucursales`);
 
   // ── 6. Orden de ejemplo ────────────────────────────────────────────────────
   const mesero = users.find((u) => u.role === 'WAITER')!;
@@ -392,12 +417,18 @@ async function main() {
   const polloMole = await tenantDb.menuItem.findFirst({ where: { name: 'Pollo en Mole Negro' } });
   const flan = await tenantDb.menuItem.findFirst({ where: { name: 'Flan Napolitano' } });
   const guacamole = await tenantDb.menuItem.findFirst({ where: { name: 'Guacamole con Totopos' } });
-  const demoTables = await tenantDb.restaurantTable.findMany({
-    where: { branchId: branch.id },
-    orderBy: { number: 'asc' },
-  });
+  const demoTablesByBranch = new Map<string, Awaited<ReturnType<typeof tenantDb.restaurantTable.findMany>>>();
+  for (const b of allBranches) {
+    demoTablesByBranch.set(
+      b.slug,
+      await tenantDb.restaurantTable.findMany({
+        where: { branchId: b.id },
+        orderBy: { number: 'asc' },
+      }),
+    );
+  }
 
-  if (arrachera && horchata && polloMole && flan && guacamole && demoTables.length > 0) {
+  if (arrachera && horchata && polloMole && flan && guacamole) {
     const now = new Date();
 
     // Clona `now`, resta N días, fija hora/minuto en hora local del servidor.
@@ -457,8 +488,23 @@ async function main() {
 
     for (let i = 0; i < demoOrders.length; i++) {
       const spec = demoOrders[i];
+      // Repartir las órdenes entre las 3 sucursales para que el selector de
+      // sucursal y los reportes por sucursal tengan datos en todas.
+      const b = allBranches[i % allBranches.length];
+      const bTables = demoTablesByBranch.get(b.slug) ?? [];
+      if (bTables.length === 0) continue;
+      const table = bTables[i % bTables.length];
+
       const existingDemoOrder = await tenantDb.order.findUnique({ where: { folio: spec.folio } });
-      if (existingDemoOrder) continue;
+      if (existingDemoOrder) {
+        // Re-seed idempotente: re-ubica las órdenes ya creadas a la sucursal/mesa
+        // que les corresponde en la distribución actual (sin duplicar items/pagos).
+        await tenantDb.order.update({
+          where: { id: existingDemoOrder.id },
+          data: { branchId: table.branchId, tableId: table.id },
+        });
+        continue;
+      }
 
       const subtotal = spec.items.reduce(
         (sum, it) => sum + Number(it.menuItem.price) * it.quantity,
@@ -466,7 +512,6 @@ async function main() {
       );
       const tax = +(subtotal * SEED_TAX_RATE).toFixed(2);
       const total = +(subtotal + tax).toFixed(2);
-      const table = demoTables[i % demoTables.length];
 
       await tenantDb.order.create({
         data: {
@@ -594,73 +639,77 @@ async function main() {
   // 8.c Movimientos — solo en la primera corrida para no duplicar el kardex
   const existingMovements = await tenantDb.inventoryMovement.count();
   if (existingMovements === 0) {
-    // Compra inicial registrada por Laura (owner)
-    for (const spec of inventorySpecs) {
-      const item = inventoryItems.get(spec.name)!;
+    for (const b of allBranches) {
+      // Compra inicial registrada por el owner
+      for (const spec of inventorySpecs) {
+        const item = inventoryItems.get(spec.name)!;
+        await tenantDb.inventoryMovement.create({
+          data: {
+            itemId: item.id,
+            branchId: b.id,
+            type: 'PURCHASE',
+            quantity: spec.initialStock,
+            unitCost: spec.costPerUnit,
+            totalCost: +(spec.initialStock * spec.costPerUnit).toFixed(2),
+            reason: 'Compra inicial de apertura',
+            reference: `FAC-2026-001-${b.slug}`,
+            supplierId: spec.supplierId,
+            createdBy: owner.id,
+          },
+        });
+      }
+
+      // Consumos del servicio registrados por Marco (kitchen staff)
+      const consumptions = [
+        { name: 'Arrachera', quantity: 4.5, reference: 'ORD-0001' },
+        { name: 'Mole Negro', quantity: 1.2, reference: 'ORD-0003' },
+        { name: 'Aguacate Hass', quantity: 2.0, reference: 'ORD-0011' },
+        { name: 'Huevo', quantity: 36, reference: 'ORD-0004' },
+        { name: 'Leche Entera', quantity: 4.0, reference: 'ORD-0004' },
+      ];
+      for (const c of consumptions) {
+        const item = inventoryItems.get(c.name)!;
+        await tenantDb.inventoryMovement.create({
+          data: {
+            itemId: item.id,
+            branchId: b.id,
+            type: 'CONSUMPTION',
+            quantity: c.quantity,
+            reason: 'Consumo de servicio',
+            reference: c.reference,
+            createdBy: chef.id,
+          },
+        });
+      }
+
+      // Merma registrada por el kitchen staff
       await tenantDb.inventoryMovement.create({
         data: {
-          itemId: item.id,
-          branchId: branch.id,
-          type: 'PURCHASE',
-          quantity: spec.initialStock,
-          unitCost: spec.costPerUnit,
-          totalCost: +(spec.initialStock * spec.costPerUnit).toFixed(2),
-          reason: 'Compra inicial de apertura',
-          reference: 'FAC-2026-001',
-          supplierId: spec.supplierId,
+          itemId: inventoryItems.get('Huachinango')!.id,
+          branchId: b.id,
+          type: 'WASTE',
+          quantity: 1.5,
+          reason: 'Producto en mal estado al recibir',
+          createdBy: chef.id,
+        },
+      });
+
+      // Ajuste por conteo físico registrado por el OWNER (Carlos)
+      await tenantDb.inventoryMovement.create({
+        data: {
+          itemId: inventoryItems.get('Totopos')!.id,
+          branchId: b.id,
+          type: 'ADJUSTMENT',
+          quantity: 2,
+          reason: 'Diferencia en conteo físico semanal',
           createdBy: owner.id,
         },
       });
     }
 
-    // Consumos del servicio registrados por Marco (kitchen staff)
-    const consumptions = [
-      { name: 'Arrachera', quantity: 4.5, reference: 'ORD-0001' },
-      { name: 'Mole Negro', quantity: 1.2, reference: 'ORD-0003' },
-      { name: 'Aguacate Hass', quantity: 2.0, reference: 'ORD-0011' },
-      { name: 'Huevo', quantity: 36, reference: 'ORD-0004' },
-      { name: 'Leche Entera', quantity: 4.0, reference: 'ORD-0004' },
-    ];
-    for (const c of consumptions) {
-      const item = inventoryItems.get(c.name)!;
-      await tenantDb.inventoryMovement.create({
-        data: {
-          itemId: item.id,
-          branchId: branch.id,
-          type: 'CONSUMPTION',
-          quantity: c.quantity,
-          reason: 'Consumo de servicio',
-          reference: c.reference,
-          createdBy: chef.id,
-        },
-      });
-    }
-
-    // Merma registrada por el kitchen staff
-    await tenantDb.inventoryMovement.create({
-      data: {
-        itemId: inventoryItems.get('Huachinango')!.id,
-        branchId: branch.id,
-        type: 'WASTE',
-        quantity: 1.5,
-        reason: 'Producto en mal estado al recibir',
-        createdBy: chef.id,
-      },
-    });
-
-    // Ajuste por conteo físico registrado por el OWNER (Carlos)
-    await tenantDb.inventoryMovement.create({
-      data: {
-        itemId: inventoryItems.get('Totopos')!.id,
-        branchId: branch.id,
-        type: 'ADJUSTMENT',
-        quantity: 2,
-        reason: 'Diferencia en conteo físico semanal',
-        createdBy: owner.id,
-      },
-    });
-
-    console.log(`✅  Movimientos: ${inventorySpecs.length} compras + 5 consumos + 1 merma + 1 ajuste`);
+    console.log(
+      `✅  Movimientos: ${inventorySpecs.length} compras + 5 consumos + 1 merma + 1 ajuste (× ${allBranches.length} sucursales)`,
+    );
   } else {
     console.log('⏭️   Movimientos: ya existen, se omitieron');
   }
@@ -678,16 +727,18 @@ async function main() {
     'Café de Grano': -3.5, // queda bajo minStock
     Totopos: -2,
   };
-  for (const spec of inventorySpecs) {
-    const item = inventoryItems.get(spec.name)!;
-    const quantity = +(spec.initialStock + (stockDeltas[spec.name] ?? 0)).toFixed(3);
-    await tenantDb.inventoryStock.upsert({
-      where: { itemId_branchId: { itemId: item.id, branchId: branch.id } },
-      update: {},
-      create: { itemId: item.id, branchId: branch.id, quantity },
-    });
+  for (const b of allBranches) {
+    for (const spec of inventorySpecs) {
+      const item = inventoryItems.get(spec.name)!;
+      const quantity = +(spec.initialStock + (stockDeltas[spec.name] ?? 0)).toFixed(3);
+      await tenantDb.inventoryStock.upsert({
+        where: { itemId_branchId: { itemId: item.id, branchId: b.id } },
+        update: {},
+        create: { itemId: item.id, branchId: b.id, quantity },
+      });
+    }
   }
-  console.log(`✅  Stock:     ${inventorySpecs.length} items en sucursal ${branch.slug} (2 bajo mínimo)`);
+  console.log(`✅  Stock:     ${inventorySpecs.length} items × ${allBranches.length} sucursales (2 bajo mínimo en cada una)`);
 
   // 8.e Recetas — vinculan platillos del menú con insumos (visibilidad KITCHEN_STAFF)
   const recipes: Array<{ dish: string; ingredients: Array<{ item: string; quantity: number; notes?: string }> }> = [
@@ -740,6 +791,43 @@ async function main() {
       ingredients: [
         { item: 'Huevo', quantity: 3 },
         { item: 'Leche Entera', quantity: 0.2 },
+      ],
+    },
+    {
+      dish: 'Sopa de Lima',
+      ingredients: [
+        { item: 'Pechuga de Pollo', quantity: 0.2, notes: '200g por porción' },
+        { item: 'Limón', quantity: 0.05 },
+        { item: 'Arroz', quantity: 0.05 },
+      ],
+    },
+    {
+      dish: 'Enchiladas Verdes',
+      ingredients: [
+        { item: 'Pechuga de Pollo', quantity: 0.2 },
+        { item: 'Queso Chihuahua', quantity: 0.05 },
+        { item: 'Arroz', quantity: 0.06 },
+      ],
+    },
+    {
+      dish: 'Agua de Horchata',
+      ingredients: [
+        { item: 'Arroz', quantity: 0.12 },
+        { item: 'Leche Entera', quantity: 0.25 },
+      ],
+    },
+    {
+      dish: 'Limonada Mineral',
+      ingredients: [
+        { item: 'Limón', quantity: 0.1 },
+        { item: 'Agua Mineral', quantity: 1, notes: '1 botella por orden' },
+      ],
+    },
+    {
+      dish: 'Pastel de Tres Leches',
+      ingredients: [
+        { item: 'Huevo', quantity: 2 },
+        { item: 'Leche Entera', quantity: 0.3 },
       ],
     },
   ];
