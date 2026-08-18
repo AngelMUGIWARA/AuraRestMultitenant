@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { BranchesRepository } from './branches.repository';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import { PlanLimitsService } from '../common/plan-limits/plan-limits.service';
 import {
   BranchFiltersDto,
   BranchStatsResponseDto,
@@ -14,6 +15,7 @@ export class BranchesService {
   constructor(
     private readonly repo: BranchesRepository,
     private readonly activityLog: ActivityLogService,
+    private readonly planLimits: PlanLimitsService,
   ) {}
 
   /**
@@ -68,6 +70,9 @@ export class BranchesService {
   }
 
   async create(schemaName: string, dto: CreateBranchDto, userId?: string) {
+    const currentCount = await this.repo.count(schemaName);
+    await this.planLimits.assertWithinLimit(schemaName, 'branches', currentCount);
+
     const branch = await this.repo.create(schemaName, dto);
     if (userId) {
       this.activityLog.log(schemaName, {
