@@ -137,15 +137,15 @@ describe('LoginPage', () => {
       render(<LoginPage />);
 
       await user.type(screen.getByPlaceholderText('mi-restaurante'), 'demo');
-      await user.type(screen.getByPlaceholderText('nombre@restaurante.com'), 'admin@demo.com');
-      await user.type(screen.getByPlaceholderText('••••••••'), 'Admin123');
+      await user.type(screen.getByPlaceholderText('nombre@restaurante.com'), 'owner@demo.com');
+      await user.type(screen.getByPlaceholderText('••••••••'), 'Owner123');
       await user.click(screen.getByRole('button', { name: /entrar/i }));
 
       expect(mockLogin).toHaveBeenCalledOnce();
       expect(mockLogin).toHaveBeenCalledWith(
         expect.objectContaining({
-          email: 'admin@demo.com',
-          password: 'Admin123',
+          email: 'owner@demo.com',
+          password: 'Owner123',
           tenantSlug: 'demo',
         }),
         expect.any(Function),
@@ -170,10 +170,10 @@ describe('LoginPage', () => {
       expect(mockLocationReplace).toHaveBeenCalledWith('/dashboard');
     });
 
-    it('redirects MANAGER to /waiter-orders', async () => {
+    it('redirects MANAGER to /manager-dashboard', async () => {
       const handleSuccess = await submitForm();
       handleSuccess({ role: 'MANAGER', id: '1', email: 'a@b.com', name: 'Mgr' });
-      expect(mockLocationReplace).toHaveBeenCalledWith('/waiter-orders');
+      expect(mockLocationReplace).toHaveBeenCalledWith('/manager-dashboard');
     });
 
     it('redirects WAITER to /waiter/tables', async () => {
@@ -188,10 +188,10 @@ describe('LoginPage', () => {
       expect(mockLocationReplace).toHaveBeenCalledWith('/cashier');
     });
 
-    it('redirects KITCHEN_STAFF to /kitchen', async () => {
+    it('redirects KITCHEN_STAFF to /chef/dashboard', async () => {
       const handleSuccess = await submitForm();
       handleSuccess({ role: 'KITCHEN_STAFF', id: '1', email: 'a@b.com', name: 'KS' });
-      expect(mockLocationReplace).toHaveBeenCalledWith('/kitchen');
+      expect(mockLocationReplace).toHaveBeenCalledWith('/chef/dashboard');
     });
 
     it('redirects unknown role to /dashboard (fallback)', async () => {

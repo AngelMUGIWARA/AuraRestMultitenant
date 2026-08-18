@@ -3,12 +3,12 @@
 import { usePathname } from 'next/navigation';
 import { AuthClient } from '@maison/auth-client';
 import { AuthGuard } from '@/components/shell/AuthGuard';
-import { AdminShell } from '@/components/admin/layout/AdminShell';
+import { ManagerShell } from '@/components/admin/layout/ManagerShell';
 import { OwnerShell } from '@/components/owner/layout/OwnerShell';
 import { BranchProvider } from '@maison/ui';
 import { SidebarProvider } from '@/contexts/SidebarContext';
 import { NavProvider } from '@/contexts/NavContext';
-import { OWNER_NAV, ADMIN_NAV } from '@/lib/constants';
+import { OWNER_NAV, MANAGER_NAV } from '@/lib/constants';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -32,13 +32,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // All other roles use AdminShell with ADMIN_NAV
+  // All other roles use ManagerShell with MANAGER_NAV
   return (
     <AuthGuard>
       <BranchProvider>
         <SidebarProvider>
-          <NavProvider nav={ADMIN_NAV}>
-            <AdminShell>{children}</AdminShell>
+          <NavProvider nav={MANAGER_NAV}>
+            <ManagerShell>{children}</ManagerShell>
           </NavProvider>
         </SidebarProvider>
       </BranchProvider>

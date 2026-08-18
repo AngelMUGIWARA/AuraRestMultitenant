@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { on, emit } from '@maison/event-bus';
 import { kitchenService } from '../services/kitchen.service';
 import type { KitchenTicket, KitchenTicketStatus, OrderStatus } from '@maison/types';
 
-const POLL_INTERVAL_MS = 30_000;
+const POLL_INTERVAL_MS = 10_000;
 
 export function useKitchenQueue() {
   const [tickets, setTickets] = useState<KitchenTicket[]>([]);
@@ -12,6 +11,11 @@ export function useKitchenQueue() {
   const [error, setError] = useState<string | null>(null);
   const [branchId, setBranchId] = useState<string | undefined>(undefined);
   const [wsConnected, setWsConnected] = useState(false);
+
+  // Ref para que el polling y los listeners siempre usen la sucursal vigente,
+  // sin depender del closure inicial del efecto.
+  const branchIdRef = useRef(branchId);
+  branchIdRef.current = branchId;
 
   const fetchQueue = useCallback(async (bId?: string) => {
     try {
@@ -28,54 +32,42 @@ export function useKitchenQueue() {
   useEffect(() => {
     fetchQueue(branchId);
 
-    let socket: Socket | null = null;
+    let ws: WebSocket | null = null;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-    const startPolling = () => {
-      if (!pollTimer) {
-        pollTimer = setInterval(() => fetchQueue(branchId), POLL_INTERVAL_MS);
+    // WebSocket solo si hay una URL configurada. Sin servidor WS (no existe en
+    // el backend) no se crea un WebSocket hacia un endpoint muerto, evitando el
+    // error "WebSocket is closed before the connection is established".
+    const wsUrl = (import.meta as any).env?.VITE_KITCHEN_WS_URL as string | undefined;
+
+    if (wsUrl) {
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.onopen = () => setWsConnected(true);
+        ws.onmessage = (e) => {
+          try {
+            const data = JSON.parse(e.data as string) as { tickets: KitchenTicket[] };
+            setTickets(data.tickets);
+          } catch {}
+        };
+        ws.onerror = () => {
+          setWsConnected(false);
+          ws?.close();
+          // fallback polling
+          pollTimer = setInterval(() => fetchQueue(branchIdRef.current), POLL_INTERVAL_MS);
+        };
+        ws.onclose = () => setWsConnected(false);
+      } catch {
+        pollTimer = setInterval(() => fetchQueue(branchIdRef.current), POLL_INTERVAL_MS);
       }
-    };
+    } else {
+      // Sin WS configurado: polling directo
+      pollTimer = setInterval(() => fetchQueue(branchIdRef.current), POLL_INTERVAL_MS);
+    }
 
-    const connectSocket = () => {
-      // Extraer el token de donde lo almacenes en tu app (localStorage, cookies, etc.)
-      const token = localStorage.getItem('token') || ''; 
-      const baseUrl = ((import.meta as any).env?.VITE_API_URL as string | undefined) ?? 'http://localhost:4000';
-
-      // Conectarse al namespace /kitchen configurado en NestJS
-      socket = io(`${baseUrl}/kitchen`, {
-        query: { token },
-        transports: ['websocket', 'polling'],
-      });
-
-      socket.on('connect', () => {
-        setWsConnected(true);
-        if (pollTimer) {
-          clearInterval(pollTimer);
-          pollTimer = null;
-        }
-      });
-
-      // El gateway emite 'queueUpdated' cuando hay cambios, llamamos a fetchQueue
-      socket.on('queueUpdated', () => {
-        fetchQueue(branchId);
-      });
-
-      socket.on('connect_error', () => {
-        setWsConnected(false);
-        startPolling();
-      });
-
-      socket.on('disconnect', () => {
-        setWsConnected(false);
-        startPolling();
-      });
-    };
-
-    connectSocket();
-
-    const offCreated = on('order:created', () => fetchQueue(branchId));
-    const offUpdated = on('order:updated', () => fetchQueue(branchId));
+    // Subscribe to event-bus events for instant updates
+    const offCreated = on('order:created', () => fetchQueue(branchIdRef.current));
+    const offUpdated = on('order:updated', () => fetchQueue(branchIdRef.current));
 
     const offBranch = on('branch:changed', ({ branchId: id, isGlobal }) => {
       const newBranchId = isGlobal ? undefined : id;

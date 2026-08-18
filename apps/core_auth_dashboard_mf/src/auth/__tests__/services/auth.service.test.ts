@@ -18,10 +18,10 @@ describe('authService', () => {
 
   describe('login', () => {
     it('calls apiClient.post with correct endpoint, payload, and tenant header', async () => {
-      const payload = { email: 'admin@demo.com', password: 'Admin123' };
+      const payload = { email: 'owner@demo.com', password: 'Owner123' };
       const tenantSlug = 'demo';
       const expectedResponse = {
-        user: { id: '1', email: 'admin@demo.com', role: 'ADMIN' },
+        user: { id: '1', email: 'owner@demo.com', role: 'OWNER' },
         accessToken: 'access-token',
         refreshToken: 'refresh-token',
       };

@@ -25,22 +25,38 @@ export function useOrders(branchId: string) {
 
     const branchFilter = branchId !== 'global' ? branchId : undefined;
 
-    Promise.all([
-      ordersService.getStats(branchId),
-      ordersService.getAll({ ...filters, branchId: branchFilter }),
-    ])
-      .then(([s, o]) => {
-        if (!cancelled) {
-          setStats(s);
-          setOrders(o);
-        }
-      })
-      .catch((e: unknown) => {
-        if (!cancelled) setError(e instanceof Error ? e : new Error('Error al cargar'));
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
+    // Reintento único ante fallos transitorios (timeout del api-client,
+    // cold-start del pool de la BD) para evitar el "a veces no carga".
+    const withRetry = async <T,>(fn: () => Promise<T>, attempt = 0): Promise<T> => {
+      try {
+        return await fn();
+      } catch (e: unknown) {
+        if (attempt >= 1 || cancelled) throw e;
+        return withRetry(fn, attempt + 1);
+      }
+    };
+
+    // allSettled: un fallo de stats no debe tumbar el listado de órdenes.
+    Promise.allSettled([
+      withRetry(() => ordersService.getStats(branchId)),
+      withRetry(() => ordersService.getAll({ ...filters, branchId: branchFilter })),
+    ]).then(([s, o]) => {
+      if (cancelled) return;
+
+      if (s.status === 'fulfilled') setStats(s.value);
+      if (o.status === 'fulfilled') setOrders(o.value);
+
+      if (s.status === 'rejected' && o.status === 'rejected') {
+        const first = (s.reason ?? o.reason) as unknown;
+        setError(first instanceof Error ? first : new Error('Error al cargar'));
+      } else {
+        setError(null);
+      }
+    }).catch((e: unknown) => {
+      if (!cancelled) setError(e instanceof Error ? e : new Error('Error al cargar'));
+    }).finally(() => {
+      if (!cancelled) setIsLoading(false);
+    });
 
     // Subscribe to event-bus: new order triggers a full refresh
     const offCreated = on('order:created', () => setTick((t) => t + 1));
