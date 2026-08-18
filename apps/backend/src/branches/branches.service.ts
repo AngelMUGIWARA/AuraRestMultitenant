@@ -1,15 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { BranchesRepository } from './branches.repository';
-import { TablesRepository } from '../tables/tables.repository';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import { PlanLimitsService } from '../common/plan-limits/plan-limits.service';
 import { TenantPrismaService } from '../database/tenant-prisma.service';
+import { TablesRepository } from '../tables/tables.repository';
+import { BranchesRepository } from './branches.repository';
 import {
-  BranchFiltersDto,
-  BranchStatsResponseDto,
-  CreateBranchDto,
-  PaginatedBranchesDto,
-  UpdateBranchDto,
+    BranchFiltersDto,
+    BranchStatsResponseDto,
+    CreateBranchDto,
+    PaginatedBranchesDto,
+    UpdateBranchDto,
 } from './dto/branch.dto';
 
 @Injectable()
