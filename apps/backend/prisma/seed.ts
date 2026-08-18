@@ -71,6 +71,37 @@ async function main() {
   });
   console.log(`✅  Tenant:    ${tenant.name}  (slug: ${tenant.slug})`);
 
+  // ── 1.b Limpieza de usuario legacy admin@demo.com ────────────────────────
+  // Seed.js y seed-cashier-orders-payments.js (ahora eliminados) creaban
+  // admin@demo.com con roles ADMIN/OWNER que ya no existen. Este bloque
+  // elimina ese registro si aún persiste en la BD y reasigna sus
+  // relaciones (inventory movements, user_branches) al owner válido.
+  const legacyUser = await tenantDb.user.findUnique({
+    where: { email: 'admin@demo.com' },
+  });
+  if (legacyUser) {
+    const ownerUser = await tenantDb.user.findUnique({
+      where: { email: 'owner@demo.com' },
+    });
+    if (ownerUser) {
+      // Reasignar movimientos de inventario creados por el usuario legacy
+      await tenantDb.inventoryMovement.updateMany({
+        where: { createdBy: legacyUser.id },
+        data: { createdBy: ownerUser.id },
+      });
+      console.log('🔄  Movimientos de inventario de admin@demo.com reasignados a owner@demo.com');
+    }
+    // Eliminar asignaciones de sucursal (user_branches) antes de borrar el usuario
+    await tenantDb.userBranch.deleteMany({
+      where: { userId: legacyUser.id },
+    });
+    // Eliminar el usuario legacy
+    await tenantDb.user.delete({
+      where: { email: 'admin@demo.com' },
+    });
+    console.log('🗑️   Usuario legacy admin@demo.com eliminado de la BD');
+  }
+
   // ── 2. Usuarios ────────────────────────────────────────────────────────────
   const users = await Promise.all([
     tenantDb.user.upsert({
@@ -83,21 +114,6 @@ async function main() {
         role: 'OWNER',
         status: 'ACTIVE',
         phone: '+52 55 1111 0001',
-      },
-    }),
-    tenantDb.user.upsert({
-      where: { email: 'admin@demo.com' },
-      update: {},
-      create: {
-        // El rol ADMIN se retiró (ver ANALISIS_ROLES_Y_TENANTS.md) y se
-        // fusionó en OWNER — se conserva esta cuenta como segundo owner
-        // de demo (mismas credenciales de siempre).
-        name: 'Laura Owner',
-        email: 'admin@demo.com',
-        passwordHash: await hash('Admin123'),
-        role: 'OWNER',
-        status: 'ACTIVE',
-        phone: '+52 55 1111 0002',
       },
     }),
     tenantDb.user.upsert({
@@ -169,9 +185,8 @@ async function main() {
     create: { name: 'Sucursal Central', slug: 'central', address: 'Centro', phone: '+52 55 0000 0002' },
   });
 
-  // Asignar algunos users a la branch con roles
-  // (users[0] = Carlos owner@demo.com, users[1] = Laura admin@demo.com — ambos
-  // OWNER ahora, así que comparten roleId)
+  // Asignar user a la branch con roles
+  // (users[0] = Carlos owner@demo.com)
   const ownerRole = await tenantDb.role.findUnique({ where: { name: 'OWNER' } });
 
   if (ownerRole) {
@@ -179,11 +194,6 @@ async function main() {
       where: { userId_branchId: { userId: users[0].id, branchId: branch.id } },
       update: {},
       create: { userId: users[0].id, branchId: branch.id, roleId: ownerRole.id },
-    });
-    await tenantDb.userBranch.upsert({
-      where: { userId_branchId: { userId: users[1].id, branchId: branch.id } },
-      update: {},
-      create: { userId: users[1].id, branchId: branch.id, roleId: ownerRole.id },
     });
   }
 
@@ -501,11 +511,9 @@ async function main() {
 
   // ── 8. Inventario ─────────────────────────────────────────────────────────
   // Proveedores, insumos, stock por sucursal, movimientos auditados por
-  // usuario (owner/admin/kitchen staff) y recetas que vinculan platillos con
-  // insumos. Se busca por email, no por role, porque owner@demo.com y
-  // admin@demo.com comparten role=OWNER desde que se retiró ADMIN.
+  // usuario (owner/kitchen staff) y recetas que vinculan platillos con
+  // insumos.
   const owner = users.find((u) => u.email === 'owner@demo.com')!;
-  const admin = users.find((u) => u.email === 'admin@demo.com')!;
   const chef = users.find((u) => u.email === 'chef@demo.com')!;
 
   // 8.a Proveedores
@@ -600,7 +608,7 @@ async function main() {
           reason: 'Compra inicial de apertura',
           reference: 'FAC-2026-001',
           supplierId: spec.supplierId,
-          createdBy: admin.id,
+          createdBy: owner.id,
         },
       });
     }
@@ -766,7 +774,6 @@ async function main() {
 ║  Header requerido:  x-tenant-slug: demo       ║
 ╠═══════════════════════════════════════════════╣
 ║  OWNER          owner@demo.com    / Owner123  ║
-║  OWNER          admin@demo.com    / Admin123  ║
 ║  MANAGER        gerente@demo.com  / Gerente123║
 ║  WAITER         mesero@demo.com   / Mesero123 ║
 ║  CASHIER        cajero@demo.com   / Cajero123 ║

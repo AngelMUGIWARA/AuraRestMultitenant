@@ -3,6 +3,7 @@ import { useBranch } from '@maison/ui';
 import { useCategories } from '../hooks/useCategories';
 import { CategoryFormModal } from '../components/CategoryFormModal';
 import { formatNumber, cn } from '../utils';
+import { getRole } from '../utils/role';
 import { StatCard, StatCardSkeleton } from '@maison/ui';
 import { Skeleton } from '@maison/ui';
 import { EmptyState } from '@maison/ui';
@@ -24,11 +25,13 @@ const ACCENT_COLORS = [
 interface CategoryCardProps {
   cat: Category;
   index: number;
+  canEdit: boolean;
+  canDelete: boolean;
   onEdit: (cat: Category) => void;
   onDelete: (cat: Category) => void;
 }
 
-function CategoryCard({ cat, index, onEdit, onDelete }: CategoryCardProps) {
+function CategoryCard({ cat, index, canEdit, canDelete, onEdit, onDelete }: CategoryCardProps) {
   const accent = ACCENT_COLORS[index % ACCENT_COLORS.length];
   return (
     <div className="card card-hover flex flex-col gap-4 p-4">
@@ -64,23 +67,27 @@ function CategoryCard({ cat, index, onEdit, onDelete }: CategoryCardProps) {
         </span>
       </div>
       <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => onEdit(cat)}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded border border-maison-border bg-surface-2 px-2.5 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:bg-surface-3 hover:text-maison-cream"
-          aria-label={`Editar ${cat.name}`}
-        >
-          <IconPencil className="h-3 w-3" />
-          Editar
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(cat)}
-          className="flex items-center justify-center gap-1.5 rounded border border-maison-border bg-surface-2 px-2.5 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:border-maison-ruby/30 hover:bg-maison-ruby-bg hover:text-maison-ruby"
-          aria-label={`Eliminar ${cat.name}`}
-        >
-          <IconTrash className="h-3 w-3" />
-        </button>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={() => onEdit(cat)}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded border border-maison-border bg-surface-2 px-2.5 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:bg-surface-3 hover:text-maison-cream"
+            aria-label={`Editar ${cat.name}`}
+          >
+            <IconPencil className="h-3 w-3" />
+            Editar
+          </button>
+        )}
+        {canDelete && (
+          <button
+            type="button"
+            onClick={() => onDelete(cat)}
+            className="flex items-center justify-center gap-1.5 rounded border border-maison-border bg-surface-2 px-2.5 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:border-maison-ruby/30 hover:bg-maison-ruby-bg hover:text-maison-ruby"
+            aria-label={`Eliminar ${cat.name}`}
+          >
+            <IconTrash className="h-3 w-3" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -111,6 +118,9 @@ function CategoryCardSkeleton() {
 
 export default function CategoriasPage() {
   const { selectedBranch } = useBranch();
+  const role = getRole();
+  const canManage = role === 'OWNER' || role === 'MANAGER';
+  const canDelete = role === 'OWNER';
   const {
     stats, categories, isLoading, error, filters, setFilters, refresh,
     createCategory, updateCategory, removeCategory, isMutating,
@@ -169,10 +179,12 @@ export default function CategoriasPage() {
           <button type="button" onClick={refresh} className="btn-ghost" disabled={isLoading}>
             <IconRefresh className={cn('h-4 w-4', isLoading && 'animate-spin')} />
           </button>
-          <button type="button" onClick={openCreateForm} className="btn-primary">
-            <IconPlus className="h-4 w-4" />
-            Nueva categoría
-          </button>
+          {canManage && (
+            <button type="button" onClick={openCreateForm} className="btn-primary">
+              <IconPlus className="h-4 w-4" />
+              Nueva categoría
+            </button>
+          )}
         </div>
       </header>
 
@@ -279,7 +291,7 @@ export default function CategoriasPage() {
                     : 'Aún no hay categorías. Crea la primera para organizar tu menú.'
               }
               action={
-                !hasError && !search ? (
+                !hasError && !search && canManage ? (
                   <button type="button" onClick={openCreateForm} className="btn-primary">
                     <IconPlus className="h-4 w-4" />
                     Crear primera categoría
@@ -294,7 +306,7 @@ export default function CategoriasPage() {
         {!isLoading && !hasError && categories?.data && categories.data.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {categories.data.map((cat, i) => (
-              <CategoryCard key={cat.id} cat={cat} index={i} onEdit={openEditForm} onDelete={setDeletingCategory} />
+              <CategoryCard key={cat.id} cat={cat} index={i} canEdit={canManage} canDelete={canDelete} onEdit={openEditForm} onDelete={setDeletingCategory} />
             ))}
           </div>
         )}

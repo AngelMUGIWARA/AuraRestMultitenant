@@ -6,6 +6,16 @@ import { initFederation, MFE_URLS } from '@/lib/federation';
 import { loadRemoteDynamically } from '@/lib/loadRemote';
 import { Skeleton } from '@maison/ui';
 
+// List of remotes that are pre-registered in initFederation()
+const PRE_REGISTERED_REMOTES = new Set([
+  'core_auth_dashboard_mf',
+  'orders_tables_mf',
+  'reservations_reports_mf',
+  'menu_mf',
+  'kitchen_mf',
+  'cashier_mf',
+]);
+
 // ✅ Configuración de retry y timeouts
 const LOAD_TIMEOUT = 30000;     // 30 segundos para cargar remoteEntry.js
 const RETRY_ATTEMPTS = 3;       // Reintentar 3 veces
@@ -53,11 +63,14 @@ export function RemoteLoader({ remote, module: mod, lazy = false }: RemoteLoader
 
         let moduleExport: { default?: ComponentType } | null;
 
-        if (lazy) {
-          // Cargar dinámicamente para remotos lazy
+        // Use dynamic loading for lazy remotes OR if remote is not pre-registered
+        const shouldUseDynamicLoading = lazy || !PRE_REGISTERED_REMOTES.has(remote);
+
+        if (shouldUseDynamicLoading) {
+          // Cargar dinámicamente para remotos lazy o no pre-registrados
           moduleExport = await loadRemoteDynamically(remote, `./${expose}`);
         } else {
-          // Cargar de manera estándar para remotos eager
+          // Cargar de manera estándar para remotos eager y pre-registrados
           moduleExport = await loadRemote<{ default?: ComponentType }>(`${remote}/${expose}`);
         }
 

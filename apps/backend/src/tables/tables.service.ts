@@ -47,6 +47,7 @@ export class TablesService {
     }
 
     const { branchId, ...rest } = dto;
+
     const table = await this.tablesRepo.create(schemaName, {
       ...rest,
       branchId,

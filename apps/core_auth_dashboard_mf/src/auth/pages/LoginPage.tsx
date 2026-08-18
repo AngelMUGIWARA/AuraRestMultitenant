@@ -1,14 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import type { AuthUser } from '@maison/types';
+import { type AuthUser, ROLE_ROUTES } from '@maison/types';
 import { useLogin } from '../hooks/useLogin';
-
-const ROLE_ROUTES: Record<string, string> = {
-  OWNER:         '/dashboard',
-  MANAGER:       '/waiter-orders',
-  WAITER:        '/waiter/tables',
-  CASHIER:       '/cashier',
-  KITCHEN_STAFF: '/chef/dashboard',
-};
 
 export default function LoginPage() {
   const { login, isLoading, error } = useLogin();
