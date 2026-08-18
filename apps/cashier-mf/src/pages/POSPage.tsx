@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { usePOS } from '../hooks/usePOS';
-import type { MenuItem, PaymentMethod } from '@maison/types';
-import { TableCard, TABLE_STATUS_CONFIG, IconTable } from '@maison/ui';
+import type { MenuItem, PaymentMethod, RestaurantTable } from '@maison/types';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(value);
@@ -55,6 +54,293 @@ function IconTrash({ className }: { className?: string }) {
   );
 }
 
+function IconReceipt({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className={className} aria-hidden="true">
+      <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+      <path d="M8 10h8M8 14h4" />
+    </svg>
+  );
+}
+
+function IconUser({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className={className} aria-hidden="true">
+      <path d="M19 21v-2a4 4 0 00-4-4H9a4 4 0 00-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function IconX({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
+      <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
+function IconTable({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className={className} aria-hidden="true">
+      <rect x="3" y="7" width="18" height="3" rx="1" />
+      <path d="M6 10v7M18 10v7M9 17h6" />
+    </svg>
+  );
+}
+
+function IconPrinter({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className={className} aria-hidden="true">
+      <path d="M6 9V2h12v7" />
+      <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
+      <rect x="6" y="14" width="12" height="8" />
+    </svg>
+  );
+}
+
+/* ── Table visual states ─────────────────────────────────────────── */
+
+type TableVisualState = 'available' | 'occupied' | 'ticket-printed' | 'payment-pending' | 'reserved' | 'maintenance';
+
+const TABLE_STATE_CONFIG: Record<TableVisualState, {
+  bg: string;
+  border: string;
+  dot: string;
+  label: string;
+  textColor: string;
+}> = {
+  available:       { bg: 'bg-maison-sage/10',   border: 'border-maison-sage/30',    dot: 'bg-maison-sage',    label: 'Disponible',      textColor: 'text-maison-sage' },
+  occupied:        { bg: 'bg-maison-amber/10',   border: 'border-maison-amber/30',   dot: 'bg-maison-amber',   label: 'Ocupada',         textColor: 'text-maison-amber' },
+  'ticket-printed': { bg: 'bg-blue-400/10',      border: 'border-blue-400/30',       dot: 'bg-blue-400',       label: 'Ticket impreso',  textColor: 'text-blue-400' },
+  'payment-pending': { bg: 'bg-maison-ruby/10',  border: 'border-maison-ruby/30',    dot: 'bg-maison-ruby animate-pulse', label: 'Cobro pendiente', textColor: 'text-maison-ruby' },
+  reserved:        { bg: 'bg-purple-400/10',     border: 'border-purple-400/30',     dot: 'bg-purple-400',     label: 'Reservada',       textColor: 'text-purple-400' },
+  maintenance:     { bg: 'bg-maison-cream-dim/10', border: 'border-maison-cream-dim/30', dot: 'bg-maison-cream-dim', label: 'Mantenimiento', textColor: 'text-maison-cream-dim' },
+};
+
+function getTableVisualState(table: RestaurantTable): TableVisualState {
+  if (table.status === 'RESERVED') return 'reserved';
+  if (table.status === 'MAINTENANCE') return 'maintenance';
+  if (table.status === 'AVAILABLE') return 'available';
+
+  const order = table.activeOrder;
+  if (!order) return 'available';
+  if ((order.paymentStatus as string) === 'paid') return 'available';
+  if ((order.paymentStatus as string) === 'unpaid' && order.ticketPrinted) return 'payment-pending';
+  if (order.ticketPrinted) return 'ticket-printed';
+  return 'occupied';
+}
+
+/* ── POS Table Card ──────────────────────────────────────────────── */
+
+function POSTableCard({
+  table,
+  isSelected,
+  onSelect,
+}: {
+  table: RestaurantTable;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const vs = getTableVisualState(table);
+  const cfg = TABLE_STATE_CONFIG[vs];
+  const order = table.activeOrder;
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`relative rounded-xl border-2 p-3.5 text-left transition-all hover:scale-[1.02] active:scale-[0.97] ${cfg.bg} ${cfg.border} ${isSelected ? 'ring-2 ring-maison-amber ring-offset-2 ring-offset-surface-0 shadow-lg shadow-maison-amber/20' : 'hover:shadow-md'}`}
+    >
+      {isSelected && (
+        <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-maison-amber flex items-center justify-center shadow">
+          <IconCheck className="h-3 w-3 text-surface-0" />
+        </span>
+      )}
+
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <IconTable className="h-4 w-4 text-maison-cream-dim" />
+          <span className="text-sm font-bold text-maison-cream">{table.name ?? `Mesa ${table.number}`}</span>
+        </div>
+        <span className="text-[10px] text-maison-cream-dim">{table.capacity} pers.</span>
+      </div>
+
+      {/* Status dot + label */}
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />
+        <span className={`text-[10px] font-semibold ${cfg.textColor}`}>{cfg.label}</span>
+      </div>
+
+      {/* Active order info */}
+      {order && (
+        <div className="mt-1.5 pt-2 border-t border-maison-border/40 space-y-1.5">
+          {order.waiterName && (
+            <div className="flex items-center gap-1">
+              <IconUser className="h-3 w-3 text-maison-cream-dim" />
+              <span className="text-[10px] text-maison-cream-muted font-medium truncate">{order.waiterName}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-maison-cream-dim">{order.itemCount} {order.itemCount === 1 ? 'item' : 'items'}</span>
+            <span className="font-mono text-xs font-bold text-maison-amber">{formatCurrency(order.total)}</span>
+          </div>
+          {order.ticketPrinted && (
+            <div className="flex items-center gap-1 text-[10px] text-blue-400">
+              <IconReceipt className="h-3 w-3" />
+              <span className="font-medium">Ticket impreso</span>
+            </div>
+          )}
+        </div>
+      )}
+    </button>
+  );
+}
+
+/* ── Table Detail Drawer ──────────────────────────────────────────── */
+
+function TableDetailDrawer({
+  table,
+  onClose,
+  onContinueToMenu,
+  onPrintTicket,
+  onPay,
+}: {
+  table: RestaurantTable;
+  onClose: () => void;
+  onContinueToMenu: () => void;
+  onPrintTicket: (orderId: string) => void;
+  onPay: () => void;
+}) {
+  const order = table.activeOrder;
+  const vs = getTableVisualState(table);
+  const cfg = TABLE_STATE_CONFIG[vs];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Drawer */}
+      <div className="relative w-full max-w-md bg-surface-1 border border-maison-border rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[85vh] overflow-y-auto">
+        {/* Header */}
+        <div className={`sticky top-0 z-10 flex items-center justify-between p-4 border-b border-maison-border bg-surface-1/95 backdrop-blur-sm`}>
+          <div>
+            <h2 className="text-base font-bold text-maison-cream">{table.name ?? `Mesa ${table.number}`}</h2>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />
+              <span className={`text-[10px] font-semibold ${cfg.textColor}`}>{cfg.label}</span>
+              <span className="text-[10px] text-maison-cream-dim ml-1">({table.capacity} pers.)</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 w-8 flex items-center justify-center rounded-lg border border-maison-border bg-surface-2 text-maison-cream-muted hover:text-maison-cream hover:bg-surface-3 transition"
+          >
+            <IconX className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 space-y-4">
+          {!order ? (
+            /* No active order */
+            <div className="text-center py-8 space-y-3">
+              <IconTable className="h-10 w-10 mx-auto text-maison-cream-dim opacity-40" />
+              <p className="text-sm text-maison-cream-muted">Sin orden activa</p>
+              <button
+                type="button"
+                onClick={onContinueToMenu}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-maison-amber text-surface-0 py-3 text-sm font-semibold hover:bg-maison-amber/90 transition"
+              >
+                <IconPlus className="h-4 w-4" />
+                Crear orden
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Order header */}
+              <div className="flex items-center justify-between rounded-xl bg-surface-2 border border-maison-border p-3">
+                <div>
+                  <p className="text-xs font-bold text-maison-cream">Orden <span className="text-maison-amber">#{order.orderNumber}</span></p>
+                  {order.waiterName && (
+                    <p className="text-[10px] text-maison-cream-dim mt-0.5 flex items-center gap-1">
+                      <IconUser className="h-3 w-3" />
+                      {order.waiterName}
+                    </p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="font-mono text-sm font-bold text-maison-amber">{formatCurrency(order.total)}</p>
+                  <p className="text-[10px] text-maison-cream-dim mt-0.5">
+                    {order.paymentStatus === 'paid' ? 'Pagada' : order.paymentStatus === 'partially_paid' ? 'Parcial' : 'Pendiente'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Items list */}
+              {order.items.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold text-maison-cream-dim uppercase tracking-widest">Items</p>
+                  {order.items.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between rounded-lg bg-surface-2 border border-maison-border/50 px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-maison-amber/10 font-mono text-[10px] font-bold text-maison-amber">
+                          {item.quantity}
+                        </span>
+                        <span className="text-xs text-maison-cream">{item.name}</span>
+                      </div>
+                      <span className="font-mono text-xs text-maison-cream-muted">{formatCurrency(item.unitPrice * item.quantity)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="space-y-2 pt-2">
+                {order.paymentStatus !== 'paid' && !order.ticketPrinted && (
+                  <button
+                    type="button"
+                    onClick={() => onPrintTicket(order.id)}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-blue-400/40 text-blue-400 py-3 text-sm font-semibold hover:bg-blue-400/10 transition"
+                  >
+                    <IconPrinter className="h-4 w-4" />
+                    Imprimir ticket
+                  </button>
+                )}
+
+                {order.paymentStatus !== 'paid' && (
+                  <button
+                    type="button"
+                    onClick={() => { onClose(); onPay(); }}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-maison-sage text-surface-0 py-3.5 text-sm font-bold hover:bg-maison-sage/90 transition shadow-lg shadow-maison-sage/20"
+                  >
+                    <IconPayment className="h-4 w-4" />
+                    Cobrar {formatCurrency(order.total)}
+                  </button>
+                )}
+
+                {!order && (
+                  <button
+                    type="button"
+                    onClick={() => { onClose(); onContinueToMenu(); }}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-maison-amber text-surface-0 py-3 text-sm font-semibold hover:bg-maison-amber/90 transition"
+                  >
+                    <IconPlus className="h-4 w-4" />
+                    Crear orden
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── MenuItemCard ────────────────────────────────────────────────── */
 
 function MenuItemCard({ item, onAdd }: { item: MenuItem; onAdd: (item: MenuItem) => void }) {
@@ -66,7 +352,7 @@ function MenuItemCard({ item, onAdd }: { item: MenuItem; onAdd: (item: MenuItem)
     >
       {item.isPopular && (
         <span className="absolute top-2 right-2 text-[10px] font-bold text-maison-amber bg-maison-amber/10 border border-maison-amber/30 rounded-full px-2 py-0.5">
-          ⭐ Popular
+          Popular
         </span>
       )}
       <div className="flex items-start gap-2 pr-16">
@@ -104,7 +390,7 @@ export default function POSPage() {
     cartTotal,
     isLoading, isSubmitting, error, completedOrder, availableDiscounts,
     addToCart, removeFromCart, clearCart, submitOrder, processPayment,
-    applyDiscount, removeDiscount, refreshTables,
+    applyDiscount, removeDiscount, refreshTables, printTicket,
   } = usePOS();
 
   const [view, setView] = useState<PosView>('tables');
@@ -112,6 +398,7 @@ export default function POSPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedDiscountId, setSelectedDiscountId] = useState<string>('');
+  const [detailTable, setDetailTable] = useState<RestaurantTable | null>(null);
 
   // Split payment state
   interface PaymentLine {
@@ -179,6 +466,23 @@ export default function POSPage() {
     setCustomerName('');
   }
 
+  function handleTableSelect(table: RestaurantTable) {
+    const order = table.activeOrder;
+    if (order && order.paymentStatus !== 'paid') {
+      setDetailTable(table);
+    } else {
+      setSelectedTable(selectedTable?.id === table.id ? null : table);
+    }
+  }
+
+  function handleOpenDetailPay() {
+    if (detailTable?.activeOrder) {
+      setSelectedTable(detailTable);
+      setView('payment');
+    }
+    setDetailTable(null);
+  }
+
   /* ── Loading ── */
 
   if (isLoading) {
@@ -190,8 +494,8 @@ export default function POSPage() {
             <div className="absolute inset-0 h-14 w-14 rounded-full border-2 border-maison-amber border-t-transparent animate-spin" />
           </div>
           <div>
-            <p className="text-sm font-medium text-maison-cream">Cargando POS…</p>
-            <p className="text-xs text-maison-cream-muted mt-0.5">Preparando tu estación de trabajo</p>
+            <p className="text-sm font-medium text-maison-cream">Cargando POS...</p>
+            <p className="text-xs text-maison-cream-muted mt-0.5">Preparando tu estacion de trabajo</p>
           </div>
         </div>
       </div>
@@ -203,6 +507,9 @@ export default function POSPage() {
     { id: 'menu', label: 'Carta', Icon: IconMenu },
     { id: 'payment', label: 'Cobro', Icon: IconPayment },
   ];
+
+  const occupiedCount = tables.filter((t) => getTableVisualState(t) !== 'available' && getTableVisualState(t) !== 'maintenance').length;
+  const availableCount = tables.filter((t) => getTableVisualState(t) === 'available').length;
 
   return (
     <div className="min-h-screen bg-surface-0 flex flex-col">
@@ -217,7 +524,7 @@ export default function POSPage() {
           <div>
             <span className="font-display text-base font-semibold text-maison-cream leading-none">Caja POS</span>
             {selectedTable && (
-              <p className="text-[10px] text-maison-amber font-medium">{selectedTable.name}</p>
+              <p className="text-[10px] text-maison-amber font-medium">{selectedTable.name ?? `Mesa ${selectedTable.number}`}</p>
             )}
           </div>
         </div>
@@ -237,6 +544,11 @@ export default function POSPage() {
             >
               <Icon className="h-3.5 w-3.5" />
               {label}
+              {id === 'tables' && tables.length > 0 && (
+                <span className={`ml-0.5 text-[9px] font-bold ${view === id ? 'text-surface-0/70' : 'text-maison-cream-dim'}`}>
+                  {availableCount}/{tables.length}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -250,7 +562,7 @@ export default function POSPage() {
             </span>
           )}
           {cart.length === 0 && (
-            <span className="text-xs text-maison-cream-dim">Carrito vacío</span>
+            <span className="text-xs text-maison-cream-dim">Carrito vacio</span>
           )}
         </div>
       </header>
@@ -272,11 +584,15 @@ export default function POSPage() {
 
           {/* ──── TABLES VIEW ──── */}
           {view === 'tables' && (
-            <div className="space-y-5 max-w-4xl">
+            <div className="space-y-5 max-w-5xl">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-semibold text-maison-cream">Seleccionar mesa</h2>
-                  <p className="text-xs text-maison-cream-muted mt-0.5">Elige la mesa o continúa sin asignar una</p>
+                  <p className="text-xs text-maison-cream-muted mt-0.5">
+                    {occupiedCount > 0
+                      ? `${occupiedCount} mesa${occupiedCount !== 1 ? 's' : ''} ocupada${occupiedCount !== 1 ? 's' : ''} - ${availableCount} disponible${availableCount !== 1 ? 's' : ''}`
+                      : 'Todas las mesas disponibles'}
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -293,7 +609,7 @@ export default function POSPage() {
 
               {/* Status legend */}
               <div className="flex flex-wrap gap-3">
-                {Object.entries(TABLE_STATUS_CONFIG).map(([key, cfg]) => (
+                {Object.entries(TABLE_STATE_CONFIG).map(([key, cfg]) => (
                   <div key={key} className="flex items-center gap-1.5">
                     <span className={`h-2 w-2 rounded-full ${cfg.dot.replace('animate-pulse', '')}`} />
                     <span className="text-[10px] text-maison-cream-muted">{cfg.label}</span>
@@ -302,15 +618,13 @@ export default function POSPage() {
               </div>
 
               {tables.length > 0 ? (
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                   {tables.map((t) => (
-                    <TableCard
+                    <POSTableCard
                       key={t.id}
-                      name={t.name ?? `Mesa ${t.number ?? ''}`}
-                      capacity={t.capacity}
-                      status={t.status}
+                      table={t}
                       isSelected={selectedTable?.id === t.id}
-                      onSelect={() => { setSelectedTable(selectedTable?.id === t.id ? null : t); }}
+                      onSelect={() => handleTableSelect(t)}
                     />
                   ))}
                 </div>
@@ -318,7 +632,7 @@ export default function POSPage() {
                 <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-maison-border py-16 gap-3">
                   <IconTable className="h-10 w-10 text-maison-cream-dim opacity-40" />
                   <p className="text-sm text-maison-cream-muted">Sin mesas configuradas</p>
-                  <p className="text-xs text-maison-cream-dim">Agrega mesas desde el panel de administración</p>
+                  <p className="text-xs text-maison-cream-dim">Agrega mesas desde el panel de administracion</p>
                 </div>
               )}
 
@@ -330,7 +644,7 @@ export default function POSPage() {
                 {selectedTable ? (
                   <>
                     <IconTable className="h-4 w-4" />
-                    Continuar con {selectedTable.name}
+                    Continuar con {selectedTable.name ?? `Mesa ${selectedTable.number}`}
                   </>
                 ) : (
                   <>
@@ -353,14 +667,14 @@ export default function POSPage() {
                     <IconMenu className="h-8 w-8 text-maison-cream-dim opacity-60" />
                   </div>
                   <div className="text-center space-y-1.5 px-6">
-                    <p className="text-base font-semibold text-maison-cream">El módulo de carta aún no está disponible</p>
-                    <p className="text-sm text-maison-cream-muted">Agrega productos desde el panel de administración para comenzar a tomar pedidos.</p>
+                    <p className="text-base font-semibold text-maison-cream">El modulo de carta aun no esta disponible</p>
+                    <p className="text-sm text-maison-cream-muted">Agrega productos desde el panel de administracion para comenzar a tomar pedidos.</p>
                   </div>
                   <div className="flex items-center gap-2 rounded-lg border border-maison-amber/30 bg-maison-amber/5 px-4 py-2">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-maison-amber" aria-hidden="true">
                       <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    <span className="text-xs font-medium text-maison-amber">Módulo en configuración</span>
+                    <span className="text-xs font-medium text-maison-amber">Modulo en configuracion</span>
                   </div>
                 </div>
               ) : (
@@ -372,7 +686,7 @@ export default function POSPage() {
                     </svg>
                     <input
                       type="search"
-                      placeholder="Buscar en la carta…"
+                      placeholder="Buscar en la carta..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full rounded-xl border border-maison-border bg-surface-1 pl-10 pr-4 py-2.5 text-sm text-maison-cream placeholder:text-maison-cream-dim focus:outline-none focus:border-maison-amber focus:ring-1 focus:ring-maison-amber/30 transition"
@@ -452,7 +766,7 @@ export default function POSPage() {
                     </div>
                     <div>
                       <p className="text-xl font-bold text-maison-cream">
-                        {completedOrder.isFullyPaid ? '¡Cobro exitoso!' : '¡Pago parcial registrado!'}
+                        {completedOrder.isFullyPaid ? 'Cobro exitoso!' : 'Pago parcial registrado!'}
                       </p>
                       <p className="text-sm text-maison-cream-muted mt-1">
                         Orden #{completedOrder.orderNumber}
@@ -549,7 +863,7 @@ export default function POSPage() {
                       </div>
 
                       {/* Discount selector */}
-                      {completedOrder.paymentStatus === 'unpaid' && (
+                      {(completedOrder.paymentStatus as string) === 'unpaid' && (
                         <div className="rounded-xl border border-maison-border bg-surface-2 p-3.5 space-y-2.5">
                           <div className="flex items-center justify-between">
                             <p className="text-xs font-bold text-maison-cream-dim uppercase tracking-widest">Descuento de la orden</p>
@@ -660,7 +974,7 @@ export default function POSPage() {
                           className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-maison-border py-2.5 text-xs font-semibold text-maison-cream-dim hover:text-maison-amber hover:border-maison-amber/40 transition"
                         >
                           <IconPlus className="h-3.5 w-3.5" />
-                          Agregar método de pago
+                          Agregar metodo de pago
                         </button>
                       </div>
 
@@ -692,7 +1006,7 @@ export default function POSPage() {
                         {isSubmitting ? (
                           <>
                             <div className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                            Procesando…
+                            Procesando...
                           </>
                         ) : (
                           <>
@@ -749,7 +1063,7 @@ export default function POSPage() {
                     {isSubmitting ? (
                       <>
                         <div className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                        Enviando a cocina…
+                        Enviando a cocina...
                       </>
                     ) : (
                       <>
@@ -780,7 +1094,7 @@ export default function POSPage() {
               </span>
               {selectedTable && (
                 <span className="text-[10px] font-medium text-maison-amber bg-maison-amber/10 border border-maison-amber/30 rounded-full px-2 py-0.5">
-                  {selectedTable.name}
+                  {selectedTable.name ?? `Mesa ${selectedTable.number}`}
                 </span>
               )}
             </h3>
@@ -848,6 +1162,17 @@ export default function POSPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Table Detail Drawer ────────────────────────────────────── */}
+      {detailTable && (
+        <TableDetailDrawer
+          table={detailTable}
+          onClose={() => setDetailTable(null)}
+          onContinueToMenu={() => { setSelectedTable(detailTable); setDetailTable(null); setView('menu'); }}
+          onPrintTicket={(orderId) => printTicket(orderId)}
+          onPay={handleOpenDetailPay}
+        />
+      )}
     </div>
   );
 }

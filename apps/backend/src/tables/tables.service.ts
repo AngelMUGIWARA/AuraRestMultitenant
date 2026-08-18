@@ -50,7 +50,10 @@ export class TablesService {
 
     const table = await this.tablesRepo.create(schemaName, {
       ...rest,
+
+      branch: { connect: { id: branchId } },
       branch: { connect: { id: branchId! } },
+
       status: 'AVAILABLE',
       isActive: true,
     });
@@ -104,6 +107,8 @@ export class TablesService {
   }
 
   private toResponse(table: any) {
+    const activeOrder = table.orders?.[0] ?? null;
+
     return {
       id: table.id,
       number: table.number,
@@ -115,6 +120,24 @@ export class TablesService {
       branchId: table.branchId,
       createdAt: table.createdAt?.toISOString(),
       updatedAt: table.updatedAt?.toISOString(),
+      activeOrder: activeOrder
+        ? {
+            id: activeOrder.id,
+            orderNumber: activeOrder.folio,
+            status: activeOrder.status,
+            paymentStatus: activeOrder.paymentStatus,
+            total: Number(activeOrder.total),
+            itemCount: activeOrder.orderItems?.length ?? 0,
+            waiterName: activeOrder.user?.name || null,
+            waiterId: activeOrder.user?.id || null,
+            ticketPrinted: activeOrder.ticketPrinted ?? false,
+            items: (activeOrder.orderItems ?? []).map((item: any) => ({
+              name: item.menuItem?.name || '',
+              quantity: item.quantity,
+              unitPrice: Number(item.unitPrice),
+            })),
+          }
+        : null,
     };
   }
 }

@@ -191,4 +191,16 @@ export class OrdersController {
     const userId = user?.id ?? user?.sub ?? user?.userId;
     return this.ordersService.cancel(tenant.schemaName, id, dto?.reason, userId);
   }
+
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Post(':id/print-ticket')
+  @ApiOperation({ summary: 'Marcar ticket como impreso', operationId: 'orders_printTicket' })
+  @ApiResponse({ status: 200, type: OrderResponseDto })
+  @ApiResponse({ status: 404, description: 'Orden no encontrada' })
+  printTicket(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+  ) {
+    return this.ordersService.printTicket(tenant.schemaName, id);
+  }
 }

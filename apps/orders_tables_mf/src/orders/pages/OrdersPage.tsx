@@ -6,6 +6,7 @@ import { formatCurrency, formatNumber, formatRelativeTime, cn } from '../utils';
 import { StatCard, StatCardSkeleton } from '@maison/ui';
 import { Skeleton } from '@maison/ui';
 import { EmptyState } from '@maison/ui';
+import { ConfirmDialog } from '@maison/ui';
 import {
   IconOrders, IconDollarSign, IconClock, IconAlertCircle,
   IconRefresh, IconSearch, IconHash, IconUsers,
@@ -59,12 +60,12 @@ const STATUS_CONFIG: Record<
     emoji: '📦',
   },
   paid: {
-    label: 'Pagado',
-    badge: 'badge-active badge',
-    border: 'border-l-maison-sage',
-    dot: 'bg-maison-sage',
-    accentBg: 'from-maison-sage/5',
-    emoji: '💳',
+    label: 'Entregado',
+    badge: 'badge badge-inactive',
+    border: 'border-l-maison-cream-dim',
+    dot: 'bg-maison-cream-dim',
+    accentBg: 'from-maison-cream-dim/5',
+    emoji: '📦',
   },
   cancelled: {
     label: 'Cancelado',
@@ -116,15 +117,15 @@ const CANCELLABLE_STATUSES = new Set(['pending', 'confirmed', 'preparing', 'read
 function OrderCard({
   order,
   onUpdateStatus,
-  onCancel,
+  onRequestCancel,
   disabled,
-  readOnly, // <--- 1. Agrégalo aquí
+  readOnly,
 }: {
   order: Order;
   onUpdateStatus: (orderId: string, status: string) => void;
-  onCancel: (orderId: string) => void;
+  onRequestCancel: (order: Order) => void;
   disabled: boolean;
-  readOnly: boolean; // <--- 2. Agrégalo al tipo
+  readOnly: boolean;
 }){
   const cfg = STATUS_CONFIG[order.status];
   const maxItems = 3;
@@ -253,7 +254,7 @@ function OrderCard({
           {canCancel && (
             <button
               type="button"
-              onClick={() => { if (window.confirm(`¿Cancelar orden #${order.orderNumber}?`)) onCancel(order.id); }}
+              onClick={() => onRequestCancel(order)}
               disabled={disabled}
               className="flex items-center justify-center gap-1.5 rounded-lg border border-maison-ruby/40 text-maison-ruby bg-maison-ruby/5 py-2 px-3 text-xs font-bold hover:bg-maison-ruby/15 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
@@ -314,6 +315,7 @@ export default function OrdersPage() {
     selectedBranch.id,
   );
   const [activeTab, setActiveTab] = useState<OrderStatus | 'active' | 'all'>('active');
+  const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const hasError = !!error;
 
   function handleTabFilter(val: OrderStatus | 'active' | 'all') {
@@ -416,8 +418,21 @@ export default function OrdersPage() {
         </div>
       </section>
 
-      {/* ── Status tabs + Search ──────────────────────────────── */}
+      {/* ── Search + Status tabs ──────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Search */}
+        <div className="relative max-w-xs flex-1">
+          <IconSearch className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-maison-cream-dim" />
+          <input
+            type="search"
+            placeholder="Buscar por # o cliente..."
+            value={filters.search ?? ''}
+            onChange={(e) => setFilters({ search: e.target.value || undefined })}
+            className="h-9 w-full rounded-xl border border-maison-border bg-surface-2 pl-8 pr-3 text-sm leading-9 text-maison-cream placeholder:text-maison-cream-dim outline-none transition-colors focus:border-maison-amber focus:ring-1 focus:ring-maison-amber/20"
+            aria-label="Buscar pedidos"
+          />
+        </div>
+
         {/* Status tabs */}
         <div
           className="flex flex-wrap gap-1 rounded-xl border border-maison-border bg-surface-2 p-1"
@@ -444,19 +459,6 @@ export default function OrdersPage() {
               {tab.label}
             </button>
           ))}
-        </div>
-
-        {/* Search */}
-        <div className="relative max-w-xs flex-1">
-          <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-maison-cream-dim" />
-          <input
-            type="search"
-            placeholder="Buscar por # o cliente..."
-            value={filters.search ?? ''}
-            onChange={(e) => setFilters({ search: e.target.value || undefined })}
-            className="input-base w-full pl-9 rounded-xl"
-            aria-label="Buscar pedidos"
-          />
         </div>
       </div>
 
@@ -498,7 +500,7 @@ export default function OrdersPage() {
                 key={order.id}
                 order={order}
                 onUpdateStatus={updateOrderStatus}
-                onCancel={cancelOrder}
+                onRequestCancel={setCancelTarget}
                 disabled={isActing}
                 readOnly={readOnly}
               />
@@ -506,6 +508,28 @@ export default function OrdersPage() {
           </div>
         )}
       </section>
+
+      {/* ── Cancel order confirmation ──────────────────────── */}
+      <ConfirmDialog
+        open={cancelTarget !== null}
+        title="Cancelar orden"
+        description={
+          cancelTarget
+            ? `¿Seguro que deseas cancelar la orden #${cancelTarget.orderNumber}?\n\nEsta acción cambiará el estado de la orden y no podrá deshacerse fácilmente.`
+            : ''
+        }
+        confirmLabel="Cancelar orden"
+        cancelLabel="Volver"
+        destructive
+        isLoading={isActing}
+        onConfirm={() => {
+          if (cancelTarget) {
+            cancelOrder(cancelTarget.id);
+            setCancelTarget(null);
+          }
+        }}
+        onCancel={() => setCancelTarget(null)}
+      />
     </div>
   );
 }

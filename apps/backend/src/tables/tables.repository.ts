@@ -16,6 +16,19 @@ export class TablesRepository {
     return this.db(schemaName).restaurantTable.findMany({
       where,
       orderBy: { number: 'asc' },
+      include: {
+        orders: {
+          where: { status: { notIn: ['PAID', 'CANCELLED'] } },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+            orderItems: {
+              include: { menuItem: { select: { id: true, name: true, price: true } } },
+            },
+          },
+        },
+      },
     });
   }
 
