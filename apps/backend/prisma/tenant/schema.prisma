@@ -296,6 +296,7 @@ model Order {
   chargeableTipAmount  Decimal?           @map("chargeable_tip_amount") @db.Decimal(10, 2)
   total                Decimal            @db.Decimal(10, 2)
   amountDueForPayments Decimal?           @map("amount_due_for_payments") @db.Decimal(10, 2)
+  ticketPrinted        Boolean            @default(false) @map("ticket_printed")
   discountId           String?            @map("discount_id")
   version              Int                @default(0)
   createdAt            DateTime           @default(now()) @map("created_at")

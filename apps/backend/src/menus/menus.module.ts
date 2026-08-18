@@ -6,11 +6,13 @@ import { MenusRepository } from './menus.repository';
 
 import { ActivityLogModule } from '../activity-log/activity-log.module';
 import { UploadModule } from '../upload/upload.module';
+import { PlanLimitsModule } from '../common/plan-limits/plan-limits.module';
 
 @Module({
   imports: [
     ActivityLogModule,
     UploadModule,
+    PlanLimitsModule,
   ],
   controllers: [MenusController],
   providers: [MenusService, MenusRepository],

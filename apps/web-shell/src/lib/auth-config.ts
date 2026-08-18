@@ -29,6 +29,11 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
 
   // CASHIER (CASHIER y SUPER_ADMIN)
   '/cashier': ['CASHIER', 'SUPER_ADMIN'],
+  '/cashier/dashboard': ['CASHIER', 'SUPER_ADMIN'],
+  '/cashier/pos': ['CASHIER', 'SUPER_ADMIN'],
+  '/cashier/orders': ['CASHIER', 'SUPER_ADMIN'],
+  '/cashier/reservations': ['CASHIER', 'SUPER_ADMIN'],
+  '/cashier/settings': ['CASHIER', 'SUPER_ADMIN'],
 
   // KITCHEN (KITCHEN_STAFF y SUPER_ADMIN)
   '/kitchen': ['KITCHEN_STAFF', 'SUPER_ADMIN'],

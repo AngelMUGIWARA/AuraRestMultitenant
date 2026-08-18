@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { TablesRepository } from './tables.repository';
-import { TableStatus } from '../generated/prisma-tenant';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma-tenant';
+import { TableStatus } from '../generated/prisma-tenant';
 import { CreateTableDto } from './dto/create-table.dto';
 import { UpdateTableDto } from './dto/update-table.dto';
+import { TablesRepository } from './tables.repository';
 
 @Injectable()
 export class TablesService {
@@ -46,11 +46,14 @@ export class TablesService {
       );
     }
 
+    const { branchId, ...rest } = dto;
+
     const table = await this.tablesRepo.create(schemaName, {
-      ...dto,
-      branch: {
-        connect: { id: dto.branchId! },
-      },
+      ...rest,
+
+      branch: { connect: { id: branchId } },
+      branch: { connect: { id: branchId! } },
+
       status: 'AVAILABLE',
       isActive: true,
     });
@@ -75,7 +78,11 @@ export class TablesService {
       }
     }
 
-    const data: Prisma.RestaurantTableUpdateInput = { ...dto };
+    const { branchId, ...rest } = dto;
+    const data: Prisma.RestaurantTableUpdateInput = {
+      ...rest,
+      ...(branchId !== undefined ? { branchId } : {}),
+    };
 
     const updated = await this.tablesRepo.update(schemaName, id, data);
     return this.toResponse(updated);
@@ -100,6 +107,8 @@ export class TablesService {
   }
 
   private toResponse(table: any) {
+    const activeOrder = table.orders?.[0] ?? null;
+
     return {
       id: table.id,
       number: table.number,
@@ -111,6 +120,24 @@ export class TablesService {
       branchId: table.branchId,
       createdAt: table.createdAt?.toISOString(),
       updatedAt: table.updatedAt?.toISOString(),
+      activeOrder: activeOrder
+        ? {
+            id: activeOrder.id,
+            orderNumber: activeOrder.folio,
+            status: activeOrder.status,
+            paymentStatus: activeOrder.paymentStatus,
+            total: Number(activeOrder.total),
+            itemCount: activeOrder.orderItems?.length ?? 0,
+            waiterName: activeOrder.user?.name || null,
+            waiterId: activeOrder.user?.id || null,
+            ticketPrinted: activeOrder.ticketPrinted ?? false,
+            items: (activeOrder.orderItems ?? []).map((item: any) => ({
+              name: item.menuItem?.name || '',
+              quantity: item.quantity,
+              unitPrice: Number(item.unitPrice),
+            })),
+          }
+        : null,
     };
   }
 }

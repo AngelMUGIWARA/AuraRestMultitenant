@@ -1,9 +1,9 @@
 /**
  * Seed adicional de desarrollo — datos para que el dashboard de admin
  * muestre información realista:
- *   - 1 sucursal extra (Sucursal Norte)
- *   - Reservaciones de hoy y próximos días (la vista /reservaciones
- *     estaba vacía)
+ *   - 3 sucursales (Central, Oeste, Norte) con mesas
+ *   - Reservaciones de hoy y próximos días para cada sucursal (la vista
+ *     /reservaciones estaba vacía en las sucursales secundarias)
  *
  * Uso: pnpm exec ts-node --project tsconfig.json -r tsconfig-paths/register prisma/seed-demo-extras.ts
  * Idempotente: puede correrse varias veces sin duplicar datos.
@@ -30,10 +30,20 @@ function at(hour: number, minute = 0, daysFromNow = 0): Date {
 async function main() {
   console.log('🌱  Seed de extras para el dashboard...\n');
 
-  // ── 1. Sucursal extra ──────────────────────────────────────
+  // ── 1. Sucursales extra (idempotente — el seed base ya las crea) ──────
+  const oeste = await db.branch.upsert({
+    where: { slug: 'oeste' },
+    update: { name: 'Sucursal Oeste', address: 'Av. de las Flores 180, Col. Del Valle', phone: '+52 55 0000 0004' },
+    create: {
+      name: 'Sucursal Oeste',
+      slug: 'oeste',
+      address: 'Av. de las Flores 180, Col. Del Valle',
+      phone: '+52 55 0000 0004',
+    },
+  });
   const norte = await db.branch.upsert({
     where: { slug: 'norte' },
-    update: {},
+    update: { name: 'Sucursal Norte', address: 'Av. de los Pinos 245, Zona Norte', phone: '+52 55 0000 0003', email: 'norte@demo.com', manager: 'Sofía Gerente' },
     create: {
       name: 'Sucursal Norte',
       slug: 'norte',
@@ -43,7 +53,7 @@ async function main() {
       manager: 'Sofía Gerente',
     },
   });
-  console.log(`✅  Sucursal:  ${norte.name}`);
+  console.log(`✅  Sucursales: ${oeste.name}, ${norte.name}`);
 
   // ── 2. Backfill: órdenes sin sucursal ──────────────────────
   // El seed base crea las órdenes sin branchId, así que el resumen por
@@ -67,35 +77,60 @@ async function main() {
   const central = await db.branch.findUnique({ where: { slug: 'central' } });
   if (!central) throw new Error('No existe la sucursal "central" — corre primero prisma/seed.ts');
 
-  const tables = await db.restaurantTable.findMany({
-    where: { branchId: central.id },
-    orderBy: { number: 'asc' },
-  });
-  if (tables.length < 4) throw new Error('Se esperaban ≥4 mesas del seed base');
+  const branches = [central, oeste, norte];
 
-  const t = (i: number) => tables[i % tables.length].id;
-
-  const reservations = [
-    // Hoy
-    { tableId: t(0), guestName: 'Valeria Ortiz', guestPhone: '+52 55 1111 0001', partySize: 2, scheduledAt: at(13, 30), status: 'CONFIRMED' as const, notes: 'Mesa junto a la ventana' },
-    { tableId: t(1), guestName: 'Héctor Salgado', guestPhone: '+52 55 1111 0002', partySize: 4, scheduledAt: at(14, 0), status: 'ARRIVED' as const },
-    { tableId: t(2), guestName: 'Fam. Peralta', guestPhone: '+52 55 1111 0003', guestEmail: 'peralta@mail.com', partySize: 6, scheduledAt: at(15, 0), status: 'PENDING' as const, notes: 'Cumpleaños — llevar pastel' },
-    { tableId: t(3), guestName: 'Daniela Ríos', guestPhone: '+52 55 1111 0004', partySize: 2, scheduledAt: at(20, 0), status: 'CONFIRMED' as const },
-    { tableId: t(4), guestName: 'Marco Antonio Vela', partySize: 3, scheduledAt: at(21, 0), status: 'PENDING' as const },
-    // Mañana
-    { tableId: t(0), guestName: 'Lucía Fernández', guestPhone: '+52 55 1111 0005', partySize: 5, scheduledAt: at(13, 0, 1), status: 'CONFIRMED' as const },
-    { tableId: t(2), guestName: 'Rodrigo Cámara', partySize: 2, scheduledAt: at(19, 30, 1), status: 'PENDING' as const, notes: 'Aniversario' },
-    // Pasado mañana
-    { tableId: t(1), guestName: 'Grupo Empresarial MX', guestEmail: 'eventos@gemx.com', partySize: 10, scheduledAt: at(14, 0, 2), status: 'PENDING' as const, notes: 'Comida de negocios — requieren factura' },
-    // Histórico (ayer): completada y no-show para las métricas
-    { tableId: t(3), guestName: 'Paola Anaya', partySize: 2, scheduledAt: at(14, 0, -1), status: 'COMPLETED' as const },
-    { tableId: t(4), guestName: 'Iván Cordero', partySize: 4, scheduledAt: at(20, 30, -1), status: 'NO_SHOW' as const },
-  ];
-
-  for (const r of reservations) {
-    await db.reservation.create({ data: { ...r, branchId: central.id, durationMinutes: 90 } });
+  /** Reservas de hoy/mañana/pasado mañana + histórico de ayer. */
+  function buildReservations(t: (i: number) => string) {
+    return [
+      // Hoy
+      { tableId: t(0), guestName: 'Valeria Ortiz', guestPhone: '+52 55 1111 0001', partySize: 2, scheduledAt: at(13, 30), status: 'CONFIRMED' as const, notes: 'Mesa junto a la ventana' },
+      { tableId: t(1), guestName: 'Héctor Salgado', guestPhone: '+52 55 1111 0002', partySize: 4, scheduledAt: at(14, 0), status: 'ARRIVED' as const },
+      { tableId: t(2), guestName: 'Fam. Peralta', guestPhone: '+52 55 1111 0003', guestEmail: 'peralta@mail.com', partySize: 6, scheduledAt: at(15, 0), status: 'PENDING' as const, notes: 'Cumpleaños — llevar pastel' },
+      { tableId: t(3), guestName: 'Daniela Ríos', guestPhone: '+52 55 1111 0004', partySize: 2, scheduledAt: at(20, 0), status: 'CONFIRMED' as const },
+      { tableId: t(4), guestName: 'Marco Antonio Vela', partySize: 3, scheduledAt: at(21, 0), status: 'PENDING' as const },
+      // Mañana
+      { tableId: t(0), guestName: 'Lucía Fernández', guestPhone: '+52 55 1111 0005', partySize: 5, scheduledAt: at(13, 0, 1), status: 'CONFIRMED' as const },
+      { tableId: t(2), guestName: 'Rodrigo Cámara', partySize: 2, scheduledAt: at(19, 30, 1), status: 'PENDING' as const, notes: 'Aniversario' },
+      // Pasado mañana
+      { tableId: t(1), guestName: 'Grupo Empresarial MX', guestEmail: 'eventos@gemx.com', partySize: 10, scheduledAt: at(14, 0, 2), status: 'PENDING' as const, notes: 'Comida de negocios — requieren factura' },
+      // Histórico (ayer): completada y no-show para las métricas
+      { tableId: t(3), guestName: 'Paola Anaya', partySize: 2, scheduledAt: at(14, 0, -1), status: 'COMPLETED' as const },
+      { tableId: t(4), guestName: 'Iván Cordero', partySize: 4, scheduledAt: at(20, 30, -1), status: 'NO_SHOW' as const },
+    ];
   }
-  console.log(`✅  Reservaciones: ${reservations.length} creadas (hoy, mañana y ayer)`);
+
+  /** Conjunto reducido para las sucursales secundarias. */
+  function buildSecondaryReservations(t: (i: number) => string) {
+    return [
+      { tableId: t(0), guestName: 'Adriana Solís', guestPhone: '+52 55 2222 1001', partySize: 2, scheduledAt: at(14, 30), status: 'CONFIRMED' as const },
+      { tableId: t(1), guestName: 'Fam. Mendoza', guestPhone: '+52 55 2222 1002', partySize: 4, scheduledAt: at(17, 0), status: 'PENDING' as const },
+      { tableId: t(2), guestName: 'Carla Duarte', guestPhone: '+52 55 2222 1003', partySize: 3, scheduledAt: at(19, 0, 1), status: 'CONFIRMED' as const, notes: 'Preferencia: mesa en terraza' },
+      { tableId: t(3), guestName: 'Renata Bravo', partySize: 2, scheduledAt: at(14, 0, -1), status: 'COMPLETED' as const },
+      { tableId: t(4), guestName: 'Esteban Ríos', partySize: 5, scheduledAt: at(20, 30, -1), status: 'NO_SHOW' as const },
+    ];
+  }
+
+  let total = 0;
+  for (const br of branches) {
+    const tables = await db.restaurantTable.findMany({
+      where: { branchId: br.id },
+      orderBy: { number: 'asc' },
+    });
+    if (tables.length < 4) {
+      console.log(`⏭️   ${br.name}: menos de 4 mesas, se omiten reservas`);
+      continue;
+    }
+    const t = (i: number) => tables[i % tables.length].id;
+    const reservations =
+      br.slug === 'central' ? buildReservations(t) : buildSecondaryReservations(t);
+
+    for (const r of reservations) {
+      await db.reservation.create({ data: { ...r, branchId: br.id, durationMinutes: 90 } });
+    }
+    total += reservations.length;
+    console.log(`✅  ${br.name}: ${reservations.length} reservaciones`);
+  }
+  console.log(`\n✅  Reservaciones: ${total} en total (hoy, mañana, pasado mañana y ayer)`);
 }
 
 main()
