@@ -22,36 +22,32 @@ function DashboardContent() {
   );
 }
 
-// Default export for web-shell: embeddable content only (no AdminShell, sidebar, or topbar)
+// Default export for web-shell
 export default function OwnerApp() {
   const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/dashboard';
   const role = AuthClient.getRole();
 
-  const content = (
-    <MemoryRouter initialEntries={[initialPath]} initialIndex={0}>
-      <DashboardContent />
-    </MemoryRouter>
-  );
-
   if (role === 'KITCHEN_STAFF') {
     return (
-      <>
+      <MemoryRouter initialEntries={[initialPath]} initialIndex={0}>
         <AdminTopbar />
-        {content}
-      </>
+        <DashboardContent />
+      </MemoryRouter>
     );
   }
 
   // Default layout for other roles (admin, owner, etc.)
   return (
-    <BranchProvider>
-      <SidebarProvider>
-        <NavProvider navConfig={OWNER_NAV}>
-          <AdminShell>
-            {content}
-          </AdminShell>
-        </NavProvider>
-      </SidebarProvider>
-    </BranchProvider>
+    <MemoryRouter initialEntries={[initialPath]} initialIndex={0}>
+      <BranchProvider>
+        <SidebarProvider>
+          <NavProvider nav={OWNER_NAV}>
+            <AdminShell>
+              <DashboardContent />
+            </AdminShell>
+          </NavProvider>
+        </SidebarProvider>
+      </BranchProvider>
+    </MemoryRouter>
   );
 }

@@ -74,7 +74,7 @@ function KitchenTicketCard({ ticket, onUpdateStatus, readOnly }: {
             </span>
             <div className="min-w-0">
               <p className="text-sm font-medium text-maison-cream">{item.menuItemName}</p>
-              {item.notes && <p className="text-xs text-maison-cream-muted mt-0.5 italic">{item.notes}</p>}
+              {item.notes && <p className="text-xs text-maison-amber mt-0.5 italic">{item.notes}</p>}
             </div>
           </li>
         ))}

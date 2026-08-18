@@ -1120,6 +1120,7 @@ export interface KitchenTicketItem {
   menuItemName: string;
   quantity: number;
   notes: string | null;
+  orderItemNotes: string | null;
   status: KitchenItemStatus;
   version: number;
   startedAt: string | null;

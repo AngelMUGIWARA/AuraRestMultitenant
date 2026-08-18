@@ -11,7 +11,9 @@ const TICKET_INCLUDE = {
     },
   },
   branch: true,
-  items: true,
+  items: {
+    include: { orderItem: true },
+  },
 } satisfies Prisma.KitchenTicketInclude;
 
 @Injectable()

@@ -30,6 +30,7 @@ export class KitchenGateway implements OnGatewayConnection, OnGatewayDisconnect 
    * Called by KitchenService after any ticket CRUD operation to notify all clients.
    */
   broadcastQueue() {
+    if (!this.server) return;
     this.server.emit('queueUpdated', {});
   }
 }

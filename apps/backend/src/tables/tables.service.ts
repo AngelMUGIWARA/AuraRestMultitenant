@@ -48,7 +48,9 @@ export class TablesService {
 
     const table = await this.tablesRepo.create(schemaName, {
       ...dto,
-      branchId: dto.branchId!,
+      branch: {
+        connect: { id: dto.branchId! },
+      },
       status: 'AVAILABLE',
       isActive: true,
     });

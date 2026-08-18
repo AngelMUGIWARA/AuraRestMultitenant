@@ -57,7 +57,7 @@ export class KitchenService {
     }
 
     try {
-      return await this.repo.runTransaction(schemaName, async (tx) => {
+      const result = await this.repo.runTransaction(schemaName, async (tx) => {
         const order = await this.repo.findOrderForTicket(
           schemaName,
           dto.orderId,
@@ -95,27 +95,31 @@ export class KitchenService {
           tx,
         );
 
-        await this.activityLogRepo.create(
-          schemaName,
-          {
-            branchId: branchId ?? '',
-            userId,
-            action: 'KITCHEN_TICKET_CREATED',
-            entity: 'KITCHEN_TICKET',
-            entityId: ticket.id,
-            changes: JSON.stringify({
-              orderId: order.id,
-              orderFolio: order.folio,
-              priority: ticket.priority,
-              itemCount: items.length,
-            }),
-          },
-          tx,
-        );
+        if (branchId || order.branchId) {
+          await this.activityLogRepo.create(
+            schemaName,
+            {
+              branchId: (branchId || order.branchId) as string,
+              userId,
+              action: 'KITCHEN_TICKET_CREATED',
+              entity: 'KITCHEN_TICKET',
+              entityId: ticket.id,
+              changes: JSON.stringify({
+                orderId: order.id,
+                orderFolio: order.folio,
+                priority: ticket.priority,
+                itemCount: items.length,
+              }),
+            },
+            tx,
+          );
+        }
 
-        this.gateway.broadcastQueue();
         return this.toResponse(ticket);
       });
+
+      this.gateway.broadcastQueue();
+      return result;
     } catch (error: any) {
       if (error?.code === 'P2002') {
         const target = error?.meta?.target;
@@ -213,22 +217,6 @@ export class KitchenService {
       }
     }
 
-    if (dto.status === 'READY') {
-      const items = await this.repo.findTicketItems(schemaName, id);
-      const nonCancelled = items.filter((i: any) => i.status !== 'CANCELLED');
-      if (nonCancelled.length === 0) {
-        throw new BadRequestException(
-          'No se puede marcar READY: todos los items están cancelados. Use CANCELLED en su lugar.',
-        );
-      }
-      const allReady = nonCancelled.every((i: any) => i.status === 'READY');
-      if (!allReady) {
-        throw new ConflictException(
-          'No se puede marcar READY: existen items que aún no están listos.',
-        );
-      }
-    }
-
     const now = new Date();
     const updateData: any = { status: dto.status };
 
@@ -240,7 +228,7 @@ export class KitchenService {
       updateData.deliveredAt = now;
     }
 
-    return this.repo.runTransaction(schemaName, async (tx) => {
+    const result = await this.repo.runTransaction(schemaName, async (tx) => {
       const updated = await this.repo.updateTicketStatus(
         schemaName,
         id,
@@ -255,25 +243,52 @@ export class KitchenService {
         );
       }
 
+      if (dto.status === 'PREPARING' || dto.status === 'READY') {
+        const items = await this.repo.findTicketItems(schemaName, id, tx);
+        for (const item of items) {
+          if (item.status === 'CANCELLED') continue;
+          if (item.status === dto.status) continue;
+
+          const itemUpdate: any = { status: dto.status };
+          if (dto.status === 'PREPARING') itemUpdate.startedAt = now;
+          if (dto.status === 'READY') itemUpdate.readyAt = now;
+
+          await this.repo.updateItemStatus(
+            schemaName,
+            item.id,
+            itemUpdate,
+            item.version,
+            tx,
+          );
+        }
+      }
+
       const logChanges: any = { from: ticket.status, to: dto.status };
       if (dto.reason) logChanges.reason = dto.reason;
 
-      await this.activityLogRepo.create(
-        schemaName,
-        {
-          branchId: ticket.branchId ?? '',
-          userId,
-          action: `KITCHEN_TICKET_${dto.status}`,
-          entity: 'KITCHEN_TICKET',
-          entityId: id,
-          changes: JSON.stringify(logChanges),
-        },
-        tx,
-      );
+      const resolvedBranchId =
+        ticket.branchId || ticket.order?.branchId;
 
-      this.gateway.broadcastQueue();
+      if (resolvedBranchId) {
+        await this.activityLogRepo.create(
+          schemaName,
+          {
+            branchId: resolvedBranchId,
+            userId,
+            action: `KITCHEN_TICKET_${dto.status}`,
+            entity: 'KITCHEN_TICKET',
+            entityId: id,
+            changes: JSON.stringify(logChanges),
+          },
+          tx,
+        );
+      }
+
       return this.toResponse(updated);
     });
+
+    this.gateway.broadcastQueue();
+    return result;
   }
 
   async updateItemStatus(
@@ -308,7 +323,7 @@ export class KitchenService {
       updateData.readyAt = now;
     }
 
-    return this.repo.runTransaction(schemaName, async (tx) => {
+    const result = await this.repo.runTransaction(schemaName, async (tx) => {
       const updatedItem = await this.repo.updateItemStatus(
         schemaName,
         itemId,
@@ -323,24 +338,27 @@ export class KitchenService {
         );
       }
 
-      await this.activityLogRepo.create(
-        schemaName,
-        {
-          branchId: ticket.branchId ?? '',
-          userId,
-          action: `KITCHEN_ITEM_${dto.status}`,
-          entity: 'KITCHEN_TICKET_ITEM',
-          entityId: itemId,
-          changes: JSON.stringify({
-            ticketId: ticket.id,
-            menuItemName: targetItem.menuItemName,
-            from: targetItem.status,
-            to: dto.status,
-          }),
-        },
-        tx,
-      );
-      this.gateway.broadcastQueue();
+      const itemLogBranchId = ticket.branchId || (ticket as any).order?.branchId;
+
+      if (itemLogBranchId) {
+        await this.activityLogRepo.create(
+          schemaName,
+          {
+            branchId: itemLogBranchId,
+            userId,
+            action: `KITCHEN_ITEM_${dto.status}`,
+            entity: 'KITCHEN_TICKET_ITEM',
+            entityId: itemId,
+            changes: JSON.stringify({
+              ticketId: ticket.id,
+              menuItemName: targetItem.menuItemName,
+              from: targetItem.status,
+              to: dto.status,
+            }),
+          },
+          tx,
+        );
+      }
 
       const allItems = await this.repo.findTicketItems(
         schemaName,
@@ -364,11 +382,11 @@ export class KitchenService {
           tx,
         );
 
-        if (updatedTicket) {
+        if (updatedTicket && itemLogBranchId) {
           await this.activityLogRepo.create(
             schemaName,
             {
-              branchId: ticket.branchId ?? '',
+              branchId: itemLogBranchId,
               userId,
               action: `KITCHEN_TICKET_${newTicketStatus}`,
               entity: 'KITCHEN_TICKET',
@@ -396,6 +414,9 @@ export class KitchenService {
 
       return this.toResponse(refreshedTicket!);
     });
+
+    this.gateway.broadcastQueue();
+    return result;
   }
 
   private deriveTicketStatus(
@@ -433,6 +454,7 @@ export class KitchenService {
         menuItemName: item.menuItemName,
         quantity: item.quantity,
         notes: item.notes ?? null,
+        orderItemNotes: item.orderItem?.notes ?? null,
         status: item.status,
         version: item.version,
         startedAt: item.startedAt?.toISOString?.() ?? item.startedAt ?? null,

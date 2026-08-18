@@ -1,10 +1,12 @@
 'use client';
 
-
-import { loadRemote } from '@module-federation/runtime';
-import { initFederation } from './federation';
+import { initFederation, MFE_URLS } from './federation';
 
 import { loadRemote, registerRemotes } from '@module-federation/runtime';
+
+function getMFEUrl(remoteName: string): string | undefined {
+  return MFE_URLS[remoteName as keyof typeof MFE_URLS];
+}
 
 // Cache para remotos ya registrados en la instancia global
 const registeredRemotes = new Set<string>();

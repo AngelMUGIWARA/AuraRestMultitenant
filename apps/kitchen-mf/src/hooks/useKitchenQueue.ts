@@ -76,7 +76,7 @@ export function useKitchenQueue() {
     });
 
     return () => {
-      socket?.disconnect();
+      ws?.close();
       if (pollTimer) clearInterval(pollTimer);
       offCreated();
       offUpdated();

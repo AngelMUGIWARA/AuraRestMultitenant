@@ -16,6 +16,7 @@ export function useCreateOrder(initialTableId?: string) {
   const [table, setTable] = useState<RestaurantTable | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState('');
+  const [orderNotes, setOrderNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingMenu, setIsLoadingMenu] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,17 +90,19 @@ export function useCreateOrder(initialTableId?: string) {
         items: cart.map((c) => ({ menuItemId: c.menuItem.id, quantity: c.quantity, notes: c.notes })),
         customerName: customerName || undefined,
         tableId: table?.id,
+        notes: orderNotes || undefined,
       });
       emit('order:created', { order });
       setCart([]);
       setCustomerName('');
+      setOrderNotes('');
       navigateTo('/waiter/tables', true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al crear la orden');
     } finally {
       setIsSubmitting(false);
     }
-  }, [cart, table, customerName]);
+  }, [cart, table, customerName, orderNotes]);
 
   return {
     menuItems,
@@ -109,6 +112,8 @@ export function useCreateOrder(initialTableId?: string) {
     cartTotal,
     customerName,
     setCustomerName,
+    orderNotes,
+    setOrderNotes,
     addItem,
     removeItem,
     updateQuantity,
