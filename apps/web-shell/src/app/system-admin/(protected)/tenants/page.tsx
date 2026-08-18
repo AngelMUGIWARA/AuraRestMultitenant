@@ -26,6 +26,7 @@ export default function SystemAdminTenantsPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [credentialsBanner, setCredentialsBanner] = useState<CredentialsBanner | null>(null);
   const [resettingId, setResettingId] = useState<string | null>(null);
+  const [justCopied, setJustCopied] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
@@ -81,6 +82,33 @@ export default function SystemAdminTenantsPage() {
     await loadTenants();
   }
 
+  function credentialsAsText(banner: CredentialsBanner): string {
+    return [
+      banner.title,
+      `Email: ${banner.credentials.email}`,
+      `Contraseña temporal: ${banner.credentials.temporaryPassword}`,
+      'Se le pedirá cambiarla en su próximo inicio de sesión.',
+    ].join('\n');
+  }
+
+  async function handleCopyCredentials() {
+    if (!credentialsBanner) return;
+    await navigator.clipboard.writeText(credentialsAsText(credentialsBanner));
+    setJustCopied(true);
+    setTimeout(() => setJustCopied(false), 2000);
+  }
+
+  function handleDownloadCredentials() {
+    if (!credentialsBanner) return;
+    const blob = new Blob([credentialsAsText(credentialsBanner)], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `credenciales-${credentialsBanner.credentials.email}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleResetOwnerPassword(id: string, tenantName: string) {
     if (!window.confirm(`Esto invalida la contraseña actual del OWNER de "${tenantName}" y genera una nueva. ¿Continuar?`)) {
       return;
@@ -123,13 +151,29 @@ export default function SystemAdminTenantsPage() {
               Se le pedirá cambiarla en su próximo inicio de sesión.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setCredentialsBanner(null)}
-            className="text-xs text-maison-cream-dim hover:text-maison-cream"
-          >
-            Cerrar
-          </button>
+          <div className="flex shrink-0 items-start gap-3">
+            <button
+              type="button"
+              onClick={handleCopyCredentials}
+              className="text-xs text-maison-amber hover:underline"
+            >
+              {justCopied ? 'Copiado ✓' : 'Copiar'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadCredentials}
+              className="text-xs text-maison-amber hover:underline"
+            >
+              Descargar .txt
+            </button>
+            <button
+              type="button"
+              onClick={() => setCredentialsBanner(null)}
+              className="text-xs text-maison-cream-dim hover:text-maison-cream"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       )}
 

@@ -1,14 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { BranchesRepository } from './branches.repository';
-import { TablesRepository } from '../tables/tables.repository';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import { PlanLimitsService } from '../common/plan-limits/plan-limits.service';
 import { TenantPrismaService } from '../database/tenant-prisma.service';
+import { TablesRepository } from '../tables/tables.repository';
+import { BranchesRepository } from './branches.repository';
 import {
-  BranchFiltersDto,
-  BranchStatsResponseDto,
-  CreateBranchDto,
-  PaginatedBranchesDto,
-  UpdateBranchDto,
+    BranchFiltersDto,
+    BranchStatsResponseDto,
+    CreateBranchDto,
+    PaginatedBranchesDto,
+    UpdateBranchDto,
 } from './dto/branch.dto';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class BranchesService {
     private readonly repo: BranchesRepository,
     private readonly tablesRepo: TablesRepository,
     private readonly activityLog: ActivityLogService,
+    private readonly planLimits: PlanLimitsService,
     private readonly tenantPrisma: TenantPrismaService,
   ) {}
 
@@ -85,6 +87,10 @@ export class BranchesService {
   }
 
   async create(schemaName: string, dto: CreateBranchDto, userId?: string) {
+    // Validar límites del plan
+    const currentCount = await this.repo.count(schemaName);
+    await this.planLimits.assertWithinLimit(schemaName, 'branches', currentCount);
+
     const { tableCount, defaultCapacity, ...branchDto } = dto;
     const db = this.tenantPrisma.getClient(schemaName);
 
@@ -119,7 +125,6 @@ export class BranchesService {
 
       return newBranch;
     });
-
     if (userId) {
       this.activityLog.log(schemaName, {
         branchId: branch.id,

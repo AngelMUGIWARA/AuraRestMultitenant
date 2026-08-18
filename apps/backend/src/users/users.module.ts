@@ -4,8 +4,10 @@ import { UsersService } from './users.service';
 import { UsersRepository } from './users.repository';
 import { INVITATION_NOTIFIER } from '../notifications/invitation-notifier.interface';
 import { DisabledInvitationNotifier } from '../notifications/disabled-invitation-notifier';
+import { PlanLimitsModule } from '../common/plan-limits/plan-limits.module';
 
 @Module({
+  imports: [PlanLimitsModule],
   controllers: [UsersController],
   providers: [
     UsersService,

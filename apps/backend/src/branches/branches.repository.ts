@@ -74,6 +74,10 @@ export class BranchesRepository {
     });
   }
 
+  async count(schemaName: string) {
+    return this.db(schemaName).branch.count();
+  }
+
   async getStats(schemaName: string) {
     const db = this.db(schemaName);
     const [total, active] = await Promise.all([

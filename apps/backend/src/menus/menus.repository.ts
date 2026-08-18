@@ -19,6 +19,10 @@ export class MenusRepository {
     return this.tenantPrisma.getClient(schemaName);
   }
 
+  async count(schemaName: string) {
+    return this.db(schemaName).menuItem.count();
+  }
+
   async findAll(schemaName: string, categoryId?: string, filters?: MenuFilters) {
     return this.db(schemaName).menuItem.findMany({
       where: {
