@@ -48,15 +48,13 @@ export class ReservationsService {
       return true;
     }
 
-    // Otros roles solo acceden su rama
+    // Otros roles solo acceden su rama. Si el usuario no trae rama asignada en
+    // el token (el JWT no incluye branchId), se permite el acceso y el scope se
+    // resuelve por la rama enviada en el request (query/DTO), igual que el resto
+    // de módulos (orders, branches, kitchen). Solo se bloquea si la rama objetivo
+    // es distinta a la asignada.
     if (userRole === 'MANAGER' || userRole === 'CASHIER' || userRole === 'WAITER') {
-      if (!user.branchId) {
-        throw new ForbiddenException(
-          `Usuario sin rama asignada no puede ${actionName}`,
-        );
-      }
-
-      if (user.branchId !== branchId) {
+      if (user.branchId && branchId && user.branchId !== branchId) {
         throw new ForbiddenException(
           `Usuario solo puede ${actionName} en su rama`,
         );
@@ -121,14 +119,13 @@ export class ReservationsService {
     if (query.dateFrom) filters.dateFrom = query.dateFrom;
     if (query.dateTo) filters.dateTo = query.dateTo;
 
-    // Si el usuario tiene role limitado, forzar su branchId
+    // Si el usuario tiene role limitado, forzar su rama. El JWT no incluye
+    // branchId, así que se prioriza la rama asignada al usuario si existe y se
+    // cae a la rama del query; sin ella no se filtra (misma semántica que el
+    // resto de módulos). No se lanza 403 para no romper el listado.
     if (userRole === 'MANAGER' || userRole === 'CASHIER' || userRole === 'WAITER') {
-      if (!user?.branchId) {
-        throw new ForbiddenException(
-          'Usuario sin rama asignada no puede listar reservas',
-        );
-      }
-      filters.branchId = user.branchId;
+      const forcedBranchId = user?.branchId ?? query.branchId;
+      if (forcedBranchId) filters.branchId = forcedBranchId;
     } else {
       // OWNER puede filtrar por rama si lo especifica
       if (query.branchId) filters.branchId = query.branchId;
@@ -234,17 +231,14 @@ export class ReservationsService {
   async getStats(schema: string, branchId?: string, user?: AuthenticatedUser) {
     const client = this.tenantPrisma.getClient(schema);
 
-    // Aplicar scope automático para roles limitados
+    // Aplicar scope automático para roles limitados. El JWT no incluye branchId:
+    // se prioriza la rama asignada al usuario si existe y se cae a la rama
+    // enviada en el request; sin ninguna no se filtra. No se lanza 403.
     const userRole = user?.role?.toUpperCase() || 'WAITER';
     let effectiveBranchId = branchId;
 
     if (userRole === 'MANAGER' || userRole === 'CASHIER' || userRole === 'WAITER') {
-      if (!user?.branchId) {
-        throw new ForbiddenException(
-          'Usuario sin rama asignada no puede ver estadísticas',
-        );
-      }
-      effectiveBranchId = user.branchId;
+      effectiveBranchId = user?.branchId ?? branchId;
     }
 
     const filter: any = { limit: 10000 }; // Obtener todas para calcular stats

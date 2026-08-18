@@ -33,10 +33,16 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
   // KITCHEN (KITCHEN_STAFF y SUPER_ADMIN)
   '/kitchen': ['KITCHEN_STAFF', 'SUPER_ADMIN'],
   '/chef/dashboard': ['KITCHEN_STAFF', 'SUPER_ADMIN'],
+  '/chef/pedidos': ['KITCHEN_STAFF', 'SUPER_ADMIN'],
+  '/chef/inventario': ['KITCHEN_STAFF', 'SUPER_ADMIN'],
 
-  // WAITER / Manager - órdenes
+  // WAITER / Manager
   '/waiter-orders': ['WAITER', 'MANAGER', 'SUPER_ADMIN'],
   '/waiter/tables': ['WAITER', 'MANAGER', 'SUPER_ADMIN'],
+  '/waiter/orders': ['WAITER', 'MANAGER', 'SUPER_ADMIN'],
+  '/waiter/orders/new': ['WAITER', 'MANAGER', 'SUPER_ADMIN'],
+  '/waiter/kitchen': ['WAITER', 'MANAGER', 'SUPER_ADMIN'],
+  '/waiter/reservations': ['WAITER', 'MANAGER', 'SUPER_ADMIN'],
 
   // Rutas públicas (no requieren autenticación)
   '/auth/login': [],

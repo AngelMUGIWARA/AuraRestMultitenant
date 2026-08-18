@@ -64,7 +64,7 @@ export class BranchesController {
   }
 
   @Get()
-  @Roles('OWNER', 'MANAGER')
+  @Roles('OWNER', 'MANAGER', 'WAITER')
   @ApiOperation({ summary: 'Listar sucursales', operationId: 'branches_getAll' })
   @ApiResponse({ status: 200, type: PaginatedBranchesDto })
   getAll(
@@ -75,7 +75,7 @@ export class BranchesController {
   }
 
   @Get(':id')
-  @Roles('OWNER', 'MANAGER')
+  @Roles('OWNER', 'MANAGER', 'WAITER')
   @ApiOperation({ summary: 'Obtener sucursal por ID', operationId: 'branches_getOne' })
   @ApiResponse({ status: 200, type: BranchResponseDto })
   @ApiResponse({ status: 404, description: 'Sucursal no encontrada' })
@@ -139,7 +139,7 @@ export class BranchesController {
   // ── Tables (nested under branch) ──────────────────────────────────
 
   @Get(':branchId/tables')
-  @Roles('OWNER', 'MANAGER')
+  @Roles('OWNER', 'MANAGER', 'WAITER')
   @ApiOperation({ summary: 'Listar mesas de sucursal', operationId: 'branch_tables_getAll' })
   @ApiResponse({ status: 200, description: 'Mesas de la sucursal' })
   getTables(@CurrentTenant() tenant: TenantContext, @Param('branchId') branchId: string) {

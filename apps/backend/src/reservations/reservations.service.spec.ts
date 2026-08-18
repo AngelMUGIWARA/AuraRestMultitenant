@@ -128,29 +128,57 @@ describe('ReservationsService', () => {
       },
     ];
 
+    const emptyPage = { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+
     it('should list reservations', async () => {
-      repository.findAll.mockResolvedValue(mockReservations);
+      repository.findAll.mockResolvedValue({
+        data: mockReservations,
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      } as any);
       const result = await service.findAll('schema-1', {}, mockUser);
 
       expect(result.data).toHaveLength(1);
-      expect(result.meta.total).toBe(1);
+      expect(result.total).toBe(1);
     });
 
     it('should auto-filter by user branch for limited roles', async () => {
-      repository.findAll.mockResolvedValue([]);
+      repository.findAll.mockResolvedValue(emptyPage as any);
       await service.findAll('schema-1', { status: 'CONFIRMED' }, mockUser);
 
       expect(repository.findAll).toHaveBeenCalledWith('schema-1', {
-        status: ReservationStatus.CONFIRMED,
+        page: 1,
+        limit: 20,
+        status: 'CONFIRMED',
         branchId: 'branch-1',
       });
     });
 
-    it('should reject if limited role user has no branch', async () => {
+    it('should fall back to query.branchId when limited role user has no branch', async () => {
       const noBranchUser = { id: 'user-1', role: 'CASHIER', branchId: undefined };
-      await expect(
-        service.findAll('schema-1', {}, noBranchUser),
-      ).rejects.toThrow(ForbiddenException);
+      repository.findAll.mockResolvedValue(emptyPage as any);
+
+      await service.findAll('schema-1', { branchId: 'branch-9' }, noBranchUser);
+
+      expect(repository.findAll).toHaveBeenCalledWith('schema-1', {
+        page: 1,
+        limit: 20,
+        branchId: 'branch-9',
+      });
+    });
+
+    it('should not filter by branch when limited role user has no branch and query has none', async () => {
+      const noBranchUser = { id: 'user-1', role: 'CASHIER', branchId: undefined };
+      repository.findAll.mockResolvedValue(emptyPage as any);
+
+      await service.findAll('schema-1', {}, noBranchUser);
+
+      expect(repository.findAll).toHaveBeenCalledWith('schema-1', {
+        page: 1,
+        limit: 20,
+      });
     });
   });
 
@@ -254,21 +282,27 @@ describe('ReservationsService', () => {
     ];
 
     it('should calculate stats', async () => {
-      repository.findAll.mockResolvedValue(mockReservations as any);
+      repository.findAll.mockResolvedValue({ data: mockReservations } as any);
       const result = await service.getStats('schema-1', undefined, mockUser);
 
+      expect(repository.findAll).toHaveBeenCalledWith('schema-1', {
+        limit: 10000,
+        branchId: 'branch-1',
+      });
       expect(result.data.totalToday).toBe(2);
       expect(result.data.confirmedToday).toBe(1);
       expect(result.data.arrivedToday).toBe(1);
       expect(result.data.averagePartySize).toBe(5);
     });
 
-    it('should enforce branch scope on stats', async () => {
-      repository.findAll.mockResolvedValue([]);
+    it('should not filter by branch when user has no branch', async () => {
+      repository.findAll.mockResolvedValue({ data: [] } as any);
       const noBranchUser = { id: 'user-1', role: 'WAITER', branchId: undefined };
-      await expect(
-        service.getStats('schema-1', undefined, noBranchUser),
-      ).rejects.toThrow(ForbiddenException);
+
+      const result = await service.getStats('schema-1', undefined, noBranchUser);
+
+      expect(repository.findAll).toHaveBeenCalledWith('schema-1', { limit: 10000 });
+      expect(result.data.totalToday).toBe(0);
     });
   });
 });
