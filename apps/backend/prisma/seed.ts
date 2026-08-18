@@ -71,6 +71,37 @@ async function main() {
   });
   console.log(`✅  Tenant:    ${tenant.name}  (slug: ${tenant.slug})`);
 
+  // ── 1.b Limpieza de usuario legacy admin@demo.com ────────────────────────
+  // Seed.js y seed-cashier-orders-payments.js (ahora eliminados) creaban
+  // admin@demo.com con roles ADMIN/OWNER que ya no existen. Este bloque
+  // elimina ese registro si aún persiste en la BD y reasigna sus
+  // relaciones (inventory movements, user_branches) al owner válido.
+  const legacyUser = await tenantDb.user.findUnique({
+    where: { email: 'admin@demo.com' },
+  });
+  if (legacyUser) {
+    const ownerUser = await tenantDb.user.findUnique({
+      where: { email: 'owner@demo.com' },
+    });
+    if (ownerUser) {
+      // Reasignar movimientos de inventario creados por el usuario legacy
+      await tenantDb.inventoryMovement.updateMany({
+        where: { createdBy: legacyUser.id },
+        data: { createdBy: ownerUser.id },
+      });
+      console.log('🔄  Movimientos de inventario de admin@demo.com reasignados a owner@demo.com');
+    }
+    // Eliminar asignaciones de sucursal (user_branches) antes de borrar el usuario
+    await tenantDb.userBranch.deleteMany({
+      where: { userId: legacyUser.id },
+    });
+    // Eliminar el usuario legacy
+    await tenantDb.user.delete({
+      where: { email: 'admin@demo.com' },
+    });
+    console.log('🗑️   Usuario legacy admin@demo.com eliminado de la BD');
+  }
+
   // ── 2. Usuarios ────────────────────────────────────────────────────────────
   const users = await Promise.all([
     tenantDb.user.upsert({

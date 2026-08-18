@@ -88,4 +88,37 @@ export const SUCURSAL_STATUS_LABELS = {
   trial: 'Prueba',
 } as const;
 
-//constants admin
+export const ADMIN_NAV = [
+  {
+    label: 'Visión General',
+    items: [
+      { href: '/manager-dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { href: '/reportes', label: 'Reportes', icon: 'analytics' },
+    ],
+  },
+  {
+    label: 'Operaciones',
+    items: [
+      { href: '/inventario', label: 'Inventario', icon: 'inventory' },
+      { href: '/categorias', label: 'Categorías', icon: 'categories' },
+      { href: '/reservaciones', label: 'Reservaciones', icon: 'reservations' },
+    ],
+  },
+  {
+    label: 'Gestión',
+    items: [
+      { href: '/sucursales', label: 'Sucursales', icon: 'branches' },
+      { href: '/admin/users', label: 'Usuarios', icon: 'users' },
+      { href: '/menus', label: 'Menús', icon: 'menus' },
+      { href: '/orders', label: 'Pedidos', icon: 'orders' },
+    ],
+  },
+  {
+    label: 'Sistema',
+    items: [
+      { href: '/admin/settings', label: 'Configuración', icon: 'settings' },
+      { href: '/integrations', label: 'Integraciones', icon: 'integrations' },
+      { href: '/logs', label: 'Registros', icon: 'logs' },
+    ],
+  },
+] as const;
