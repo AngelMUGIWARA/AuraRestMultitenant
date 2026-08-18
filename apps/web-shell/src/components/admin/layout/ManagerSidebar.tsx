@@ -223,7 +223,7 @@ function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: SidebarCon
 
 /* ─── AdminSidebar ──────────────────────────────────────────────── */
 
-export function AdminSidebar() {
+export function ManagerSidebar() {
   const { isCollapsed, isMobileOpen, toggleCollapsed, closeMobile } = useSidebar();
 
   return (

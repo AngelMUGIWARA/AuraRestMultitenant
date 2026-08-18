@@ -3,9 +3,8 @@ import { formatNumber, cn } from '../utils';
 import { StatCard, StatCardSkeleton, SkeletonRow, EmptyState, IconUsers } from '@maison/ui';
 import type { UserRole, UserStatus } from '@maison/types';
 
-const ROLE_LABEL: Record<UserRole, string> = {
+const ROLE_LABEL: Record<string, string> = {
   OWNER: 'Dueño',
-  ADMIN: 'Admin',
   MANAGER: 'Gerente',
   WAITER: 'Mesero',
   CASHIER: 'Cajero',

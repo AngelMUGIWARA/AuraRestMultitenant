@@ -60,6 +60,15 @@ export interface AuthUser {
   avatarUrl?: string;
 }
 
+export const ROLE_ROUTES: Record<string, string> = {
+  OWNER:         '/dashboard',
+  SUPER_ADMIN:   '/admin/dashboard',
+  MANAGER:       '/manager-dashboard',
+  WAITER:        '/waiter/tables',
+  CASHIER:       '/cashier',
+  KITCHEN_STAFF: '/chef/dashboard',
+};
+
 export interface AuthTokenPayload {
   sub: string;
   email: string;

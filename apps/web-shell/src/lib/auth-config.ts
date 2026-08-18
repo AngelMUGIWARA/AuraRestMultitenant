@@ -1,4 +1,4 @@
-import type { UserRole } from '@maison/types';
+import { type UserRole, ROLE_ROUTES } from '@maison/types';
 
 /**
  * Matriz de autorización centralizada: qué roles pueden acceder a qué rutas.
@@ -14,8 +14,8 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
   '/settings': ['OWNER', 'SUPER_ADMIN'],
   '/inventario': ['OWNER', 'SUPER_ADMIN', 'MANAGER'],
 
-  // ADMIN dashboard (SUPER_ADMIN and MANAGER)
-  '/dashboard-admin': ['SUPER_ADMIN', 'MANAGER'],
+  // MANAGER dashboard (SUPER_ADMIN and MANAGER)
+  '/manager-dashboard': ['SUPER_ADMIN', 'MANAGER'],
   '/admin': ['SUPER_ADMIN', 'MANAGER'],
   '/admin/dashboard': ['SUPER_ADMIN', 'MANAGER'],
   '/admin/settings': ['SUPER_ADMIN', 'MANAGER'],
@@ -48,14 +48,7 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
  * Ruta por defecto según el rol.
  * Se usa después de login o cuando se accede a una ruta no permitida.
  */
-export const DEFAULT_ROUTE_BY_ROLE: Record<UserRole, string> = {
-  OWNER: '/dashboard',
-  MANAGER: '/dashboard-admin',
-  WAITER: '/waiter/tables',
-  CASHIER: '/cashier',
-  KITCHEN_STAFF: '/chef/dashboard',
-  SUPER_ADMIN: '/admin/dashboard',
-};
+export const DEFAULT_ROUTE_BY_ROLE: Record<UserRole, string> = ROLE_ROUTES as Record<UserRole, string>;
 
 /**
  * Verifica si un usuario con un rol tiene acceso a una ruta.

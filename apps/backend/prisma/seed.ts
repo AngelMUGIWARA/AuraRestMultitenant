@@ -86,21 +86,6 @@ async function main() {
       },
     }),
     tenantDb.user.upsert({
-      where: { email: 'admin@demo.com' },
-      update: {},
-      create: {
-        // El rol ADMIN se retiró (ver ANALISIS_ROLES_Y_TENANTS.md) y se
-        // fusionó en OWNER — se conserva esta cuenta como segundo owner
-        // de demo (mismas credenciales de siempre).
-        name: 'Laura Owner',
-        email: 'admin@demo.com',
-        passwordHash: await hash('Admin123'),
-        role: 'OWNER',
-        status: 'ACTIVE',
-        phone: '+52 55 1111 0002',
-      },
-    }),
-    tenantDb.user.upsert({
       where: { email: 'mesero@demo.com' },
       update: {},
       create: {
@@ -169,9 +154,8 @@ async function main() {
     create: { name: 'Sucursal Central', slug: 'central', address: 'Centro', phone: '+52 55 0000 0002' },
   });
 
-  // Asignar algunos users a la branch con roles
-  // (users[0] = Carlos owner@demo.com, users[1] = Laura admin@demo.com — ambos
-  // OWNER ahora, así que comparten roleId)
+  // Asignar user a la branch con roles
+  // (users[0] = Carlos owner@demo.com)
   const ownerRole = await tenantDb.role.findUnique({ where: { name: 'OWNER' } });
 
   if (ownerRole) {
@@ -179,11 +163,6 @@ async function main() {
       where: { userId_branchId: { userId: users[0].id, branchId: branch.id } },
       update: {},
       create: { userId: users[0].id, branchId: branch.id, roleId: ownerRole.id },
-    });
-    await tenantDb.userBranch.upsert({
-      where: { userId_branchId: { userId: users[1].id, branchId: branch.id } },
-      update: {},
-      create: { userId: users[1].id, branchId: branch.id, roleId: ownerRole.id },
     });
   }
 
@@ -501,11 +480,9 @@ async function main() {
 
   // ── 8. Inventario ─────────────────────────────────────────────────────────
   // Proveedores, insumos, stock por sucursal, movimientos auditados por
-  // usuario (owner/admin/kitchen staff) y recetas que vinculan platillos con
-  // insumos. Se busca por email, no por role, porque owner@demo.com y
-  // admin@demo.com comparten role=OWNER desde que se retiró ADMIN.
+  // usuario (owner/kitchen staff) y recetas que vinculan platillos con
+  // insumos.
   const owner = users.find((u) => u.email === 'owner@demo.com')!;
-  const admin = users.find((u) => u.email === 'admin@demo.com')!;
   const chef = users.find((u) => u.email === 'chef@demo.com')!;
 
   // 8.a Proveedores
@@ -600,7 +577,7 @@ async function main() {
           reason: 'Compra inicial de apertura',
           reference: 'FAC-2026-001',
           supplierId: spec.supplierId,
-          createdBy: admin.id,
+          createdBy: owner.id,
         },
       });
     }
@@ -766,7 +743,6 @@ async function main() {
 ║  Header requerido:  x-tenant-slug: demo       ║
 ╠═══════════════════════════════════════════════╣
 ║  OWNER          owner@demo.com    / Owner123  ║
-║  OWNER          admin@demo.com    / Admin123  ║
 ║  MANAGER        gerente@demo.com  / Gerente123║
 ║  WAITER         mesero@demo.com   / Mesero123 ║
 ║  CASHIER        cajero@demo.com   / Cajero123 ║

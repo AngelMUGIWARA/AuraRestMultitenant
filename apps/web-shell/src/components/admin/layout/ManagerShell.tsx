@@ -3,10 +3,10 @@
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSidebar } from '@/context/SidebarContext';
-import { AdminSidebar } from './AdminSidebar';
+import { ManagerSidebar } from './ManagerSidebar';
 import { AdminTopbar } from './AdminTopbar';
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function ManagerShell({ children }: { children: React.ReactNode }) {
   const { isMobileOpen, closeMobile } = useSidebar();
   const pathname = usePathname();
 
@@ -26,7 +26,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      <AdminSidebar />
+      <ManagerSidebar />
 
       {/* Main content — flex-1 fills all remaining space */}
       <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">

@@ -4,20 +4,13 @@ export const APP_VERSION = '1.0.0';
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
-export const ROLE_ROUTES: Record<string, string> = {
-  OWNER:         '/dashboard',
-  SUPER_ADMIN:   '/admin/dashboard',
-  MANAGER:       '/waiter-orders',
-  WAITER:        '/waiter/tables',
-  CASHIER:       '/cashier',
-  KITCHEN_STAFF: '/chef/dashboard',
-};
+export { ROLE_ROUTES } from '@maison/types';
 
-export const ADMIN_NAV = [
+export const MANAGER_NAV = [
   {
     label: 'Visión General',
     items: [
-      { href: '/dashboard-admin', label: 'Dashboard', icon: 'dashboard' },
+      { href: '/manager-dashboard', label: 'Dashboard', icon: 'dashboard' },
       { href: '/reportes', label: 'Reportes', icon: 'analytics' },
     ],
   },

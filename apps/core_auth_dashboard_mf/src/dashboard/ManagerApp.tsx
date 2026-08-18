@@ -12,7 +12,7 @@ function computeInitialPath() {
   return '/dashboard';
 }
 
-export default function AdminApp() {
+export default function ManagerApp() {
   const initialPath = computeInitialPath();
 
   return (
