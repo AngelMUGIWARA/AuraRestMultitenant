@@ -1,6 +1,6 @@
 'use client';
 
-import { loadRemote, init } from '@module-federation/runtime';
+import { loadRemote, registerRemotes } from '@module-federation/runtime';
 import { MFE_URLS } from './federation';
 
 // Cache para remotos ya cargados
@@ -8,13 +8,17 @@ const loadedRemotes = new Set<string>();
 
 /**
  * Carga dinámicamente un remoto (para lazy-loading).
- * Inicializa el remoto si aún no ha sido cargado.
+ * Registra el remoto dinámicamente si aún no ha sido cargado.
+ *
+ * IMPORTANTE: Usa registerRemotes en lugar de init() para NO
+ * sobreescribir la identidad del host (web_shell). El bug anterior
+ * usaba init({ name: remoteName }) que cambiaba hostName a
+ * "cashier_mf" u otro remote, causando RUNTIME-004.
  */
 export async function loadRemoteDynamically(
   remoteName: string,
   modulePath: string
 ): Promise<{ default: any }> {
-  // Si el remoto aún no está cargado, inicializalo
   if (!loadedRemotes.has(remoteName)) {
     const mfeUrl = getMFEUrl(remoteName);
 
@@ -22,23 +26,18 @@ export async function loadRemoteDynamically(
       throw new Error(`No hay URL configurada para el remoto: ${remoteName}`);
     }
 
-    // Registra y inicializa el remoto
     try {
-      init({
-        name: remoteName,
-        remotes: [
-          { name: remoteName, entry: mfeUrl, type: 'module' },
-        ],
-      });
+      registerRemotes([
+        { name: remoteName, entry: mfeUrl, type: 'module' },
+      ], { force: false });
 
       loadedRemotes.add(remoteName);
     } catch (err) {
-      console.error(`Error al inicializar remoto ${remoteName}:`, err);
+      console.error(`Error al registrar remoto ${remoteName}:`, err);
       throw err;
     }
   }
 
-  // Carga el módulo del remoto
   const expose = modulePath.startsWith('./') ? modulePath.slice(2) : modulePath;
   const module = await loadRemote<{ default: any }>(`${remoteName}/${expose}`);
 

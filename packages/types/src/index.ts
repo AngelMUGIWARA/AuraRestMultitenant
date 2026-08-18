@@ -752,6 +752,9 @@ export interface Order {
   } | null;
   paymentMethods: PaymentMethod[];
   customerName: string;
+  waiterName?: string;
+  waiterId?: string | null;
+  ticketPrinted?: boolean;
   tableNumber?: string;
   deliveryAddress?: string;
   notes?: string;
@@ -898,6 +901,22 @@ export interface RestaurantTable {
   branchId: string;
   createdAt: string; // ISO Date string
   updatedAt: string; // ISO Date string
+  activeOrder?: {
+    id: string;
+    orderNumber: string;
+    status: string;
+    paymentStatus: string;
+    total: number;
+    itemCount: number;
+    waiterName?: string | null;
+    waiterId?: string | null;
+    ticketPrinted: boolean;
+    items: Array<{
+      name: string;
+      quantity: number;
+      unitPrice: number;
+    }>;
+  } | null;
 }
 
 export interface CreateTablePayload {

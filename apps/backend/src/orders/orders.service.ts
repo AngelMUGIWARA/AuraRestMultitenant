@@ -372,6 +372,18 @@ export class OrdersService {
     }
   }
 
+  async printTicket(schemaName: string, id: string) {
+    const order = await this.ordersRepo.findById(schemaName, id);
+    if (!order) throw new NotFoundException('Pedido no encontrado');
+    if (order.ticketPrinted) {
+      return this.toResponse(order);
+    }
+    const updated = await this.ordersRepo.update(schemaName, id, {
+      ticketPrinted: true,
+    });
+    return this.toResponse(updated);
+  }
+
   async getStats(schemaName: string) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -549,6 +561,9 @@ export class OrdersService {
       } : null,
       paymentMethods: distinctMethods as any[],
       customerName: order.customerName || '',
+      waiterName: order.user?.name || '',
+      waiterId: order.user?.id || null,
+      ticketPrinted: order.ticketPrinted ?? false,
       tableNumber: order.table?.number || null,
       tableId: order.table?.id || null,
       notes: order.notes || null,

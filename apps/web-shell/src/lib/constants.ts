@@ -48,6 +48,24 @@ export const ADMIN_NAV = [
   },
 ] as const;
 
+export const CASHIER_NAV = [
+  {
+    label: 'Caja',
+    items: [
+      { href: '/cashier/dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { href: '/cashier/pos', label: 'Caja', icon: 'orders' },
+      { href: '/cashier/orders', label: 'Pedidos', icon: 'orders' },
+      { href: '/cashier/reservations', label: 'Reservaciones', icon: 'reservations' },
+    ],
+  },
+  {
+    label: 'Sistema',
+    items: [
+      { href: '/cashier/settings', label: 'Configuración', icon: 'settings' },
+    ],
+  },
+] as const;
+
 export const OWNER_NAV = [
   {
     label: 'General',
