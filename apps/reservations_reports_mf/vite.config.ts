@@ -24,6 +24,7 @@ export default defineConfig({
         '@maison/auth-client': { singleton: true },
         'recharts': { singleton: true, requiredVersion: '^3' },
         'jspdf': { singleton: true, requiredVersion: '^4' },
+        'jspdf-autotable': { singleton: true, requiredVersion: '^5' },
       },
     }),
   ],
@@ -53,7 +54,7 @@ export default defineConfig({
           'router': ['react-router-dom'],
           'ui': ['@maison/ui'],
           'charts': ['recharts'],
-          'pdf': ['jspdf'],
+          'pdf': ['jspdf', 'jspdf-autotable'],
         },
         chunkFileNames: 'chunks/[name]-[hash].js',
         entryFileNames: '[name]-[hash].js',
@@ -85,7 +86,7 @@ export default defineConfig({
 
   // ✅ OPTIMIZACIÓN GENERAL
   resolve: {
-    dedupe: ['react', 'react-dom', 'recharts', 'jspdf'],
+    dedupe: ['react', 'react-dom', 'recharts', 'jspdf', 'jspdf-autotable'],
   },
 
   optimizeDeps: {
@@ -98,6 +99,7 @@ export default defineConfig({
       '@maison/auth-client',
       'recharts',
       'jspdf',
+      'jspdf-autotable',
     ],
   },
 

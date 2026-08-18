@@ -34,6 +34,7 @@ export default function ReportesPage() {
   }, [branchId]);
 
   function handleFilter(startDate: string, endDate: string) {
+    if (endDate < startDate) return;
     setFilterParams({ startDate, endDate, branchId });
     refetch({ startDate, endDate, branchId });
   }
