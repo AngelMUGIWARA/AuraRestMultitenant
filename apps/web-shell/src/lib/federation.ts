@@ -58,9 +58,15 @@ export function initFederation(): void {
       { name: 'core_auth_dashboard_mf', entry: MFE_URLS.core_auth_dashboard, type: 'module' },
       { name: 'orders_tables_mf', entry: MFE_URLS.orders_tables, type: 'module' },
       { name: 'reservations_reports_mf', entry: MFE_URLS.reservations_reports, type: 'module' },
+
       { name: 'kitchen_mf', entry: MFE_URLS.kitchen_mf, type: 'module' },
       { name: 'cashier_mf', entry: MFE_URLS.cashier_mf, type: 'module' },
       { name: 'menu_mf', entry: MFE_URLS.menu_mf, type: 'module' },
+
+      { name: 'menu_mf', entry: MFE_URLS.menu_mf, type: 'module' },
+      { name: 'kitchen_mf', entry: MFE_URLS.kitchen_mf, type: 'module' },
+      { name: 'cashier_mf', entry: MFE_URLS.cashier_mf, type: 'module' },
+
     ],
     shared: {
       react: {

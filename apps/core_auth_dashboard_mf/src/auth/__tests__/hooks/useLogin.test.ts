@@ -26,7 +26,7 @@ const mockSetRefreshToken = vi.mocked(AuthClient.setRefreshToken);
 const mockEmit = vi.mocked(emit);
 
 const mockResponse = {
-  user: { id: '1', email: 'admin@demo.com', role: 'ADMIN', name: 'Admin' },
+  user: { id: '1', email: 'owner@demo.com', role: 'OWNER', name: 'Owner' },
   accessToken: 'access-123',
   refreshToken: 'refresh-456',
 };
@@ -49,15 +49,15 @@ describe('useLogin', () => {
 
       await act(async () => {
         await result.current.login({
-          email: 'admin@demo.com',
-          password: 'Admin123',
+          email: 'owner@demo.com',
+          password: 'Owner123',
           tenantSlug: 'demo',
         });
       });
 
       expect(mockLogin).toHaveBeenCalledOnce();
       expect(mockLogin).toHaveBeenCalledWith(
-        { email: 'admin@demo.com', password: 'Admin123' },
+        { email: 'owner@demo.com', password: 'Owner123' },
         'demo',
       );
     });
