@@ -86,7 +86,7 @@ export class CategoriesController {
   }
 
   @Post()
-  @Roles("OWNER")
+  @Roles("OWNER", "MANAGER")
   @ApiOperation({ summary: "Crear categoría", operationId: "categories_create" })
   @ApiResponse({ status: 201, type: CategoryResponseDto })
   create(
@@ -97,7 +97,7 @@ export class CategoriesController {
   }
 
   @Put(":id")
-  @Roles("OWNER")
+  @Roles("OWNER", "MANAGER")
   @ApiOperation({ summary: "Actualizar categoría", operationId: "categories_update" })
   @ApiResponse({ status: 200, type: CategoryResponseDto })
   update(

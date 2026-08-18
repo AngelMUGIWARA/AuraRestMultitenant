@@ -4,6 +4,7 @@ import { useBranch } from '@maison/ui';
 import { useMenus } from '../hooks/useMenus';
 import { MenuFormModal } from '../components/MenuFormModal';
 import { formatCurrency, formatNumber, cn } from '../utils';
+import { getRole } from '../utils/role';
 import { StatCard, StatCardSkeleton } from '@maison/ui';
 import { Skeleton } from '@maison/ui';
 import { EmptyState } from '@maison/ui';
@@ -39,11 +40,12 @@ const STATUS_FILTERS: { value: MenuItemStatus | 'all'; label: string }[] = [
 
 interface ProductCardProps {
   item: MenuItem;
+  canManage: boolean;
   onEdit: (item: MenuItem) => void;
   onDelete: (item: MenuItem) => void;
 }
 
-function ProductCard({ item, onEdit, onDelete }: ProductCardProps) {
+function ProductCard({ item, canManage, onEdit, onDelete }: ProductCardProps) {
   const hasDiscount = item.originalPrice && item.originalPrice > item.price;
 
   return (
@@ -126,23 +128,27 @@ function ProductCard({ item, onEdit, onDelete }: ProductCardProps) {
           )}
         </div>
         <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => onEdit(item)}
-            className="flex items-center gap-1.5 rounded border border-maison-border bg-surface-2 px-2.5 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:bg-surface-3 hover:text-maison-cream"
-            aria-label={`Editar ${item.name}`}
-          >
-            <IconPencil className="h-3 w-3" />
-            Editar
-          </button>
-          <button
-            type="button"
-            onClick={() => onDelete(item)}
-            className="flex items-center justify-center rounded border border-maison-border bg-surface-2 px-2 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:border-maison-ruby/30 hover:bg-maison-ruby-bg hover:text-maison-ruby"
-            aria-label={`Eliminar ${item.name}`}
-          >
-            <IconTrash className="h-3 w-3" />
-          </button>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => onEdit(item)}
+              className="flex items-center gap-1.5 rounded border border-maison-border bg-surface-2 px-2.5 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:bg-surface-3 hover:text-maison-cream"
+              aria-label={`Editar ${item.name}`}
+            >
+              <IconPencil className="h-3 w-3" />
+              Editar
+            </button>
+          )}
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => onDelete(item)}
+              className="flex items-center justify-center rounded border border-maison-border bg-surface-2 px-2 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:border-maison-ruby/30 hover:bg-maison-ruby-bg hover:text-maison-ruby"
+              aria-label={`Eliminar ${item.name}`}
+            >
+              <IconTrash className="h-3 w-3" />
+            </button>
+          )}
         </div>
       </div>
     </article>
@@ -175,6 +181,7 @@ function ProductCardSkeleton() {
 export default function MenusPage() {
   const { selectedBranch } = useBranch();
   const navigate = useNavigate();
+  const canManage = getRole() === 'OWNER';
   const {
     stats, items, isLoading, error, filters, setFilters, refresh,
     createMenuItem, updateMenuItem, removeMenuItem, isMutating,
@@ -245,10 +252,12 @@ export default function MenusPage() {
             🖨️
             Imprimir menú
           </button>
-          <button type="button" onClick={openCreateForm} className="btn-primary">
-            <IconPlus className="h-4 w-4" />
-            Nuevo producto
-          </button>
+          {canManage && (
+            <button type="button" onClick={openCreateForm} className="btn-primary">
+              <IconPlus className="h-4 w-4" />
+              Nuevo producto
+            </button>
+          )}
         </div>
       </header>
 
@@ -353,7 +362,7 @@ export default function MenusPage() {
                     : 'Aún no hay productos en el catálogo. Agrega el primero.'
               }
               action={
-                !hasError && !filters.search ? (
+                !hasError && !filters.search && canManage ? (
                   <button type="button" onClick={openCreateForm} className="btn-primary">
                     <IconPlus className="h-4 w-4" />
                     Agregar primer producto
@@ -368,7 +377,7 @@ export default function MenusPage() {
         {!isLoading && !hasError && items?.data && items.data.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.data.map((item) => (
-              <ProductCard key={item.id} item={item} onEdit={openEditForm} onDelete={setDeletingItem} />
+              <ProductCard key={item.id} item={item} canManage={canManage} onEdit={openEditForm} onDelete={setDeletingItem} />
             ))}
           </div>
         )}
