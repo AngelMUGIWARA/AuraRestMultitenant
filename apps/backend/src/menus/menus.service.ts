@@ -1,11 +1,12 @@
 import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
+    BadRequestException,
+    Injectable,
+    NotFoundException,
 } from '@nestjs/common';
 
-import { MenusRepository, MenuFilters } from './menus.repository';
+import { MenuFilters, MenusRepository } from './menus.repository';
 
+import { PlanLimitsService } from '../common/plan-limits/plan-limits.service';
 import { UploadService } from '../upload/upload.service';
 
 import { CreateMenuDto } from './dto/create-menu.dto';
@@ -18,6 +19,7 @@ export class MenusService {
   constructor(
     private readonly repo: MenusRepository,
     private readonly uploadService: UploadService,
+    private readonly planLimits: PlanLimitsService,
   ) {}
 
   async findAll(
@@ -50,6 +52,9 @@ export class MenusService {
     dto: CreateMenuDto,
     file?: Express.Multer.File,
   ) {
+    const currentCount = await this.repo.count(schemaName);
+    await this.planLimits.assertWithinLimit(schemaName, 'menuItems', currentCount);
+
     if (file) {
       if (!file.mimetype.startsWith('image/')) {
         throw new BadRequestException('El archivo debe ser una imagen');

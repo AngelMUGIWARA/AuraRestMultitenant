@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { PLAN_LIMITS } from '../common/plan-limits/plan-limits.config';
 import { PrismaService } from '../database/prisma.service';
 import { DashboardRepository } from './dashboard.repository';
 import {
-  ActivityItemDto,
-  BranchSummaryDto,
-  DashboardStatsDto,
-  RevenuePointDto,
+    ActivityItemDto,
+    BranchSummaryDto,
+    DashboardStatsDto,
+    RevenuePointDto,
 } from './dto/dashboard.dto';
 
 const REVENUE_MONTHS = 8;
@@ -44,11 +45,20 @@ export class DashboardService {
     const thisMonth = this.monthStart();
     const prevMonth = this.monthStart(1);
 
-    const [counts, monthlyRevenue, prevRevenue] = await Promise.all([
+    const [counts, monthlyRevenue, prevRevenue, tenant] = await Promise.all([
       this.repo.getCounts(schemaName, thisMonth, branchId),
       this.repo.getRevenueBetween(schemaName, thisMonth, new Date(), branchId),
       this.repo.getRevenueBetween(schemaName, prevMonth, thisMonth, branchId),
+      this.systemDb.tenant.findUnique({ where: { schemaName }, select: { plan: true } }),
     ]);
+
+    const plan = tenant?.plan ?? 'FREE';
+    const [branches, menuItems, staff] = await Promise.all([
+      this.repo.countBranches(schemaName),
+      this.repo.countMenuItems(schemaName),
+      this.repo.countStaff(schemaName),
+    ]);
+    const limits = PLAN_LIMITS[plan];
 
     // Sin mes anterior no hay base de comparación: 0% en lugar de infinito.
     const revenueGrowth =
@@ -65,6 +75,15 @@ export class DashboardService {
       revenueGrowth: Math.round(revenueGrowth * 10) / 10,
       avgRating: 0,
       newTenantsThisMonth: counts.newBranchesThisMonth,
+      plan,
+      planUsage: {
+        usage: { branches, menuItems, staff },
+        limits: {
+          branches: limits.maxBranches,
+          menuItems: limits.maxMenuItems,
+          staff: limits.maxStaff,
+        },
+      },
     };
   }
 

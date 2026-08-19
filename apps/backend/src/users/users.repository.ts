@@ -59,6 +59,16 @@ export class UsersRepository {
     return this.db(schemaName).user.findUnique({ where: { email } });
   }
 
+  async countStaff(schemaName: string) {
+    return this.db(schemaName).user.count({
+      where: {
+        role: {
+          in: ['MANAGER', 'WAITER', 'CASHIER', 'KITCHEN_STAFF'],
+        },
+      },
+    });
+  }
+
   async create(schemaName: string, dto: CreateUserDto) {
     const bcrypt = await import('bcrypt');
     const passwordHash = await bcrypt.hash(

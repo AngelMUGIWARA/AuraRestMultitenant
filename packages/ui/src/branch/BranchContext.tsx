@@ -1,12 +1,13 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { emit, on } from '@maison/event-bus';
 import { AuthClient } from '@maison/auth-client';
-import type { Branch, ApiResponse, PaginatedResponse } from '@maison/types';
+import { emit, on } from '@maison/event-bus';
+import type { ApiResponse, Branch, PaginatedResponse } from '@maison/types';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 // Dynamic import to avoid circular dependencies - apiClient includes auth headers
-let apiClient: any = null;
+type ApiClient = typeof import('@maison/api-client').apiClient;
+let apiClient: ApiClient | null = null;
 const getApiClient = async () => {
   if (!apiClient) {
     try {

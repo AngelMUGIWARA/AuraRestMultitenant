@@ -1,8 +1,6 @@
 'use client';
 
-
-import { loadRemote } from '@module-federation/runtime';
-import { initFederation } from './federation';
+import { getMFEUrl, initFederation } from './federation';
 
 import { loadRemote, registerRemotes } from '@module-federation/runtime';
 

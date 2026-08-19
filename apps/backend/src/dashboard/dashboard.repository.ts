@@ -11,6 +11,20 @@ import { PrismaClient } from '../generated/prisma-tenant';
 export class DashboardRepository {
   constructor(private readonly tenantPrisma: TenantPrismaService) {}
 
+  async countBranches(schemaName: string) {
+    return this.db(schemaName).branch.count();
+  }
+
+  async countMenuItems(schemaName: string) {
+    return this.db(schemaName).menuItem.count();
+  }
+
+  async countStaff(schemaName: string) {
+    return this.db(schemaName).user.count({
+      where: { role: { in: ['MANAGER', 'WAITER', 'CASHIER', 'KITCHEN_STAFF'] } },
+    });
+  }
+
   private db(schemaName: string): PrismaClient {
     return this.tenantPrisma.getClient(schemaName);
   }

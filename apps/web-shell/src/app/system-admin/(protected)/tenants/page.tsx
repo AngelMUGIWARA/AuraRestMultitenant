@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
 import { systemAdminTenantsService } from '@/services/system-admin-tenants.service';
-import type { Tenant, TenantPlan, TenantOwnerCredentials } from '@maison/types';
+import type { Tenant, TenantOwnerCredentials, TenantPlan, TenantPlanUsage } from '@maison/types';
+import { useEffect, useState, type FormEvent } from 'react';
 
 const STATUS_BADGE: Record<Tenant['status'], string> = {
   ACTIVE: 'badge-active',
@@ -26,6 +26,8 @@ export default function SystemAdminTenantsPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [credentialsBanner, setCredentialsBanner] = useState<CredentialsBanner | null>(null);
   const [resettingId, setResettingId] = useState<string | null>(null);
+  const [planUsage, setPlanUsage] = useState<Record<string, TenantPlanUsage>>({});
+  const [updatingPlanId, setUpdatingPlanId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -42,11 +44,26 @@ export default function SystemAdminTenantsPage() {
     try {
       const data = await systemAdminTenantsService.getAll();
       setTenants(data);
+      const usageEntries = await Promise.all(
+        data.map(async (tenant) => {
+          try {
+            return [tenant.id, await systemAdminTenantsService.getPlanUsage(tenant.id)] as const;
+          } catch {
+            return null;
+          }
+        }),
+      );
+      setPlanUsage(Object.fromEntries(usageEntries.filter((entry): entry is readonly [string, TenantPlanUsage] => entry !== null)));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar tenants');
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function formatUsage(planUsage: TenantPlanUsage) {
+    const limit = (value: number | null) => value === null ? '∞' : value;
+    return `S ${planUsage.usage.branches}/${limit(planUsage.limits.branches)} · M ${planUsage.usage.menuItems}/${limit(planUsage.limits.menuItems)} · Staff ${planUsage.usage.staff}/${limit(planUsage.limits.staff)}`;
   }
 
   useEffect(() => {
@@ -79,6 +96,23 @@ export default function SystemAdminTenantsPage() {
   async function handleActivate(id: string) {
     await systemAdminTenantsService.activate(id);
     await loadTenants();
+  }
+
+  async function handlePlanChange(id: string, plan: TenantPlan) {
+    const current = tenants.find((tenant) => tenant.id === id)?.plan;
+    if (!current || current === plan) return;
+
+    setUpdatingPlanId(id);
+    try {
+      const updated = await systemAdminTenantsService.updatePlan(id, plan);
+      setTenants((currentTenants) => currentTenants.map((tenant) => (tenant.id === id ? updated : tenant)));
+      const usage = await systemAdminTenantsService.getPlanUsage(id);
+      setPlanUsage((currentUsage) => ({ ...currentUsage, [id]: usage }));
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Error al cambiar el plan');
+    } finally {
+      setUpdatingPlanId(null);
+    }
   }
 
   async function handleResetOwnerPassword(id: string, tenantName: string) {
@@ -204,7 +238,22 @@ export default function SystemAdminTenantsPage() {
                   <tr key={t.id} className="border-b border-maison-border last:border-b-0 hover:bg-surface-2 transition-colors">
                     <td className="px-4 py-3 font-medium text-maison-cream">{t.name}</td>
                     <td className="px-4 py-3 font-mono text-maison-cream-muted">{t.slug}</td>
-                    <td className="px-4 py-3 text-maison-cream-muted">{t.plan}</td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={t.plan}
+                        disabled={updatingPlanId === t.id}
+                        onChange={(e) => handlePlanChange(t.id, e.target.value as TenantPlan)}
+                        className="bg-surface-2 border border-white/10 rounded px-2 py-1 text-xs text-maison-cream disabled:opacity-50"
+                        aria-label={`Plan de ${t.name}`}
+                      >
+                        {PLAN_OPTIONS.map((plan) => <option key={plan} value={plan}>{plan}</option>)}
+                      </select>
+                      {planUsage[t.id] && (
+                        <p className="mt-1 text-2xs text-maison-cream-dim">
+                          {formatUsage(planUsage[t.id])}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`badge ${STATUS_BADGE[t.status]}`}>{t.status}</span>
                     </td>

@@ -1,11 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { SystemTenantsRepository } from './system-tenants.repository';
-import { TenantProvisioningService } from './tenant-provisioning.service';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { PLAN_LIMITS } from '../../common/plan-limits/plan-limits.config';
+import { TenantPrismaService } from '../../database/tenant-prisma.service';
 import { SystemAuditLogService } from '../audit-log/system-audit-log.service';
-import { CreateSystemTenantDto } from './dto/create-system-tenant.dto';
-import { UpdateSystemTenantDto } from './dto/update-system-tenant.dto';
+import { CreateSystemTenantDto, TenantPlanDto } from './dto/create-system-tenant.dto';
 import { SuspendTenantDto } from './dto/suspend-tenant.dto';
 import { CreateTenantResponseDto } from './dto/tenant-response.dto';
+import { UpdateSystemTenantDto } from './dto/update-system-tenant.dto';
+import { SystemTenantsRepository } from './system-tenants.repository';
+import { TenantProvisioningService } from './tenant-provisioning.service';
+
+type TenantPlan = TenantPlanDto;
+
+export interface TenantPlanUsage {
+  plan: TenantPlan;
+  usage: { branches: number; menuItems: number; staff: number };
+  limits: { branches: number | null; menuItems: number | null; staff: number | null };
+}
 
 @Injectable()
 export class SystemTenantsService {
@@ -13,6 +23,7 @@ export class SystemTenantsService {
     private readonly repository: SystemTenantsRepository,
     private readonly provisioning: TenantProvisioningService,
     private readonly auditLog: SystemAuditLogService,
+    private readonly tenantPrisma: TenantPrismaService,
   ) {}
 
   findAll() {
@@ -42,6 +53,59 @@ export class SystemTenantsService {
   async update(id: string, dto: UpdateSystemTenantDto) {
     await this.findOne(id);
     return this.repository.update(id, dto);
+  }
+
+  async updatePlan(id: string, plan: TenantPlan, superAdminId: string) {
+    const tenant = await this.findOne(id);
+    const currentPlan = tenant.plan as TenantPlan;
+    if (currentPlan === plan) return tenant;
+
+    const planUsage = await this.getPlanUsage(id);
+    const nextLimits = PLAN_LIMITS[plan];
+    const exceeded = ([
+      ['branches', planUsage.usage.branches, nextLimits.maxBranches],
+      ['menu items', planUsage.usage.menuItems, nextLimits.maxMenuItems],
+      ['staff members', planUsage.usage.staff, nextLimits.maxStaff],
+    ] as [string, number, number | null][]).find(
+      ([, usage, limit]) => limit !== null && usage > limit,
+    );
+
+    if (exceeded) {
+      throw new BadRequestException(
+        `No se puede cambiar a ${plan}: el tenant excede el límite de ${exceeded[0]} del plan (${exceeded[1]}/${exceeded[2]}).`,
+      );
+    }
+
+    const updated = await this.repository.updatePlan(id, plan);
+    await this.auditLog.log({
+      superAdminId,
+      action: 'TENANT_PLAN_CHANGED',
+      targetType: 'TENANT',
+      targetId: id,
+      metadata: { previousPlan: currentPlan, nextPlan: plan },
+    });
+    return updated;
+  }
+
+  async getPlanUsage(id: string): Promise<TenantPlanUsage> {
+    const tenant = await this.findOne(id);
+    const db = this.tenantPrisma.getClient(tenant.schemaName);
+    const [branches, menuItems, staff] = await Promise.all([
+      db.branch.count(),
+      db.menuItem.count(),
+      db.user.count({ where: { role: { in: ['MANAGER', 'WAITER', 'CASHIER', 'KITCHEN_STAFF'] } } }),
+    ]);
+    const plan = tenant.plan as TenantPlan;
+    const planLimits = PLAN_LIMITS[plan];
+    return {
+      plan,
+      usage: { branches, menuItems, staff },
+      limits: {
+        branches: planLimits.maxBranches,
+        menuItems: planLimits.maxMenuItems,
+        staff: planLimits.maxStaff,
+      },
+    };
   }
 
   async suspend(id: string, dto: SuspendTenantDto, superAdminId: string) {

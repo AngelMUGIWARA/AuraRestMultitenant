@@ -1,5 +1,5 @@
-import path from "node:path";
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -22,7 +22,6 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   poweredByHeader: false,
   compress: true,
-  swcMinify: true,
 };
 
 export default nextConfig;
