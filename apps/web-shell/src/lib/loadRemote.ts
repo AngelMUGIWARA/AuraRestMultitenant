@@ -1,7 +1,7 @@
 'use client';
 
 import { loadRemote, registerRemotes } from '@module-federation/runtime';
-import { initFederation, MFE_URLS } from './federation';
+import { getMFEUrl, initFederation } from './federation';
 
 // Cache para remotos ya registrados en la instancia global
 const registeredRemotes = new Set<string>();
@@ -57,19 +57,4 @@ export async function loadRemoteDynamically(
   }
 
   return module;
-}
-
-/**
- * Obtiene la URL del remoteEntry de un remoto según su nombre.
- */
-function getMFEUrl(remoteName: string): string | null {
-  const mfeUrls: Record<string, string> = {
-    core_auth_dashboard_mf: MFE_URLS.core_auth_dashboard,
-    orders_tables_mf: MFE_URLS.orders_tables,
-    reservations_reports_mf: MFE_URLS.reservations_reports,
-    kitchen_mf: MFE_URLS.kitchen_mf,
-    cashier_mf: MFE_URLS.cashier_mf,
-    menu_mf: MFE_URLS.menu_mf,
-  };
-  return mfeUrls[remoteName] ?? null;
 }

@@ -48,6 +48,10 @@ export class BranchesRepository {
     return this.db(schemaName).branch.findUnique({ where: { id } });
   }
 
+  async count(schemaName: string) {
+    return this.db(schemaName).branch.count();
+  }
+
   async create(schemaName: string, dto: CreateBranchDto) {
     const data = { ...dto } as any;
     if (!data.slug) {
@@ -72,10 +76,6 @@ export class BranchesRepository {
       where: { id },
       data: { isActive: active },
     });
-  }
-
-  async count(schemaName: string) {
-    return this.db(schemaName).branch.count();
   }
 
   async getStats(schemaName: string) {

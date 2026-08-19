@@ -2,7 +2,7 @@ import { TenantPlan } from '../../generated/prisma-system';
 
 export type LimitedResource = 'branches' | 'menuItems' | 'staff';
 
-interface PlanLimits {
+export interface PlanLimits {
   maxBranches: number | null;
   maxMenuItems: number | null;
   maxStaff: number | null;

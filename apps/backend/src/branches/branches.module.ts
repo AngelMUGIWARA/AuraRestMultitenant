@@ -7,7 +7,7 @@ import { BranchesRepository } from './branches.repository';
 import { BranchesService } from './branches.service';
 
 @Module({
-  imports: [ActivityLogModule, PlanLimitsModule, TablesModule],
+  imports: [ActivityLogModule, TablesModule, PlanLimitsModule],
   controllers: [BranchesController],
   providers: [BranchesService, BranchesRepository],
   exports: [BranchesService],

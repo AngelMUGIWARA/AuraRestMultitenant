@@ -153,6 +153,12 @@ export interface SuspendTenantPayload {
   reason?: string;
 }
 
+export interface TenantPlanUsage {
+  plan: TenantPlan;
+  usage: { branches: number; menuItems: number; staff: number };
+  limits: { branches: number | null; menuItems: number | null; staff: number | null };
+}
+
 // ─── Super Admin ──────────────────────────────────────────────────────────────
 
 export interface SuperAdmin {
@@ -314,6 +320,8 @@ export interface DashboardStats {
   revenueGrowth: number;
   avgRating: number;
   newTenantsThisMonth: number;
+  plan: TenantPlan;
+  planUsage: TenantPlanUsage;
 }
 
 export interface RevenueDataPoint {

@@ -1,5 +1,5 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsDefined, IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 import { TenantPlanDto } from './create-system-tenant.dto';
 
 export class UpdateSystemTenantDto {
@@ -32,4 +32,11 @@ export class UpdateSystemTenantDto {
   @IsOptional()
   @IsEnum(TenantPlanDto)
   plan?: TenantPlanDto;
+}
+
+export class UpdateTenantPlanDto {
+  @ApiProperty({ enum: TenantPlanDto })
+  @IsDefined()
+  @IsEnum(TenantPlanDto)
+  plan: TenantPlanDto;
 }

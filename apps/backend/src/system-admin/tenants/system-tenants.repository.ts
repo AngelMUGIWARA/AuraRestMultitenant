@@ -37,6 +37,10 @@ export class SystemTenantsRepository {
     return this.prisma.tenant.update({ where: { id }, data: dto as any });
   }
 
+  updatePlan(id: string, plan: UpdateSystemTenantDto['plan']) {
+    return this.prisma.tenant.update({ where: { id }, data: { plan } as any });
+  }
+
   updateStatus(id: string, status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED') {
     return this.prisma.tenant.update({ where: { id }, data: { status } });
   }

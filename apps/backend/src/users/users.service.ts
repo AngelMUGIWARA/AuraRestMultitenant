@@ -1,26 +1,26 @@
 import {
-  ConflictException,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
+    ConflictException,
+    Inject,
+    Injectable,
+    Logger,
+    NotFoundException,
 } from '@nestjs/common';
-import { randomBytes } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'node:crypto';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import { PlanLimitsService } from '../common/plan-limits/plan-limits.service';
+import {
+    INVITATION_NOTIFIER,
+    InvitationNotifier,
+} from '../notifications/invitation-notifier.interface';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import {
-  PaginatedUsersDto,
-  UserResponseDto,
-  UserStatsDto,
+    PaginatedUsersDto,
+    UserResponseDto,
+    UserStatsDto,
 } from './dto/user-response.dto';
 import { UsersRepository } from './users.repository';
-import {
-  INVITATION_NOTIFIER,
-  InvitationNotifier,
-} from '../notifications/invitation-notifier.interface';
-import { PlanLimitsService } from '../common/plan-limits/plan-limits.service';
 
 const TEMP_PASSWORD_BYTES = 16;
 
