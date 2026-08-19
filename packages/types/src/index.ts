@@ -300,6 +300,15 @@ export interface InviteUserPayload {
   branchId?: string;
 }
 
+export interface CreateUserPayload {
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  phone?: string;
+  branchId?: string;
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export interface DashboardStats {
@@ -812,6 +821,7 @@ export interface CreateOrderPayload {
   items: Array<{ menuItemId: string; quantity: number; notes?: string }>;
   customerName?: string;
   tableId?: string;
+  branchId?: string;
   notes?: string;
 }
 

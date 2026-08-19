@@ -1,30 +1,33 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { AuthClient } from '@maison/auth-client';
 import { apiClient } from '@maison/api-client';
-import { EmptyState, Skeleton } from '@maison/ui';
-import { IconUsers } from '@maison/ui';
+import { EmptyState, Skeleton, IconUsers, IconPlus } from '@maison/ui';
+import { UserModal } from '@/components/users/UserModal';
 import type { User } from '@maison/types';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const isOwner = AuthClient.getRole() === 'OWNER';
+
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiClient.get<{ data: { data: User[] } }>('/admin/users');
+      setUsers(response.data.data ?? []);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar usuarios');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setIsLoading(true);
-        const response = await apiClient.get<{ data: { data: User[] } }>('/admin/users');
-        setUsers(response.data.data ?? []);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar usuarios');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchUsers();
   }, []);
 
@@ -59,9 +62,16 @@ export default function AdminUsersPage() {
   if (!users.length) {
     return (
       <div className="flex flex-col gap-6">
-        <header>
-          <h1 className="font-display text-3xl font-medium text-maison-cream">Usuarios</h1>
-          <p className="mt-1.5 text-sm text-maison-cream-muted">Administración de acceso y roles</p>
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="font-display text-3xl font-medium text-maison-cream">Usuarios</h1>
+            <p className="mt-1.5 text-sm text-maison-cream-muted">Administración de acceso y roles</p>
+          </div>
+          {isOwner && (
+            <button type="button" onClick={() => setModalOpen(true)} className="btn-primary self-start sm:self-auto">
+              <IconPlus className="h-4 w-4" />Nuevo usuario
+            </button>
+          )}
         </header>
         <div className="card">
           <EmptyState
@@ -71,15 +81,23 @@ export default function AdminUsersPage() {
             className="py-20"
           />
         </div>
+        <UserModal open={modalOpen} onClose={() => setModalOpen(false)} onSuccess={fetchUsers} />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="font-display text-3xl font-medium text-maison-cream">Usuarios</h1>
-        <p className="mt-1.5 text-sm text-maison-cream-muted">Administración de acceso y permisos</p>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-medium text-maison-cream">Usuarios</h1>
+          <p className="mt-1.5 text-sm text-maison-cream-muted">Administración de acceso y permisos</p>
+        </div>
+        {isOwner && (
+          <button type="button" onClick={() => setModalOpen(true)} className="btn-primary self-start sm:self-auto">
+            <IconPlus className="h-4 w-4" />Nuevo usuario
+          </button>
+        )}
       </header>
 
       <div className="overflow-x-auto">
@@ -90,6 +108,7 @@ export default function AdminUsersPage() {
               <th className="px-4 py-3 text-left font-medium text-maison-cream-muted">Email</th>
               <th className="px-4 py-3 text-left font-medium text-maison-cream-muted">Rol</th>
               <th className="px-4 py-3 text-left font-medium text-maison-cream-muted">Estado</th>
+              <th className="px-4 py-3 text-left font-medium text-maison-cream-muted">Sucursal</th>
             </tr>
           </thead>
           <tbody>
@@ -111,11 +130,14 @@ export default function AdminUsersPage() {
                     {user.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
                   </span>
                 </td>
+                <td className="px-4 py-3 text-maison-cream-muted">{user.branchName ?? '—'}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <UserModal open={modalOpen} onClose={() => setModalOpen(false)} onSuccess={fetchUsers} />
     </div>
   );
 }

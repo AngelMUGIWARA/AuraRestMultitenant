@@ -14,6 +14,13 @@ import { UpdateKitchenItemStatusDto } from './dto/update-kitchen-item-status.dto
 import { ListKitchenTicketsQueryDto } from './dto/list-kitchen-tickets-query.dto';
 import { KitchenGateway } from './kitchen.gateway';
 
+const GLOBAL_BRANCH_ROLES = new Set(["OWNER"]);
+
+export interface RequestingUser {
+  id: string;
+  role: string;
+}
+
 const TICKET_TRANSITIONS: Record<string, string[]> = {
   PENDING: ['PREPARING', 'CANCELLED'],
   PREPARING: ['READY', 'CANCELLED'],
@@ -40,6 +47,15 @@ export class KitchenService {
     private readonly activityLogRepo: ActivityLogRepository,
     private readonly gateway: KitchenGateway,
   ) {}
+
+  private async resolveBranchScope(
+    schemaName: string,
+    user: RequestingUser,
+  ): Promise<string[] | null> {
+    if (GLOBAL_BRANCH_ROLES.has(user.role)) return null;
+    const branchIds = await this.repo.findUserBranchIds(schemaName, user.id);
+    return branchIds.length > 0 ? branchIds : null;
+  }
 
   async createTicket(
     schemaName: string,
@@ -153,7 +169,7 @@ export class KitchenService {
     return this.toResponse(ticket);
   }
 
-  async findTickets(schemaName: string, query: ListKitchenTicketsQueryDto) {
+  async findTickets(schemaName: string, query: ListKitchenTicketsQueryDto, user?: RequestingUser) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
 
@@ -167,6 +183,11 @@ export class KitchenService {
     }
     if (query.branchId) {
       where.branchId = query.branchId;
+    } else if (user) {
+      const scope = await this.resolveBranchScope(schemaName, user);
+      if (scope) {
+        where.branchId = { in: scope };
+      }
     }
     if (query.tableId) {
       where.order = { tableId: query.tableId };

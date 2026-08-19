@@ -157,6 +157,7 @@ export class OrdersRepository {
     return this.db(schemaName, tx).kitchenTicket.create({
       data: {
         orderId,
+        branchId: order?.branchId ?? undefined,
         items: {
           create: items.map((item) => ({
             orderItemId: item.orderItemId,
@@ -180,5 +181,13 @@ export class OrdersRepository {
       where: { id },
       data,
     });
+  }
+
+  async findUserBranchIds(schemaName: string, userId: string): Promise<string[]> {
+    const rows = await this.db(schemaName).userBranch.findMany({
+      where: { userId },
+      select: { branchId: true },
+    });
+    return rows.map((r) => r.branchId);
   }
 }

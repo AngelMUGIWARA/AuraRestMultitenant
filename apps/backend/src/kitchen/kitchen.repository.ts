@@ -206,4 +206,12 @@ export class KitchenRepository {
     });
     return items[0] ?? null;
   }
+
+  async findUserBranchIds(schemaName: string, userId: string): Promise<string[]> {
+    const rows = await this.db(schemaName).userBranch.findMany({
+      where: { userId },
+      select: { branchId: true },
+    });
+    return rows.map((r) => r.branchId);
+  }
 }

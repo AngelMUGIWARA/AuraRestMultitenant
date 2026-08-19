@@ -23,7 +23,7 @@ function IconCheck({ className }: { className?: string }) {
 }
 
 export function BranchSelector() {
-  const { selectedBranch, branches, setBranch } = useBranch();
+  const { selectedBranch, branches, setBranch, isOwner } = useBranch();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -36,6 +36,8 @@ export function BranchSelector() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  if (!isOwner) return null;
 
   const allOptions: Branch[] = [GLOBAL_BRANCH, ...branches];
 

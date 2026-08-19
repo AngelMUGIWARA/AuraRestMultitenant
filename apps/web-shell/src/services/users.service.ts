@@ -1,5 +1,5 @@
 import { apiClient } from '@maison/api-client';
-import type { ApiResponse, PaginatedResponse, User, UserStats, UserFilters, UpdateUserRolePayload, InviteUserPayload } from '@maison/types';
+import type { ApiResponse, PaginatedResponse, User, UserStats, UserFilters, UpdateUserRolePayload, InviteUserPayload, CreateUserPayload } from '@maison/types';
 
 export const usersService = {
   getStats(branchId?: string): Promise<ApiResponse<UserStats>> {
@@ -16,6 +16,10 @@ export const usersService = {
 
   getById(id: string): Promise<ApiResponse<User>> {
     return apiClient.get<ApiResponse<User>>(`/admin/users/${id}`);
+  },
+
+  create(payload: CreateUserPayload): Promise<ApiResponse<User>> {
+    return apiClient.post<ApiResponse<User>>('/admin/users', payload);
   },
 
   invite(payload: InviteUserPayload): Promise<ApiResponse<User>> {

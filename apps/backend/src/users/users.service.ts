@@ -103,6 +103,10 @@ export class UsersService {
     const currentStaff = await this.repo.countStaff(schemaName);
     await this.planLimits.assertWithinLimit(schemaName, 'staff', currentStaff);
 
+    if (dto.role === 'OWNER') {
+      dto.branchId = undefined;
+    }
+
     return this.repo.create(schemaName, dto);
   }
 

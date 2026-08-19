@@ -21,6 +21,13 @@ import { OrdersRepository } from './orders.repository';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
+const GLOBAL_BRANCH_ROLES = new Set(["OWNER"]);
+
+export interface RequestingUser {
+  id: string;
+  role: string;
+}
+
 @Injectable()
 export class OrdersService {
   private readonly MAX_FOLIO_RETRIES = 5;
@@ -33,6 +40,15 @@ export class OrdersService {
     @Inject(forwardRef(() => OrderPromotionService))
     private readonly orderPromotionService: OrderPromotionService,
   ) {}
+
+  private async resolveBranchScope(
+    schemaName: string,
+    user: RequestingUser,
+  ): Promise<string[] | null> {
+    if (GLOBAL_BRANCH_ROLES.has(user.role)) return null;
+    const branchIds = await this.ordersRepo.findUserBranchIds(schemaName, user.id);
+    return branchIds.length > 0 ? branchIds : null;
+  }
 
   async create(schemaName: string, dto: CreateOrderDto, userId: string) {
     const menuItems = await this.ordersRepo.findMenuItemsByIds(
@@ -47,7 +63,7 @@ export class OrdersService {
     let branchId: string | undefined;
     if (dto.tableId) {
       const table = await this.ordersRepo.findTableById(schemaName, dto.tableId);
-      branchId = table?.branchId;
+      branchId = table?.branchId ?? dto.branchId;
     } else if (dto.branchId) {
       branchId = dto.branchId;
     }
@@ -93,6 +109,7 @@ export class OrdersService {
                 tax: tax.toFixed(2),
                 total: total.toFixed(2),
                 table: dto.tableId ? { connect: { id: dto.tableId } } : undefined,
+                branch: branchId ? { connect: { id: branchId } } : undefined,
                 user: { connect: { id: userId } },
                 orderItems: { create: orderItemsData },
               },
@@ -163,11 +180,22 @@ export class OrdersService {
       type?: string;
       search?: string;
       date?: string;
+      branchId?: string;
       page?: number;
       limit?: number;
     },
+    user?: RequestingUser,
   ) {
     const where: any = {};
+
+    if (query.branchId) {
+      where.branchId = query.branchId;
+    } else if (user) {
+      const scope = await this.resolveBranchScope(schemaName, user);
+      if (scope) {
+        where.branchId = { in: scope };
+      }
+    }
 
     if (query.status) {
       const map: Record<string, string> = {
@@ -384,11 +412,24 @@ export class OrdersService {
     return this.toResponse(updated);
   }
 
-  async getStats(schemaName: string) {
+  async getStats(schemaName: string, branchId?: string, user?: RequestingUser) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
+
+    let branchFilter: any = undefined;
+    if (branchId) {
+      branchFilter = branchId;
+    } else if (user) {
+      const scope = await this.resolveBranchScope(schemaName, user);
+      if (scope) {
+        branchFilter = { in: scope };
+      }
+    }
+
+    const baseWhere = { createdAt: { gte: today, lt: tomorrow } };
+    const branchWhere = branchFilter ? { branchId: branchFilter } : {};
 
     const [
       totalToday,
@@ -399,25 +440,29 @@ export class OrdersService {
       cancelledToday,
     ] = await Promise.all([
       this.ordersRepo.count(schemaName, {
-        createdAt: { gte: today, lt: tomorrow },
+        ...baseWhere,
+        ...branchWhere,
       }),
-      this.ordersRepo.count(schemaName, { status: 'PENDING' }),
-      this.ordersRepo.count(schemaName, { status: 'IN_PROGRESS' }),
-      this.ordersRepo.count(schemaName, { status: 'READY' }),
+      this.ordersRepo.count(schemaName, { status: 'PENDING', ...branchWhere }),
+      this.ordersRepo.count(schemaName, { status: 'IN_PROGRESS', ...branchWhere }),
+      this.ordersRepo.count(schemaName, { status: 'READY', ...branchWhere }),
       this.ordersRepo.count(schemaName, {
-        createdAt: { gte: today, lt: tomorrow },
+        ...baseWhere,
         status: 'PAID',
+        ...branchWhere,
       }),
       this.ordersRepo.count(schemaName, {
-        createdAt: { gte: today, lt: tomorrow },
+        ...baseWhere,
         status: 'CANCELLED',
+        ...branchWhere,
       }),
     ]);
 
     const paidOrders = await this.ordersRepo.findMany(schemaName, {
       where: {
-        createdAt: { gte: today, lt: tomorrow },
+        ...baseWhere,
         status: 'PAID',
+        ...branchWhere,
       },
     });
 

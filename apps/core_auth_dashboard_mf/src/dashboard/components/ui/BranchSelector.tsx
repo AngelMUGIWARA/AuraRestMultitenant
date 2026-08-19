@@ -11,7 +11,7 @@ function Check({ className }: { className?: string }) {
 }
 
 export function BranchSelector() {
-  const { selectedBranch, branches, setBranch } = useBranch();
+  const { selectedBranch, branches, setBranch, isOwner } = useBranch();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -20,6 +20,8 @@ export function BranchSelector() {
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, []);
+
+  if (!isOwner) return null;
 
   const allOptions: Branch[] = [GLOBAL_BRANCH, ...branches];
 

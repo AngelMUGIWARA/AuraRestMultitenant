@@ -29,10 +29,26 @@ export class UsersRepository {
         take: params.take,
         orderBy: { createdAt: 'desc' },
         omit: { passwordHash: true },
+        include: {
+          userBranches: {
+            include: { branch: { select: { id: true, name: true } } },
+            take: 1,
+          },
+        },
       }),
       db.user.count(),
     ]);
-    return { data, total };
+
+    const mapped = data.map((u) => {
+      const { userBranches, ...rest } = u;
+      return {
+        ...rest,
+        branchId: userBranches[0]?.branchId ?? null,
+        branchName: userBranches[0]?.branch?.name ?? null,
+      };
+    });
+
+    return { data: mapped, total };
   }
 
   /**
@@ -53,10 +69,25 @@ export class UsersRepository {
   }
 
   async findById(schemaName: string, id: string) {
-    return this.db(schemaName).user.findUnique({
+    const user = await this.db(schemaName).user.findUnique({
       where: { id },
       omit: { passwordHash: true },
+      include: {
+        userBranches: {
+          include: { branch: { select: { id: true, name: true } } },
+          take: 1,
+        },
+      },
     });
+
+    if (!user) return null;
+
+    const { userBranches, ...rest } = user;
+    return {
+      ...rest,
+      branchId: userBranches[0]?.branchId ?? null,
+      branchName: userBranches[0]?.branch?.name ?? null,
+    };
   }
 
   async findByEmail(schemaName: string, email: string) {
@@ -69,7 +100,7 @@ export class UsersRepository {
       dto.password,
       Number(process.env.BCRYPT_ROUNDS ?? 10),
     );
-    return this.db(schemaName).user.create({
+    const user = await this.db(schemaName).user.create({
       data: {
         name: dto.name,
         email: dto.email,
@@ -79,6 +110,23 @@ export class UsersRepository {
       },
       omit: { passwordHash: true },
     });
+
+    if (dto.branchId && dto.role !== 'OWNER') {
+      const roleRecord = await this.db(schemaName).role.findUnique({
+        where: { name: dto.role },
+      });
+      if (roleRecord) {
+        await this.db(schemaName).userBranch.create({
+          data: {
+            userId: user.id,
+            branchId: dto.branchId,
+            roleId: roleRecord.id,
+          },
+        });
+      }
+    }
+
+    return user;
   }
 
   async createInvite(

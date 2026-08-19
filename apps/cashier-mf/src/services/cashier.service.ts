@@ -11,8 +11,10 @@ export const cashierService = {
   },
 
   // Tables
-  getTables: async () => {
-    const res = await apiClient.get<RestaurantTable[]>('/tables');
+  getTables: async (branchId?: string) => {
+    const res = await apiClient.get<RestaurantTable[]>('/tables', {
+      params: branchId ? { branchId } : {},
+    });
     return res;
   },
 

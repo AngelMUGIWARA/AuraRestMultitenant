@@ -33,6 +33,7 @@ interface BranchContextValue {
   branches: Branch[];
   setBranch: (branch: Branch) => void;
   isGlobal: boolean;
+  isOwner: boolean;
   isLoading: boolean;
 }
 
@@ -41,6 +42,7 @@ const BranchContext = createContext<BranchContextValue>({
   branches: [],
   setBranch: () => {},
   isGlobal: true,
+  isOwner: true,
   isLoading: true,
 });
 
@@ -54,6 +56,7 @@ export function BranchProvider({ children, initialBranches = [] }: BranchProvide
   const [branches, setBranches] = useState<Branch[]>(initialBranches);
   const [isLoading, setIsLoading] = useState(initialBranches.length === 0);
   const [authReady, setAuthReady] = useState(false);
+  const [ownerState, setOwnerState] = useState(true);
 
   useEffect(() => {
     const offBranchChange = on('branch:changed', ({ branchId, branchName, isGlobal }) => {
@@ -130,6 +133,26 @@ export function BranchProvider({ children, initialBranches = [] }: BranchProvide
           }
 
           setBranches(branchList);
+
+          const role = AuthClient.getRole();
+          const isOwnerRole = !role || role === 'OWNER';
+          setOwnerState(isOwnerRole);
+
+          if (!isOwnerRole) {
+            const user = AuthClient.getUser();
+            const userBranchId = user?.branchId;
+            if (userBranchId) {
+              const matched = branchList.find((b) => b.id === userBranchId);
+              const branch = matched ?? { id: userBranchId, name: 'Mi sucursal', city: '', isActive: true };
+              setSelectedBranch(branch);
+              emit('branch:changed', {
+                branchId: branch.id,
+                branchName: branch.name,
+                isGlobal: false,
+              });
+            }
+          }
+
           setIsLoading(false);
         }
       } catch {
@@ -157,6 +180,7 @@ export function BranchProvider({ children, initialBranches = [] }: BranchProvide
         branches,
         setBranch,
         isGlobal: selectedBranch.id === 'global',
+        isOwner: ownerState,
         isLoading,
       }}
     >

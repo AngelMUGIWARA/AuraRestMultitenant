@@ -77,6 +77,7 @@ export const OWNER_NAV = [
   {
     label: 'Gestión',
     items: [
+      { href: '/admin/users', label: 'Usuarios', icon: 'users' },
       { href: '/sucursales', label: 'Sucursales', icon: 'branches' },
       { href: '/settings', label: 'Configuración', icon: 'settings' },
     ],
