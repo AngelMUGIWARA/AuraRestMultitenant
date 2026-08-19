@@ -6,16 +6,6 @@ import { getMFEUrl, initFederation } from './federation';
 // Cache para remotos ya registrados en la instancia global
 const registeredRemotes = new Set<string>();
 
-
-const MFE_URL_MAP: Record<string, string> = {
-  core_auth_dashboard_mf: MFE_URLS.core_auth_dashboard,
-  orders_tables_mf: MFE_URLS.orders_tables,
-  reservations_reports_mf: MFE_URLS.reservations_reports,
-  kitchen_mf: MFE_URLS.kitchen_mf,
-  cashier_mf: MFE_URLS.cashier_mf,
-  menu_mf: MFE_URLS.menu_mf,
-};
-
 /**
  * Carga dinámicamente un remoto (para lazy-loading).
  *
