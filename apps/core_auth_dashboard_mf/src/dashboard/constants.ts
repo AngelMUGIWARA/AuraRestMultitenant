@@ -23,7 +23,7 @@ export const OWNER_NAV: NavConfig = [
     label: 'Gestión',
     items: [
       { href: '/sucursales', label: 'Sucursales',    icon: 'branches' },
-      { href: '/settings',   label: 'Configuración', icon: 'settings' },
+      { href: '/admin/settings', label: 'Configuración', icon: 'settings' },
     ],
   },
 ];

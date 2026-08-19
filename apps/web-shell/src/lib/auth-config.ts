@@ -19,7 +19,7 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
   '/manager-dashboard': ['SUPER_ADMIN', 'MANAGER'],
   '/admin': ['SUPER_ADMIN', 'MANAGER'],
   '/admin/dashboard': ['SUPER_ADMIN', 'MANAGER'],
-  '/admin/settings': ['SUPER_ADMIN', 'MANAGER'],
+  '/admin/settings': ['SUPER_ADMIN', 'OWNER', 'MANAGER'],
   '/categorias': ['SUPER_ADMIN', 'MANAGER'],
   '/menus': ['SUPER_ADMIN', 'MANAGER'],
   '/orders': ['SUPER_ADMIN', 'MANAGER'],
@@ -73,16 +73,24 @@ export function canAccessRoute(pathname: string, role: string | null): boolean {
   // Rutas públicas (login, etc.)
   if (pathname.startsWith('/auth/')) return true;
 
-  // Buscar en la matriz de permisos
-  // Comprobar ruta exacta y prefijos
+  // 1. Comprobar ruta exacta
+  const exactMatch = ROUTE_PERMISSIONS[pathname];
+  if (exactMatch) {
+    return exactMatch.includes(role as UserRole);
+  }
+
+  // 2. Comprobar prefijos — la ruta más específica (más larga) gana.
+  //    Esto evita que '/admin' bloquee a OWNER en '/admin/settings'.
+  let bestRoles: UserRole[] | null = null;
+  let bestLen = 0;
   for (const [path, allowedRoles] of Object.entries(ROUTE_PERMISSIONS)) {
-    if (pathname === path || pathname.startsWith(path + '/')) {
-      return allowedRoles.includes(role as UserRole);
+    if (pathname.startsWith(path + '/') && path.length > bestLen) {
+      bestRoles = allowedRoles;
+      bestLen = path.length;
     }
   }
 
-  // Por defecto, negar acceso
-  return false;
+  return bestRoles ? bestRoles.includes(role as UserRole) : false;
 }
 
 /**
