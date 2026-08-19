@@ -32,7 +32,15 @@ function useElapsedSeconds(createdAt: string): number {
 
 function KitchenTicketCard({ ticket, onUpdateStatus, readOnly }: {
   ticket: KitchenTicket;
-  onUpdateStatus: (ticketId: string, orderId: string, orderNumber: string, status: KitchenTicketStatus) => void;
+  // Updated signature to include version and optional reason
+  onUpdateStatus: (
+    ticketId: string,
+    orderId: string,
+    orderNumber: string,
+    status: KitchenTicketStatus,
+    version: number,
+    reason?: string,
+  ) => void;
   readOnly?: boolean;
 }) {
   const cfg = STATUS_CONFIG[ticket.status];
@@ -66,7 +74,7 @@ function KitchenTicketCard({ ticket, onUpdateStatus, readOnly }: {
             </span>
             <div className="min-w-0">
               <p className="text-sm font-medium text-maison-cream">{item.menuItemName}</p>
-              {item.notes && <p className="text-xs text-maison-cream-muted mt-0.5 italic">{item.notes}</p>}
+              {item.notes && <p className="text-xs text-maison-amber mt-0.5 italic">{item.notes}</p>}
             </div>
           </li>
         ))}
@@ -84,7 +92,7 @@ function KitchenTicketCard({ ticket, onUpdateStatus, readOnly }: {
         {!readOnly && ticket.status === 'PENDING' && (
           <button
             type="button"
-            onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber ?? '', 'PREPARING')}
+            onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber ?? '', 'PREPARING', ticket.version)}
             className="flex-1 rounded-lg bg-maison-amber/20 border border-maison-amber/50 py-2 text-sm font-medium text-maison-amber hover:bg-maison-amber/30 transition"
           >
             Iniciar preparación
@@ -93,7 +101,7 @@ function KitchenTicketCard({ ticket, onUpdateStatus, readOnly }: {
         {!readOnly && ticket.status === 'PREPARING' && (
           <button
             type="button"
-            onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber ?? '', 'READY')}
+            onClick={() => onUpdateStatus(ticket.id, ticket.orderId, ticket.orderNumber ?? '', 'READY', ticket.version)}
             className="flex-1 rounded-lg bg-maison-sage/20 border border-maison-sage/50 py-2 text-sm font-medium text-maison-sage hover:bg-maison-sage/30 transition"
           >
             Marcar como listo ✓

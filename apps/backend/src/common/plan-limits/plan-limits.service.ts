@@ -1,10 +1,10 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import {
-    PLAN_LIMITS,
-    RESOURCE_LABEL,
-    RESOURCE_LIMIT_KEY,
-    type LimitedResource,
+  LimitedResource,
+  PLAN_LIMITS,
+  RESOURCE_LABEL,
+  RESOURCE_LIMIT_KEY,
 } from './plan-limits.config';
 
 @Injectable()
@@ -20,17 +20,10 @@ export class PlanLimitsService {
       where: { schemaName },
       select: { plan: true },
     });
+    if (!tenant) throw new NotFoundException('Tenant no encontrado');
 
-    if (!tenant) {
-      throw new NotFoundException('Tenant no encontrado');
-    }
-
-    const key = RESOURCE_LIMIT_KEY[resource];
-    const limit = PLAN_LIMITS[tenant.plan][key];
-
-    if (limit === null || currentCount < limit) {
-      return;
-    }
+    const limit = PLAN_LIMITS[tenant.plan][RESOURCE_LIMIT_KEY[resource]];
+    if (limit === null || currentCount < limit) return;
 
     throw new ForbiddenException(
       `Tu plan ${tenant.plan} permite hasta ${limit} ${RESOURCE_LABEL[resource]}${limit === 1 ? '' : 's'}. Actualiza tu plan para agregar más.`,

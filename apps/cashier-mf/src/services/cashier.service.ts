@@ -4,7 +4,6 @@ import type { ApiResponse, MenuItem, MenuFilters, RestaurantTable, Order, Create
 export const cashierService = {
   // Menu catalog for POS
   getMenuItems: async (filters?: MenuFilters) => {
-    // /admin/menus responde envuelto en { data: { data: MenuItem[], total, ... }, ... }
     const res = await apiClient.get<ApiResponse<PaginatedResponse<MenuItem>>>('/admin/menus', {
       params: { ...(filters as Record<string, string | number | boolean | undefined>), status: 'AVAILABLE' },
     });
@@ -12,8 +11,10 @@ export const cashierService = {
   },
 
   // Tables
-  getTables: () =>
-    apiClient.get<RestaurantTable[]>('/tables'),
+  getTables: async () => {
+    const res = await apiClient.get<RestaurantTable[]>('/tables');
+    return res;
+  },
 
   // Orders
   getOrderById: (orderId: string) =>
@@ -21,6 +22,10 @@ export const cashierService = {
 
   createOrder: (payload: CreateOrderPayload) =>
     apiClient.post<Order>('/orders', payload),
+
+  // Print ticket
+  printTicket: (orderId: string) =>
+    apiClient.post<Order>(`/orders/${orderId}/print-ticket`, {}),
 
   // Discounts
   getAvailableDiscounts: (orderId: string) =>

@@ -47,7 +47,7 @@ export class OrdersController {
     private readonly orderPromotionService: OrderPromotionService,
   ) {}
 
-  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER', 'KITCHEN_STAFF')
   @Post()
   @ApiOperation({ summary: 'Crear una orden', operationId: 'orders_create' })
   @ApiResponse({ status: 201, type: OrderResponseDto })
@@ -66,7 +66,7 @@ export class OrdersController {
     return this.ordersService.create(tenant.schemaName, createOrderDto, userId);
   }
 
-  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER', 'KITCHEN_STAFF')
   @Get()
   @ApiOperation({ summary: 'Listar órdenes con filtros', operationId: 'orders_findAll' })
   @ApiResponse({ status: 200, type: PaginatedOrdersDto })
@@ -77,7 +77,7 @@ export class OrdersController {
     return this.ordersService.findAll(tenant.schemaName, query);
   }
 
-  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER', 'KITCHEN_STAFF')
   @Get('stats')
   @ApiOperation({ summary: 'Estadísticas de órdenes del día', operationId: 'orders_getStats' })
   @ApiResponse({ status: 200, type: OrderStatsResponseDto })
@@ -85,7 +85,7 @@ export class OrdersController {
     return this.ordersService.getStats(tenant.schemaName);
   }
 
-  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER', 'KITCHEN_STAFF')
   @Get(':id')
   @ApiOperation({ summary: 'Obtener orden por ID', operationId: 'orders_findById' })
   @ApiResponse({ status: 200, type: OrderResponseDto })
@@ -97,7 +97,7 @@ export class OrdersController {
     return this.ordersService.findById(tenant.schemaName, id);
   }
 
-  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER', 'KITCHEN_STAFF')
   @Get(':id/available-discounts')
   @ApiOperation({ summary: 'Obtener descuentos aplicables a la orden', operationId: 'orders_getAvailableDiscounts' })
   @ApiResponse({ status: 200, type: [DiscountResponseDto] })
@@ -108,7 +108,7 @@ export class OrdersController {
     return this.orderDiscountService.getAvailable(tenant.schemaName, id);
   }
 
-  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER', 'KITCHEN_STAFF')
   @Get(':id/available-promotions')
   @ApiOperation({ summary: 'Obtener promociones aplicables a la orden', operationId: 'orders_getAvailablePromotions' })
   @ApiResponse({ status: 200, type: [PromotionResponseDto] })
@@ -132,7 +132,7 @@ export class OrdersController {
     return this.orderPromotionService.recalculate(tenant.schemaName, id, userId);
   }
 
-  @Roles('MANAGER', 'OWNER', 'CASHIER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'KITCHEN_STAFF')
   @Patch(':id/discount')
   @ApiOperation({ summary: 'Aplicar un descuento a la orden', operationId: 'orders_applyDiscount' })
   @ApiResponse({ status: 200, type: OrderResponseDto })
@@ -162,7 +162,7 @@ export class OrdersController {
     return this.orderDiscountService.remove(tenant.schemaName, id, userId);
   }
 
-  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER', 'KITCHEN_STAFF')
   @Patch(':id/status')
   @ApiOperation({ summary: 'Actualizar estado de orden', operationId: 'orders_updateStatus' })
   @ApiResponse({ status: 200, type: OrderResponseDto })
@@ -177,7 +177,7 @@ export class OrdersController {
     return this.ordersService.updateStatus(tenant.schemaName, id, dto, userId);
   }
 
-  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER', 'KITCHEN_STAFF')
   @Post(':id/cancel')
   @ApiOperation({ summary: 'Cancelar orden', operationId: 'orders_cancel' })
   @ApiResponse({ status: 200, type: OrderResponseDto })
@@ -190,5 +190,17 @@ export class OrdersController {
   ) {
     const userId = user?.id ?? user?.sub ?? user?.userId;
     return this.ordersService.cancel(tenant.schemaName, id, dto?.reason, userId);
+  }
+
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')
+  @Post(':id/print-ticket')
+  @ApiOperation({ summary: 'Marcar ticket como impreso', operationId: 'orders_printTicket' })
+  @ApiResponse({ status: 200, type: OrderResponseDto })
+  @ApiResponse({ status: 404, description: 'Orden no encontrada' })
+  printTicket(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+  ) {
+    return this.ordersService.printTicket(tenant.schemaName, id);
   }
 }

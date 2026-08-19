@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { useSidebar } from '@/context/SidebarContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { ManagerSidebar } from './ManagerSidebar';
 import { AdminTopbar } from './AdminTopbar';
 

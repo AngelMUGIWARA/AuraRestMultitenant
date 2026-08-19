@@ -100,7 +100,6 @@ export class UsersService {
     if (existing) {
       throw new ConflictException(`El email ${dto.email} ya está registrado`);
     }
-
     const currentStaff = await this.repo.countStaff(schemaName);
     await this.planLimits.assertWithinLimit(schemaName, 'staff', currentStaff);
 
@@ -112,7 +111,6 @@ export class UsersService {
     if (existing) {
       throw new ConflictException(`El email ${dto.email} ya está registrado`);
     }
-
     const currentStaff = await this.repo.countStaff(schemaName);
     await this.planLimits.assertWithinLimit(schemaName, 'staff', currentStaff);
 

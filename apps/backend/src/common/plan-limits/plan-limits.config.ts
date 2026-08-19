@@ -8,6 +8,7 @@ export interface PlanLimits {
   maxStaff: number | null;
 }
 
+// null = sin límite.
 export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
   FREE: { maxBranches: 1, maxMenuItems: 15, maxStaff: 2 },
   BASIC: { maxBranches: 1, maxMenuItems: 40, maxStaff: 5 },
@@ -22,7 +23,7 @@ export const RESOURCE_LIMIT_KEY: Record<LimitedResource, keyof PlanLimits> = {
 };
 
 export const RESOURCE_LABEL: Record<LimitedResource, string> = {
-  branches: 'branch',
-  menuItems: 'menu item',
-  staff: 'staff member',
+  branches: 'sucursal',
+  menuItems: 'platillo',
+  staff: 'usuario de staff',
 };

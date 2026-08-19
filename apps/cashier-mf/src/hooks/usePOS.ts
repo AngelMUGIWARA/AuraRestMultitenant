@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { on, emit } from '@maison/event-bus';
 import { cashierService } from '../services/cashier.service';
 import type { MenuItem, RestaurantTable, Order, PaymentMethod, Discount } from '@maison/types';
@@ -8,6 +8,8 @@ interface CartItem {
   quantity: number;
   notes?: string;
 }
+
+const TABLE_POLL_MS = 15_000;
 
 export function usePOS() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -20,6 +22,7 @@ export function usePOS() {
   const [error, setError] = useState<string | null>(null);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
   const [availableDiscounts, setAvailableDiscounts] = useState<Discount[]>([]);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadData = useCallback(async (bId?: string) => {
     setIsLoading(true);
@@ -35,6 +38,15 @@ export function usePOS() {
       setError(err instanceof Error ? err.message : 'Error al cargar datos');
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  const fetchTables = useCallback(async () => {
+    try {
+      const tablesRes = await cashierService.getTables();
+      setTables(tablesRes);
+    } catch {
+      // Silent fail for polling
     }
   }, []);
 
@@ -63,8 +75,16 @@ export function usePOS() {
     return () => { offBranch(); offMenuUpdated(); };
   }, [loadData]);
 
+  // Auto-poll tables
   useEffect(() => {
-    if (completedOrder?.id && completedOrder.paymentStatus === 'unpaid') {
+    pollRef.current = setInterval(fetchTables, TABLE_POLL_MS);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [fetchTables]);
+
+  useEffect(() => {
+    if (completedOrder?.id && (completedOrder.paymentStatus as string) === 'unpaid') {
       fetchAvailableDiscounts(completedOrder.id);
     } else {
       setAvailableDiscounts([]);
@@ -146,8 +166,21 @@ export function usePOS() {
   }, [completedOrder, fetchAvailableDiscounts]);
 
   const refreshTables = useCallback(() => {
-    loadData(branchId);
-  }, [loadData, branchId]);
+    fetchTables();
+  }, [fetchTables]);
+
+  const printTicket = useCallback(async (orderId: string) => {
+    try {
+      const updatedOrder = await cashierService.printTicket(orderId);
+      setCompletedOrder(updatedOrder);
+      await fetchTables();
+      emit('order:updated', { orderId });
+      return updatedOrder;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al imprimir ticket');
+      return null;
+    }
+  }, [fetchTables]);
 
   const processPayment = useCallback(async (
     payments: Array<{ method: PaymentMethod; amount: number; reference?: string }>,
@@ -198,6 +231,6 @@ export function usePOS() {
     cartTotal,
     isLoading, isSubmitting, error, completedOrder, availableDiscounts,
     addToCart, removeFromCart, clearCart, submitOrder, processPayment,
-    applyDiscount, removeDiscount, refreshTables, newOrder,
+    applyDiscount, removeDiscount, refreshTables, printTicket, newOrder,
   };
 }

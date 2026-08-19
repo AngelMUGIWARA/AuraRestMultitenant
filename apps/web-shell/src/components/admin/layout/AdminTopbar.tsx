@@ -4,10 +4,10 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { ADMIN_NAV } from '@/lib/constants';
-import { useSidebar } from '@/context/SidebarContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BranchSelector } from '@/components/ui/BranchSelector';
-import { IconSearch, IconBell, IconChevronRight } from '@maison/ui';
+import { IconSearch, IconChevronRight } from '@maison/ui';
 
 /* ─── Hamburger icon ────────────────────────────────────────────── */
 
@@ -135,17 +135,6 @@ export function AdminTopbar() {
       {/* Actions */}
       <div className="ml-auto flex items-center gap-1.5">
         <ThemeToggle />
-        <button
-          type="button"
-          className="relative flex h-8 w-8 items-center justify-center rounded border border-maison-border bg-surface-2 text-maison-cream-muted transition-colors hover:bg-surface-3 hover:text-maison-cream"
-          aria-label="Notificaciones"
-        >
-          <IconBell className="h-3.5 w-3.5" />
-          <span
-            className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-maison-ruby"
-            aria-hidden="true"
-          />
-        </button>
         <div
           className="ml-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white cursor-pointer"
           style={{ background: 'linear-gradient(140deg, rgb(var(--color-accent-dim)) 0%, rgb(var(--color-accent)) 100%)' }}

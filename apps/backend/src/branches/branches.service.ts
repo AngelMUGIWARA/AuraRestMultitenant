@@ -87,6 +87,7 @@ export class BranchesService {
   }
 
   async create(schemaName: string, dto: CreateBranchDto, userId?: string) {
+    // Validar límites del plan
     const currentCount = await this.repo.count(schemaName);
     await this.planLimits.assertWithinLimit(schemaName, 'branches', currentCount);
 
@@ -124,7 +125,6 @@ export class BranchesService {
 
       return newBranch;
     });
-
     if (userId) {
       this.activityLog.log(schemaName, {
         branchId: branch.id,
