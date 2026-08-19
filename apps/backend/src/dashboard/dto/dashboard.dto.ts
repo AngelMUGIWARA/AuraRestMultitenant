@@ -23,6 +23,15 @@ export class DashboardStatsDto {
   avgRating: number;
 
   @ApiProperty() newTenantsThisMonth: number;
+
+  @ApiProperty({ enum: ['FREE', 'BASIC', 'PRO', 'ENTERPRISE'] })
+  plan: string;
+
+  @ApiProperty()
+  planUsage: {
+    usage: { branches: number; menuItems: number; staff: number };
+    limits: { branches: number | null; menuItems: number | null; staff: number | null };
+  };
 }
 
 export class RevenueQueryDto {

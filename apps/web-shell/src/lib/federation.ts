@@ -45,6 +45,19 @@ export const MFE_URLS = {
   menu_mf:               process.env.NEXT_PUBLIC_MFE_MENU_URL ?? 'http://localhost:5003/remoteEntry.js',
 } as const;
 
+const MFE_URL_BY_REMOTE = {
+  core_auth_dashboard_mf: MFE_URLS.core_auth_dashboard,
+  orders_tables_mf: MFE_URLS.orders_tables,
+  reservations_reports_mf: MFE_URLS.reservations_reports,
+  kitchen_mf: MFE_URLS.kitchen_mf,
+  cashier_mf: MFE_URLS.cashier_mf,
+  menu_mf: MFE_URLS.menu_mf,
+} as const;
+
+export function getMFEUrl(remoteName: string): string | undefined {
+  return MFE_URL_BY_REMOTE[remoteName as keyof typeof MFE_URL_BY_REMOTE];
+}
+
 export function initFederation(): void {
   if (initialized || typeof window === 'undefined') return;
   initialized = true;

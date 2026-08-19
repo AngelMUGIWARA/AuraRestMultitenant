@@ -1,10 +1,11 @@
 import { systemAdminApi } from '@/lib/system-admin-api';
 import type {
-  Tenant,
-  CreateTenantPayload,
-  CreateTenantResponse,
-  SuspendTenantPayload,
-  TenantOwnerCredentials,
+    CreateTenantPayload,
+    CreateTenantResponse,
+    SuspendTenantPayload,
+    Tenant,
+    TenantOwnerCredentials,
+    TenantPlanUsage,
 } from '@maison/types';
 
 export const systemAdminTenantsService = {
@@ -17,6 +18,12 @@ export const systemAdminTenantsService = {
     systemAdminApi.patch<Tenant>(`/system-admin/tenants/${id}/suspend`, payload),
 
   activate: (id: string) => systemAdminApi.patch<Tenant>(`/system-admin/tenants/${id}/activate`, {}),
+
+  updatePlan: (id: string, plan: Tenant['plan']) =>
+    systemAdminApi.patch<Tenant>(`/system-admin/tenants/${id}/plan`, { plan }),
+
+  getPlanUsage: (id: string) =>
+    systemAdminApi.get<TenantPlanUsage>(`/system-admin/tenants/${id}/plan-usage`),
 
   resetOwnerPassword: (id: string) =>
     systemAdminApi.patch<TenantOwnerCredentials>(`/system-admin/tenants/${id}/reset-owner-password`, {}),

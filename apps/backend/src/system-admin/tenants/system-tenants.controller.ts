@@ -1,13 +1,13 @@
 import { Body, Controller, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../../common/decorators/public.decorator';
+import { AuthenticatedSystemAdmin, CurrentSystemAdmin } from '../decorators/current-system-admin.decorator';
 import { SystemJwtAuthGuard } from '../guards/system-jwt-auth.guard';
-import { CurrentSystemAdmin, AuthenticatedSystemAdmin } from '../decorators/current-system-admin.decorator';
-import { SystemTenantsService } from './system-tenants.service';
 import { CreateSystemTenantDto } from './dto/create-system-tenant.dto';
-import { UpdateSystemTenantDto } from './dto/update-system-tenant.dto';
 import { SuspendTenantDto } from './dto/suspend-tenant.dto';
 import { CreateTenantResponseDto, OwnerCredentialsDto, TenantResponseDto } from './dto/tenant-response.dto';
+import { UpdateSystemTenantDto, UpdateTenantPlanDto } from './dto/update-system-tenant.dto';
+import { SystemTenantsService } from './system-tenants.service';
 
 @ApiTags('System Admin — Tenants')
 @ApiBearerAuth('SystemJWT')
@@ -48,6 +48,23 @@ export class SystemTenantsController {
   @ApiResponse({ status: 200, type: TenantResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateSystemTenantDto) {
     return this.service.update(id, dto);
+  }
+
+  @Patch(':id/plan')
+  @ApiOperation({ summary: 'Cambiar el plan de un tenant (solo Super Admin)', operationId: 'systemAdmin_changeTenantPlan' })
+  @ApiResponse({ status: 200, type: TenantResponseDto })
+  changePlan(
+    @Param('id') id: string,
+    @Body() dto: UpdateTenantPlanDto,
+    @CurrentSystemAdmin() admin: AuthenticatedSystemAdmin,
+  ) {
+    return this.service.updatePlan(id, dto.plan, admin.id);
+  }
+
+  @Get(':id/plan-usage')
+  @ApiOperation({ summary: 'Consultar uso y límites del plan de un tenant (solo Super Admin)', operationId: 'systemAdmin_getTenantPlanUsage' })
+  getPlanUsage(@Param('id') id: string) {
+    return this.service.getPlanUsage(id);
   }
 
   @Patch(':id/suspend')

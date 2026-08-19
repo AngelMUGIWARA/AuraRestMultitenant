@@ -1,11 +1,11 @@
+import { IconDollarSign, IconPlus, IconStar, IconTenants, IconUsers, StatCard, StatCardSkeleton } from '@maison/ui';
 import { useState } from 'react';
+import { BranchModal } from '../components/branches/BranchModal';
+import { ActivityFeed } from '../components/dashboard/ActivityFeed';
+import { RevenueChartSection } from '../components/dashboard/RevenueChartSection';
+import { TenantTable } from '../components/dashboard/TenantTable';
 import { useDashboard } from '../hooks/useDashboard';
 import { formatCurrency, formatNumber, formatPercent } from '../utils';
-import { StatCard, StatCardSkeleton, IconTenants, IconUsers, IconDollarSign, IconStar, IconPlus } from '@maison/ui';
-import { RevenueChartSection } from '../components/dashboard/RevenueChartSection';
-import { ActivityFeed } from '../components/dashboard/ActivityFeed';
-import { TenantTable } from '../components/dashboard/TenantTable';
-import { BranchModal } from '../components/branches/BranchModal';
 
 export default function DashboardPage() {
   const { data, isLoading, error, refresh } = useDashboard();
@@ -38,6 +38,9 @@ export default function DashboardPage() {
           )}
         </div>
       </section>
+      {!isLoading && stats?.planUsage && (
+        <PlanUsagePanel plan={stats.plan} planUsage={stats.planUsage} />
+      )}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_380px]">
         <RevenueChartSection data={data?.revenue} isLoading={isLoading} error={hasError} />
         <ActivityFeed items={data?.activity} isLoading={isLoading} error={hasError} />
@@ -46,5 +49,47 @@ export default function DashboardPage() {
 
       <BranchModal open={modalOpen} onClose={() => setModalOpen(false)} onSuccess={refresh} />
     </div>
+  );
+}
+
+function PlanUsagePanel({
+  plan,
+  planUsage,
+}: {
+  plan: string;
+  planUsage: DashboardStats['planUsage'];
+}) {
+  const resources = [
+    ['Sucursales', planUsage.usage.branches, planUsage.limits.branches],
+    ['Elementos de menú', planUsage.usage.menuItems, planUsage.limits.menuItems],
+    ['Staff', planUsage.usage.staff, planUsage.limits.staff],
+  ] as const;
+
+  return (
+    <section className="rounded border border-maison-border bg-surface-1 px-5 py-4" aria-labelledby="plan-usage-title">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 id="plan-usage-title" className="text-sm font-medium text-maison-cream">Uso del plan {plan}</h2>
+          <p className="text-xs text-maison-cream-muted">Límites actuales de tu suscripción</p>
+        </div>
+        <span className="text-xs font-medium text-maison-amber">{plan}</span>
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        {resources.map(([label, used, limit]) => {
+          const percentage = limit === null ? 0 : Math.min(100, Math.round((used / limit) * 100));
+          return (
+            <div key={label}>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-maison-cream-muted">{label}</span>
+                <span className="font-mono text-maison-cream">{used}/{limit === null ? '∞' : limit}</span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-3">
+                <div className="h-full rounded-full bg-maison-amber" style={{ width: `${percentage}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
