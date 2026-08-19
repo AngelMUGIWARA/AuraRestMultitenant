@@ -294,6 +294,15 @@ export interface InviteUserPayload {
   branchId?: string;
 }
 
+export interface CreateUserPayload {
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  phone?: string;
+  branchId?: string;
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export interface DashboardStats {

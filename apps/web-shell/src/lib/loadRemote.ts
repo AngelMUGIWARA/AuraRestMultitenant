@@ -16,11 +16,6 @@ const MFE_URL_MAP: Record<string, string> = {
   menu_mf: MFE_URLS.menu_mf,
 };
 
-function getMFEUrl(remoteName: string): string | undefined {
-  return MFE_URL_MAP[remoteName];
-}
-
-
 /**
  * Carga dinámicamente un remoto (para lazy-loading).
  *

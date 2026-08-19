@@ -1,6 +1,9 @@
+import { useState } from 'react';
+import { AuthClient } from '@maison/auth-client';
 import { useUsers } from '../hooks/useUsers';
 import { formatNumber, cn } from '../utils';
-import { StatCard, StatCardSkeleton, SkeletonRow, EmptyState, IconUsers } from '@maison/ui';
+import { StatCard, StatCardSkeleton, SkeletonRow, EmptyState, IconUsers, IconPlus } from '@maison/ui';
+import { UserModal } from '../components/users/UserModal';
 import type { UserRole, UserStatus } from '@maison/types';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -16,13 +19,23 @@ const STATUS_BADGE: Record<UserStatus, string> = { ACTIVE: 'badge-active', INACT
 const STATUS_LABEL: Record<UserStatus, string> = { ACTIVE: 'Activo', INACTIVE: 'Inactivo', SUSPENDED: 'Suspendido' };
 
 export default function UsersPage() {
-  const { stats, users, isLoading, error } = useUsers();
+  const { stats, users, isLoading, error, refresh } = useUsers();
+  const [modalOpen, setModalOpen] = useState(false);
   const hasError = !!error;
+  const isOwner = AuthClient.getRole() === 'OWNER';
+
   return (
     <div className="flex flex-col gap-7 animate-fade-in">
-      <header>
-        <h1 className="font-display text-3xl font-medium text-maison-cream leading-none">Usuarios</h1>
-        <p className="mt-1.5 text-sm text-maison-cream-muted">Gestión de accesos y roles de la plataforma</p>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-medium text-maison-cream leading-none">Usuarios</h1>
+          <p className="mt-1.5 text-sm text-maison-cream-muted">Gestión de accesos y roles de la plataforma</p>
+        </div>
+        {isOwner && (
+          <button type="button" onClick={() => setModalOpen(true)} className="btn-primary self-start sm:self-auto">
+            <IconPlus className="h-4 w-4" />Nuevo usuario
+          </button>
+        )}
       </header>
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {isLoading ? <><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></> : <>
@@ -53,6 +66,8 @@ export default function UsersPage() {
           </div>
         )}
       </section>
+
+      <UserModal open={modalOpen} onClose={() => setModalOpen(false)} onSuccess={refresh} />
     </div>
   );
 }

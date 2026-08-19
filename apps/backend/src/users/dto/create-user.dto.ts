@@ -37,4 +37,9 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @ApiPropertyOptional({ description: 'ID de la sucursal a asignar (no aplica para OWNER)' })
+  @IsOptional()
+  @IsString()
+  branchId?: string;
 }
