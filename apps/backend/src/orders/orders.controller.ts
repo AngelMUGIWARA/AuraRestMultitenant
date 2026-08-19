@@ -73,16 +73,23 @@ export class OrdersController {
   findAll(
     @CurrentTenant() tenant: TenantContext,
     @Query() query: OrderQueryDto,
+    @CurrentUser() user: any,
   ) {
-    return this.ordersService.findAll(tenant.schemaName, query);
+    const requestingUser = user ? { id: user.id ?? user.sub ?? user.userId, role: user.role } : undefined;
+    return this.ordersService.findAll(tenant.schemaName, query, requestingUser);
   }
 
   @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER', 'KITCHEN_STAFF')
   @Get('stats')
   @ApiOperation({ summary: 'Estadísticas de órdenes del día', operationId: 'orders_getStats' })
   @ApiResponse({ status: 200, type: OrderStatsResponseDto })
-  getStats(@CurrentTenant() tenant: TenantContext) {
-    return this.ordersService.getStats(tenant.schemaName);
+  getStats(
+    @CurrentTenant() tenant: TenantContext,
+    @Query('branchId') branchId: string,
+    @CurrentUser() user: any,
+  ) {
+    const requestingUser = user ? { id: user.id ?? user.sub ?? user.userId, role: user.role } : undefined;
+    return this.ordersService.getStats(tenant.schemaName, branchId, requestingUser);
   }
 
   @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER', 'KITCHEN_STAFF')

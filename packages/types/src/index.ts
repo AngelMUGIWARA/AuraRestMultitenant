@@ -813,6 +813,7 @@ export interface CreateOrderPayload {
   items: Array<{ menuItemId: string; quantity: number; notes?: string }>;
   customerName?: string;
   tableId?: string;
+  branchId?: string;
   notes?: string;
 }
 

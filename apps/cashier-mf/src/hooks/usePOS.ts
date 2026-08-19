@@ -30,7 +30,7 @@ export function usePOS() {
     try {
       const [menuRes, tablesRes] = await Promise.all([
         cashierService.getMenuItems({ branchId: bId }),
-        cashierService.getTables(),
+        cashierService.getTables(bId),
       ]);
       setMenuItems(menuRes);
       setTables(tablesRes);
@@ -41,9 +41,9 @@ export function usePOS() {
     }
   }, []);
 
-  const fetchTables = useCallback(async () => {
+  const fetchTables = useCallback(async (bId?: string) => {
     try {
-      const tablesRes = await cashierService.getTables();
+      const tablesRes = await cashierService.getTables(bId);
       setTables(tablesRes);
     } catch {
       // Silent fail for polling
@@ -77,11 +77,11 @@ export function usePOS() {
 
   // Auto-poll tables
   useEffect(() => {
-    pollRef.current = setInterval(fetchTables, TABLE_POLL_MS);
+    pollRef.current = setInterval(() => fetchTables(branchId), TABLE_POLL_MS);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [fetchTables]);
+  }, [fetchTables, branchId]);
 
   useEffect(() => {
     if (completedOrder?.id && (completedOrder.paymentStatus as string) === 'unpaid') {
@@ -124,6 +124,7 @@ export function usePOS() {
         items: cart.map((c) => ({ menuItemId: c.menuItem.id, quantity: c.quantity, notes: c.notes })),
         customerName,
         tableId: selectedTable?.id,
+        branchId,
       });
       setCompletedOrder(order);
       emit('order:created', { order });
@@ -133,7 +134,7 @@ export function usePOS() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [cart, selectedTable]);
+  }, [cart, selectedTable, branchId]);
 
   const applyDiscount = useCallback(async (discountId: string) => {
     if (!completedOrder) return;
@@ -166,21 +167,21 @@ export function usePOS() {
   }, [completedOrder, fetchAvailableDiscounts]);
 
   const refreshTables = useCallback(() => {
-    fetchTables();
-  }, [fetchTables]);
+    fetchTables(branchId);
+  }, [fetchTables, branchId]);
 
   const printTicket = useCallback(async (orderId: string) => {
     try {
       const updatedOrder = await cashierService.printTicket(orderId);
       setCompletedOrder(updatedOrder);
-      await fetchTables();
+      await fetchTables(branchId);
       emit('order:updated', { orderId });
       return updatedOrder;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al imprimir ticket');
       return null;
     }
-  }, [fetchTables]);
+  }, [fetchTables, branchId]);
 
   const processPayment = useCallback(async (
     payments: Array<{ method: PaymentMethod; amount: number; reference?: string }>,

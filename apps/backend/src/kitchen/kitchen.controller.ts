@@ -90,8 +90,10 @@ export class KitchenController {
   findTickets(
     @CurrentTenant() tenant: TenantContext,
     @Query() query: ListKitchenTicketsQueryDto,
+    @CurrentUser() user: any,
   ) {
-    return this.kitchenService.findTickets(tenant.schemaName, query);
+    const requestingUser = user ? { id: user.id ?? user.sub ?? user.userId, role: user.role } : undefined;
+    return this.kitchenService.findTickets(tenant.schemaName, query, requestingUser);
   }
 
   @Roles('OWNER', 'MANAGER', 'KITCHEN_STAFF', 'WAITER')

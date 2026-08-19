@@ -85,11 +85,13 @@ export function useCreateOrder(initialTableId?: string) {
     setIsSubmitting(true);
     setError(null);
     try {
+      const branchId = selectedBranch?.isGlobal ? undefined : selectedBranch?.id;
       const order = await ordersService.createOrder({
         type: table ? 'DINE_IN' : 'TAKEOUT',
         items: cart.map((c) => ({ menuItemId: c.menuItem.id, quantity: c.quantity, notes: c.notes })),
         customerName: customerName || undefined,
         tableId: table?.id,
+        branchId,
         notes: orderNotes || undefined,
       });
       emit('order:created', { order });
@@ -102,7 +104,7 @@ export function useCreateOrder(initialTableId?: string) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [cart, table, customerName, orderNotes]);
+  }, [cart, table, customerName, orderNotes, selectedBranch]);
 
   return {
     menuItems,

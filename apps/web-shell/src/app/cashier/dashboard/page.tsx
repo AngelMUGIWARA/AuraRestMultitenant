@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { apiClient } from '@maison/api-client';
-import { Skeleton } from '@maison/ui';
+import { Skeleton, useBranch } from '@maison/ui';
 
 interface OrderStats {
   totalOrders: number;
@@ -72,6 +72,9 @@ const PAYMENT_BADGES: Record<string, { label: string; color: string }> = {
 };
 
 export default function CashierDashboardPage() {
+  const { selectedBranch } = useBranch();
+  const branchId = selectedBranch?.isGlobal ? undefined : selectedBranch?.id;
+
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [recentOrders, setRecentOrders] = useState<OrderSummary[]>([]);
   const [tables, setTables] = useState<TableInfo[]>([]);
@@ -86,10 +89,12 @@ export default function CashierDashboardPage() {
       setLoading(true);
       setError(null);
 
+      const params = branchId ? { branchId } : {};
+
       const [statsRes, ordersRes, tablesRes] = await Promise.allSettled([
-        apiClient.get<OrderStats>('/orders/stats'),
-        apiClient.get<{ data: OrderSummary[] }>('/orders?limit=20'),
-        apiClient.get<TableInfo[]>('/tables'),
+        apiClient.get<OrderStats>('/orders/stats', { params }),
+        apiClient.get<{ data: OrderSummary[] }>('/orders', { params: { ...params, limit: 20 } }),
+        apiClient.get<TableInfo[]>('/tables', { params }),
       ]);
 
       if (statsRes.status === 'fulfilled') {
@@ -111,11 +116,11 @@ export default function CashierDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, branchId]);
 
   if (loading) {
     return (
