@@ -20,7 +20,7 @@ const ROUTES: SearchResult[] = [
   { id: 'reservaciones', label: 'Reservaciones', href: '/reservaciones', category: 'route' },
   { id: 'inventario', label: 'Inventario', href: '/inventario', category: 'route' },
   { id: 'sucursales', label: 'Sucursales', href: '/sucursales', category: 'route' },
-  { id: 'configuracion', label: 'Configuración', href: '/settings', category: 'route' },
+  { id: 'configuracion', label: 'Configuración', href: '/admin/settings', category: 'route' },
 ];
 
 export function GlobalSearch() {

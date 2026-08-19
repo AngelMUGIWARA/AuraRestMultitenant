@@ -79,7 +79,7 @@ export const OWNER_NAV = [
     items: [
       { href: '/admin/users', label: 'Usuarios', icon: 'users' },
       { href: '/sucursales', label: 'Sucursales', icon: 'branches' },
-      { href: '/settings', label: 'Configuración', icon: 'settings' },
+      { href: '/admin/settings', label: 'Configuración', icon: 'settings' },
     ],
   },
 ] as const;

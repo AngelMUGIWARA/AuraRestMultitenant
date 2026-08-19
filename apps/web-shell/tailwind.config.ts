@@ -7,6 +7,7 @@ const config: Config = {
     './src/**/*.{js,ts,jsx,tsx,mdx}',
     // All MFE source files — so their Tailwind classes are included in the global CSS
     '../auth-mf/src/**/*.{js,ts,jsx,tsx}',
+    '../core_auth_dashboard_mf/src/**/*.{js,ts,jsx,tsx}',
     '../dashboard-mf/src/**/*.{js,ts,jsx,tsx}',
     '../menu-mf/src/**/*.{js,ts,jsx,tsx}',
     '../orders-mf/src/**/*.{js,ts,jsx,tsx}',

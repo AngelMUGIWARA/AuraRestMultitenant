@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { Cormorant, Outfit, JetBrains_Mono } from 'next/font/google';
 import { ThemeProvider, themeScript } from '@/context/ThemeContext';
 import './globals.css';
@@ -43,8 +44,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* Blocking script: sets dark/light class before first paint to prevent flash */}
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeScript }}
+        />
       </head>
       <body>
         <ThemeProvider>{children}</ThemeProvider>
