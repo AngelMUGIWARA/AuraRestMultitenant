@@ -23,7 +23,7 @@ export const OWNER_NAV: NavConfig = [
     label: 'Gestión',
     items: [
       { href: '/sucursales', label: 'Sucursales',    icon: 'branches' },
-      { href: '/admin/settings', label: 'Configuración', icon: 'settings' },
+      { href: '/admin/settings', label: 'Alexa Skill', icon: 'settings' },
     ],
   },
 ];

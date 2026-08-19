@@ -8,6 +8,8 @@ export const usersService = {
   getById: (id: string) => apiClient.get<ApiResponse<User>>(`/admin/users/${id}`),
   create: (payload: CreateUserPayload) => apiClient.post<ApiResponse<User>>('/admin/users', payload),
   invite: (payload: InviteUserPayload) => apiClient.post<ApiResponse<User>>('/admin/users/invite', payload),
+  update: (id: string, payload: Partial<CreateUserPayload>) =>
+    apiClient.patch<ApiResponse<User>>(`/admin/users/${id}`, payload),
   updateRole: (id: string, payload: UpdateUserRolePayload) =>
     apiClient.patch<ApiResponse<User>>(`/admin/users/${id}/role`, payload),
   deactivate: (id: string) => apiClient.patch<ApiResponse<void>>(`/admin/users/${id}/deactivate`, {}),

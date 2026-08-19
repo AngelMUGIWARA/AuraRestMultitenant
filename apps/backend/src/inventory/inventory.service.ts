@@ -137,10 +137,20 @@ export class InventoryService {
   async findItems(
     schemaName: string,
     user: RequestingUser,
-    filters?: { isActive?: boolean; search?: string },
+    filters?: { isActive?: boolean; search?: string; branchId?: string },
   ) {
-    const scope = await this.resolveBranchScope(schemaName, user);
-    const items = await this.repo.findItems(schemaName, filters);
+    if (filters?.branchId) {
+      await this.assertBranchAllowed(schemaName, user, filters.branchId);
+    }
+
+    const scope = filters?.branchId
+      ? [filters.branchId]
+      : ((await this.resolveBranchScope(schemaName, user)) ?? undefined);
+
+    const items = await this.repo.findItems(schemaName, {
+      isActive: filters?.isActive,
+      search: filters?.search
+    });
 
     const mapped = items.map((item) => {
       const stocks = scope

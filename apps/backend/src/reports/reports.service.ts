@@ -209,7 +209,7 @@ export class ReportsService {
     schemaName: string,
     query: ExportReportQueryDto,
   ): Promise<{ csv: string; filename: string }> {
-    const dateParams = { startDate: query.startDate, endDate: query.endDate };
+    const dateParams = { startDate: query.startDate, endDate: query.endDate, branchId: query.branchId };
 
     switch (query.type) {
       case 'sales': {

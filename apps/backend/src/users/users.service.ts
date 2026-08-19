@@ -42,12 +42,13 @@ export class UsersService {
   async findAll(
     schemaName: string,
     pagination: PaginationDto,
+    branchId?: string,
   ): Promise<PaginatedUsersDto> {
     const { page = 1, limit = 20 } = pagination;
     const { data, total } = await this.repo.findAll(schemaName, {
       skip: pagination.skip,
       take: limit,
-    });
+    }, branchId);
 
     return {
       data,

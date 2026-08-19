@@ -32,9 +32,14 @@ function useBreadcrumb() {
 
 export function AdminTopbar() {
   const { pathname } = useLocation();
-  const crumbs = useBreadcrumb();
+  let crumbs = useBreadcrumb();
   const { openMobile } = useSidebar();
   const showBranchSelector = pathname !== '/dashboard';
+
+  if (pathname === '/admin/settings') {
+    crumbs = crumbs.filter((c) => c.href !== '/admin');
+  }
+
   return (
     <header className="sticky top-0 z-10 flex h-[60px] items-center gap-2 border-b border-maison-border bg-surface-1 px-4 transition-colors lg:px-5">
       <button type="button" onClick={openMobile}
