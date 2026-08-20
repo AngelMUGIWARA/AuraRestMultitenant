@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { AuthClient } from '@maison/auth-client';
 import { apiClient } from '@maison/api-client';
-import { EmptyState, Skeleton, IconUsers, IconPlus } from '@maison/ui';
+import { EmptyState, Skeleton, IconUsers, IconPlus, IconPencil, IconPower, Modal } from '@maison/ui';
 import { UserModal } from '@/components/users/UserModal';
+import { usersService } from '@/services/users.service';
 import type { User } from '@maison/types';
 
 export default function AdminUsersPage() {
@@ -12,6 +13,9 @@ export default function AdminUsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [deactivatingUserId, setDeactivatingUserId] = useState<string | null>(null);
+  const [isChangingStatus, setIsChangingStatus] = useState(false);
   const isOwner = AuthClient.getRole() === 'OWNER';
 
   const fetchUsers = async () => {
@@ -30,6 +34,41 @@ export default function AdminUsersPage() {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setEditingUser(null);
+  };
+
+  const confirmDeactivation = async (userId: string) => {
+    setIsChangingStatus(true);
+    try {
+      await usersService.deactivate(userId);
+      await fetchUsers();
+    } catch (err) {
+      console.error('Error deactivating user:', err);
+    } finally {
+      setIsChangingStatus(false);
+      setDeactivatingUserId(null);
+    }
+  };
+
+  const handleActivate = async (userId: string) => {
+    setIsChangingStatus(true);
+    try {
+      await usersService.activate(userId);
+      await fetchUsers();
+    } catch (err) {
+      console.error('Error activating user:', err);
+    } finally {
+      setIsChangingStatus(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -81,7 +120,7 @@ export default function AdminUsersPage() {
             className="py-20"
           />
         </div>
-        <UserModal open={modalOpen} onClose={() => setModalOpen(false)} onSuccess={fetchUsers} />
+        <UserModal open={modalOpen} onClose={handleCloseModal} onSuccess={fetchUsers} editingUser={editingUser} />
       </div>
     );
   }
@@ -109,6 +148,7 @@ export default function AdminUsersPage() {
               <th className="px-4 py-3 text-left font-medium text-maison-cream-muted">Rol</th>
               <th className="px-4 py-3 text-left font-medium text-maison-cream-muted">Estado</th>
               <th className="px-4 py-3 text-left font-medium text-maison-cream-muted">Sucursal</th>
+              <th className="px-4 py-3 text-left font-medium text-maison-cream-muted">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -131,13 +171,57 @@ export default function AdminUsersPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-maison-cream-muted">{user.branchName ?? '—'}</td>
+                <td className="px-4 py-3 flex gap-2">
+                  {isOwner && user.role !== 'SUPER_ADMIN' && (
+                    <>
+                      <button
+                        onClick={() => handleEdit(user)}
+                        className="btn-icon-sm btn-icon-secondary"
+                        title="Editar usuario"
+                      >
+                        <IconPencil className="h-4 w-4" />
+                      </button>
+                      {user.status === 'ACTIVE' ? (
+                        <button
+                          onClick={() => setDeactivatingUserId(user.id)}
+                          disabled={isChangingStatus}
+                          className="btn-icon-sm btn-icon-secondary"
+                          title="Desactivar usuario"
+                        >
+                          <IconPower className="h-4 w-4" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleActivate(user.id)}
+                          disabled={isChangingStatus}
+                          className="btn-icon-sm btn-icon-secondary"
+                          title="Activar usuario"
+                        >
+                          <IconPower className="h-4 w-4 opacity-50" />
+                        </button>
+                      )}
+                    </>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <UserModal open={modalOpen} onClose={() => setModalOpen(false)} onSuccess={fetchUsers} />
+      <UserModal open={modalOpen} onClose={handleCloseModal} onSuccess={fetchUsers} editingUser={editingUser} />
+
+      <Modal open={!!deactivatingUserId} onClose={() => setDeactivatingUserId(null)} title="Desactivar usuario">
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-maison-cream-muted">¿Estás seguro de que deseas desactivar este usuario? Se restringirá el acceso inmediatamente.</p>
+          <div className="flex gap-3 justify-end">
+            <button onClick={() => setDeactivatingUserId(null)} className="btn-secondary" disabled={isChangingStatus}>Cancelar</button>
+            <button onClick={() => deactivatingUserId && confirmDeactivation(deactivatingUserId)} className="btn-destructive" disabled={isChangingStatus}>
+              {isChangingStatus ? 'Desactivando...' : 'Desactivar'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

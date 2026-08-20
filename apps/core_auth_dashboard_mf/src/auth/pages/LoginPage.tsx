@@ -6,6 +6,8 @@ import { useLogin } from '../hooks/useLogin';
 
 function friendlyError(raw: string | null): string | null {
   if (!raw) return null;
+  if (/inactiv|suspendid/i.test(raw))
+    return 'Tu cuenta está inactiva o suspendida. Contacta a un administrador.';
   if (/401|unauthorized|invalid|credenciales/i.test(raw))
     return 'Correo o contraseña incorrectos.';
   if (/network|fetch|ECONNREFUSED/i.test(raw))

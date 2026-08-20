@@ -3,7 +3,7 @@ import { AuthClient } from '@maison/auth-client';
 import { useBranch } from '@maison/ui';
 import { useUsers } from '../hooks/useUsers';
 import { formatNumber, cn } from '../utils';
-import { StatCard, StatCardSkeleton, SkeletonRow, EmptyState, IconUsers, IconPlus, IconEdit, IconPower, Modal } from '@maison/ui';
+import { StatCard, StatCardSkeleton, SkeletonRow, EmptyState, IconUsers, IconPlus, IconPencil, IconPower, Modal } from '@maison/ui';
 import { UserModal } from '../components/users/UserModal';
 import { usersService } from '../services/users.service';
 import type { UserRole, UserStatus, User } from '@maison/types';
@@ -109,7 +109,7 @@ export default function UsersPage() {
                           className="btn-icon-sm btn-icon-secondary"
                           title="Editar usuario"
                         >
-                          <IconEdit className="h-4 w-4" />
+                          <IconPencil className="h-4 w-4" />
                         </button>
                         {u.status === 'ACTIVE' ? (
                           <button

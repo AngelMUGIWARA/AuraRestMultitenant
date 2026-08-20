@@ -374,3 +374,10 @@ export const IconDownload = base(
     <line x1="12" x2="12" y1="15" y2="3" />
   </>,
 );
+
+export const IconPower = base(
+  <>
+    <path d="M12 2v10" />
+    <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+  </>,
+);
