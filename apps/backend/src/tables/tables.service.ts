@@ -1,16 +1,43 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma-tenant';
 import { TableStatus } from '../generated/prisma-tenant';
+import { mapOrderStatusFromDb, mapOrderPaymentStatusFromDb } from '../common/utils/order-mapper';
 import { CreateTableDto } from './dto/create-table.dto';
 import { UpdateTableDto } from './dto/update-table.dto';
 import { TablesRepository } from './tables.repository';
+
+const GLOBAL_BRANCH_ROLES = new Set(['OWNER']);
+
+export interface RequestingUser {
+  id: string;
+  role: string;
+}
 
 @Injectable()
 export class TablesService {
   constructor(private readonly tablesRepo: TablesRepository) {}
 
-  async findAll(schemaName: string, branchId?: string) {
-    const whereInput = branchId ? { branchId } : undefined;
+  private async resolveBranchScope(
+    schemaName: string,
+    user: RequestingUser,
+  ): Promise<string[] | null> {
+    if (GLOBAL_BRANCH_ROLES.has(user.role)) return null;
+    const branchIds = await this.tablesRepo.findUserBranchIds(schemaName, user.id);
+    return branchIds.length > 0 ? branchIds : [];
+  }
+
+  async findAll(schemaName: string, branchId?: string, user?: RequestingUser) {
+    let whereInput: Prisma.RestaurantTableWhereInput | undefined;
+
+    if (branchId) {
+      whereInput = { branchId };
+    } else if (user) {
+      const scope = await this.resolveBranchScope(schemaName, user);
+      if (scope) {
+        whereInput = { branchId: { in: scope } };
+      }
+    }
+
     const tables = await this.tablesRepo.findAll(schemaName, whereInput);
     return tables.map((t) => this.toResponse(t));
   }
@@ -121,8 +148,8 @@ export class TablesService {
         ? {
             id: activeOrder.id,
             orderNumber: activeOrder.folio,
-            status: activeOrder.status,
-            paymentStatus: activeOrder.paymentStatus,
+            status: mapOrderStatusFromDb(activeOrder.status),
+            paymentStatus: mapOrderPaymentStatusFromDb(activeOrder.paymentStatus),
             total: Number(activeOrder.total),
             itemCount: activeOrder.orderItems?.length ?? 0,
             waiterName: activeOrder.user?.name || null,

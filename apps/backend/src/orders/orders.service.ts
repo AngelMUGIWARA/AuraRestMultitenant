@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   Logger,
@@ -123,7 +124,21 @@ export class OrdersService {
   ): Promise<string[] | null> {
     if (GLOBAL_BRANCH_ROLES.has(user.role)) return null;
     const branchIds = await this.ordersRepo.findUserBranchIds(schemaName, user.id);
-    return branchIds.length > 0 ? branchIds : null;
+    return branchIds.length > 0 ? branchIds : [];
+  }
+
+  private async assertBranchAccess(
+    schemaName: string,
+    user: RequestingUser | undefined,
+    branchId: string,
+  ): Promise<void> {
+    if (!user || GLOBAL_BRANCH_ROLES.has(user.role)) return;
+    const scope = await this.resolveBranchScope(schemaName, user);
+    if (scope && !scope.includes(branchId)) {
+      throw new ForbiddenException(
+        'No tienes acceso a esta sucursal',
+      );
+    }
   }
 
   async create(schemaName: string, dto: CreateOrderDto, userId: string) {
@@ -368,6 +383,7 @@ export class OrdersService {
     query: {
       status?: string;
       type?: string;
+      paymentStatus?: string;
       search?: string;
       date?: string;
       branchId?: string;
@@ -379,6 +395,7 @@ export class OrdersService {
     const where: any = {};
 
     if (query.branchId) {
+      await this.assertBranchAccess(schemaName, user, query.branchId);
       where.branchId = query.branchId;
     } else if (user) {
       const scope = await this.resolveBranchScope(schemaName, user);
@@ -388,7 +405,8 @@ export class OrdersService {
     }
 
     if (query.status) {
-      const map: Record<string, string> = {
+      const ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'READY'];
+      const statusMap: Record<string, string> = {
         pending: 'PENDING',
         confirmed: 'CONFIRMED',
         preparing: 'IN_PROGRESS',
@@ -397,7 +415,20 @@ export class OrdersService {
         paid: 'PAID',
         cancelled: 'CANCELLED',
       };
-      where.status = map[query.status] || query.status;
+      where.status = query.status === 'active'
+        ? { in: ACTIVE_STATUSES }
+        : statusMap[query.status] || query.status;
+    }
+    if (query.paymentStatus) {
+      const paymentMap: Record<string, string> = {
+        unpaid: 'UNPAID',
+        partial: 'PARTIALLY_PAID',
+        paid: 'PAID',
+      };
+      const mapped = paymentMap[query.paymentStatus.toLowerCase()];
+      if (mapped) {
+        where.paymentStatus = mapped;
+      }
     }
     if (query.type) where.type = query.type;
     if (query.search) {
@@ -610,6 +641,7 @@ export class OrdersService {
 
     let branchFilter: any = undefined;
     if (branchId) {
+      await this.assertBranchAccess(schemaName, user, branchId);
       branchFilter = branchId;
     } else if (user) {
       const scope = await this.resolveBranchScope(schemaName, user);

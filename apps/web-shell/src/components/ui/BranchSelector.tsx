@@ -37,7 +37,7 @@ export function BranchSelector() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  if (!isOwner) return null;
+  if (!isOwner && branches.length === 0 && !selectedBranch) return null;
 
   const allOptions: Branch[] = [GLOBAL_BRANCH, ...branches];
 

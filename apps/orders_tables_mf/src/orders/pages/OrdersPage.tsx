@@ -343,8 +343,7 @@ export default function OrdersPage() {
     if (val === 'all') {
       setFilters({ status: undefined });
     } else if (val === 'active') {
-      // Show pending + confirmed + preparing + ready — backend handles 'active' filter
-      setFilters({ status: undefined });
+      setFilters({ status: 'active' as OrderStatus });
     } else {
       setFilters({ status: val as OrderStatus });
     }

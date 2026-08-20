@@ -71,4 +71,12 @@ export class TablesRepository {
     ]);
     return orderCount > 0 || reservationCount > 0;
   }
+
+  async findUserBranchIds(schemaName: string, userId: string): Promise<string[]> {
+    const rows = await this.db(schemaName).userBranch.findMany({
+      where: { userId },
+      select: { branchId: true },
+    });
+    return rows.map((r) => r.branchId);
+  }
 }

@@ -16,7 +16,10 @@ import { TenantGuard } from '../common/guards/tenant.guard';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentTenant, TenantContext } from '../common/decorators/current-tenant.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { TablesService } from './tables.service';
+import type { RequestingUser } from './tables.service';
 import { CreateTableDto } from './dto/create-table.dto';
 import { UpdateTableDto } from './dto/update-table.dto';
 import { UpdateTableStatusDto } from './dto/update-table.dto';
@@ -36,9 +39,11 @@ export class TablesController {
   @ApiResponse({ status: 200, type: [TableResponseDto] })
   findAll(
     @CurrentTenant() tenant: TenantContext,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('branchId') branchId?: string,
   ) {
-    return this.tablesService.findAll(tenant.schemaName, branchId);
+    const requestingUser: RequestingUser = { id: user.id, role: user.role };
+    return this.tablesService.findAll(tenant.schemaName, branchId, requestingUser);
   }
 
   @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER')

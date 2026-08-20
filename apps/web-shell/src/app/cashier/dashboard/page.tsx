@@ -89,12 +89,15 @@ export default function CashierDashboardPage() {
       setLoading(true);
       setError(null);
 
-      const params = branchId ? { branchId } : {};
+      const params: Record<string, string | number | undefined> = branchId ? { branchId } : {};
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (paymentFilter !== 'all') params.paymentStatus = paymentFilter;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
 
       const [statsRes, ordersRes, tablesRes] = await Promise.allSettled([
-        apiClient.get<OrderStats>('/orders/stats', { params }),
+        apiClient.get<OrderStats>('/orders/stats', { params: branchId ? { branchId } : {} }),
         apiClient.get<{ data: OrderSummary[] }>('/orders', { params: { ...params, limit: 20 } }),
-        apiClient.get<TableInfo[]>('/tables', { params }),
+        apiClient.get<TableInfo[]>('/tables', { params: branchId ? { branchId } : {} }),
       ]);
 
       if (statsRes.status === 'fulfilled') {
@@ -116,11 +119,11 @@ export default function CashierDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [branchId]);
+  }, [branchId, statusFilter, paymentFilter, searchQuery]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData, branchId]);
+  }, [fetchData]);
 
   if (loading) {
     return (
@@ -154,25 +157,6 @@ export default function CashierDashboardPage() {
 
   const activeTables = tables.filter((t) => t.status === 'OCCUPIED' || t.status === 'RESERVED').length;
   const availableTables = tables.filter((t) => t.status === 'AVAILABLE').length;
-
-  const filteredOrders = recentOrders.filter((order) => {
-    if (statusFilter !== 'all' && order.status !== statusFilter) return false;
-    if (paymentFilter !== 'all' && order.paymentStatus !== paymentFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const folio = (order.folio || `#${order.orderNumber}`).toLowerCase();
-      const table = order.table ? `mesa ${order.table.number}` : '';
-      const customer = (order.customerName || '').toLowerCase();
-      const waiter = (order.waiterName || '').toLowerCase();
-      if (
-        !folio.includes(q) &&
-        !table.includes(q) &&
-        !customer.includes(q) &&
-        !waiter.includes(q)
-      ) return false;
-    }
-    return true;
-  });
 
   const hasActiveFilters = statusFilter !== 'all' || paymentFilter !== 'all' || searchQuery.trim() !== '';
 
@@ -318,7 +302,7 @@ export default function CashierDashboardPage() {
           <div className="px-4 py-8 text-center">
             <p className="text-xs text-maison-cream-muted">No hay pedidos registrados hoy</p>
           </div>
-        ) : filteredOrders.length === 0 ? (
+        ) : recentOrders.length === 0 ? (
           <div className="px-4 py-8 text-center">
             <p className="text-xs text-maison-cream-muted">No hay pedidos que coincidan con los filtros.</p>
             <button
@@ -331,7 +315,7 @@ export default function CashierDashboardPage() {
           </div>
         ) : (
           <div className="divide-y divide-maison-border">
-            {filteredOrders.slice(0, 10).map((order) => {
+            {recentOrders.slice(0, 10).map((order) => {
               const statusBadge = STATUS_BADGES[order.status] ?? STATUS_BADGES.pending;
               const paymentBadge = PAYMENT_BADGES[order.paymentStatus] ?? PAYMENT_BADGES.unpaid;
               return (

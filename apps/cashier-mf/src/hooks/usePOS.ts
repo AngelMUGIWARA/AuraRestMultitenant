@@ -23,6 +23,8 @@ export function usePOS() {
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
   const [availableDiscounts, setAvailableDiscounts] = useState<Discount[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const branchIdRef = useRef(branchId);
+  branchIdRef.current = branchId;
 
   const loadData = useCallback(async (bId?: string) => {
     setIsLoading(true);
@@ -59,6 +61,13 @@ export function usePOS() {
     }
   }, []);
 
+  const clearCart = useCallback(() => {
+    setCart([]);
+    setSelectedTable(null);
+    setCompletedOrder(null);
+    setAvailableDiscounts([]);
+  }, []);
+
   useEffect(() => {
     loadData(branchId);
 
@@ -66,14 +75,13 @@ export function usePOS() {
       const newBranchId = isGlobal ? undefined : id;
       setBranchId(newBranchId);
       loadData(newBranchId);
-      setCart([]);
-      setSelectedTable(null);
+      clearCart();
     });
 
-    const offMenuUpdated = on('menu:updated', () => loadData(branchId));
+    const offMenuUpdated = on('menu:updated', () => loadData(branchIdRef.current));
 
     return () => { offBranch(); offMenuUpdated(); };
-  }, [loadData]);
+  }, [loadData, clearCart]);
 
   // Auto-poll tables
   useEffect(() => {
@@ -84,7 +92,7 @@ export function usePOS() {
   }, [fetchTables, branchId]);
 
   useEffect(() => {
-    if (completedOrder?.id && (completedOrder.paymentStatus as string) === 'unpaid') {
+    if (completedOrder?.id && completedOrder.paymentStatus === 'unpaid') {
       fetchAvailableDiscounts(completedOrder.id);
     } else {
       setAvailableDiscounts([]);
@@ -95,7 +103,8 @@ export function usePOS() {
     setCart((prev) => {
       const existing = prev.find((c) => c.menuItem.id === item.id);
       if (existing) {
-        return prev.map((c) => c.menuItem.id === item.id ? { ...c, quantity: c.quantity + quantity } : c);
+        const mergedNotes = [existing.notes, notes].filter(Boolean).join(', ');
+        return prev.map((c) => c.menuItem.id === item.id ? { ...c, quantity: c.quantity + quantity, notes: mergedNotes || undefined } : c);
       }
       return [...prev, { menuItem: item, quantity, notes }];
     });
@@ -103,13 +112,6 @@ export function usePOS() {
 
   const removeFromCart = useCallback((menuItemId: string) => {
     setCart((prev) => prev.filter((c) => c.menuItem.id !== menuItemId));
-  }, []);
-
-  const clearCart = useCallback(() => {
-    setCart([]);
-    setSelectedTable(null);
-    setCompletedOrder(null);
-    setAvailableDiscounts([]);
   }, []);
 
   const cartTotal = cart.reduce((sum, item) => sum + item.menuItem.price * item.quantity, 0);
@@ -135,6 +137,18 @@ export function usePOS() {
       setIsSubmitting(false);
     }
   }, [cart, selectedTable, branchId]);
+
+  const loadOrderForPayment = useCallback(async (orderId: string): Promise<Order | null> => {
+    setError(null);
+    try {
+      const order = await cashierService.getOrderById(orderId);
+      setCompletedOrder(order);
+      return order;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al cargar la orden');
+      return null;
+    }
+  }, []);
 
   const applyDiscount = useCallback(async (discountId: string) => {
     if (!completedOrder) return;
@@ -185,8 +199,8 @@ export function usePOS() {
 
   const processPayment = useCallback(async (
     payments: Array<{ method: PaymentMethod; amount: number; reference?: string }>,
-  ) => {
-    if (!completedOrder) return;
+  ): Promise<boolean> => {
+    if (!completedOrder) return false;
     setIsSubmitting(true);
     setError(null);
     try {
@@ -216,8 +230,10 @@ export function usePOS() {
       if (updatedOrder.isFullyPaid) {
         refreshTables();
       }
+      return true;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al procesar el pago');
+      return false;
     } finally {
       setIsSubmitting(false);
     }
@@ -233,5 +249,6 @@ export function usePOS() {
     isLoading, isSubmitting, error, completedOrder, availableDiscounts,
     addToCart, removeFromCart, clearCart, submitOrder, processPayment,
     applyDiscount, removeDiscount, refreshTables, printTicket, newOrder,
+    loadOrderForPayment,
   };
 }
