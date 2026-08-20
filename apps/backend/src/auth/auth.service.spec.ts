@@ -25,6 +25,7 @@ const ACTIVE_USER = {
 function mockDb() {
   return {
     user: { findUnique: jest.fn(), update: jest.fn() },
+    userBranch: { findFirst: jest.fn() },
     $disconnect: jest.fn(),
   };
 }

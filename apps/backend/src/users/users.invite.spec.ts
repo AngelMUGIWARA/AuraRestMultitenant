@@ -17,13 +17,17 @@ function mockRepo() {
       createdAt: new Date(),
       updatedAt: new Date(),
     }),
+    countStaff: jest.fn().mockResolvedValue(1),
     remove: jest.fn().mockResolvedValue(undefined),
   };
 }
 
 function buildService(notifier?: InvitationNotifier) {
   const repo = mockRepo();
-  const svc = new UsersService(repo as any, notifier ?? new DisabledInvitationNotifier());
+  const planLimits = {
+    assertWithinLimit: jest.fn().mockResolvedValue(undefined),
+  };
+  const svc = new UsersService(repo as any, notifier ?? new DisabledInvitationNotifier(), planLimits as any);
   return { svc, repo };
 }
 

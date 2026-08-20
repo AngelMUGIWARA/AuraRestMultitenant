@@ -72,6 +72,7 @@ describe('PublicMenuService', () => {
   const mockRepository = {
     getTenant: jest.fn(),
     getBranch: jest.fn(),
+    getDefaultBranch: jest.fn(),
     getCategoriesWithItems: jest.fn(),
     getLastUpdate: jest.fn(),
   };
@@ -171,16 +172,13 @@ describe('PublicMenuService', () => {
 
     it('should use default branch if not specified', async () => {
       mockRepository.getTenant.mockResolvedValueOnce(mockTenant);
-      mockRepository.getBranch.mockResolvedValueOnce(mockBranch);
+      mockRepository.getDefaultBranch.mockResolvedValueOnce(mockBranch);
       mockRepository.getCategoriesWithItems.mockResolvedValueOnce([]);
       mockRepository.getLastUpdate.mockResolvedValueOnce(new Date());
 
       await service.getMenuByTenantAndBranch('restaurant-1');
 
-      expect(mockRepository.getBranch).toHaveBeenCalledWith(
-        'tenant_1',
-        'default',
-      );
+      expect(mockRepository.getDefaultBranch).toHaveBeenCalledWith('tenant_1');
     });
 
     it('should return updatedAt as ISO string', async () => {
@@ -194,7 +192,7 @@ describe('PublicMenuService', () => {
 
       const result = await service.getMenuByTenantAndBranch('restaurant-1', 'main');
 
-      expect(result.updatedAt).toBe(testDate.toISOString());
+      expect(result.updatedAt).toBe('2024-01-15T10:30:00.000Z');
     });
 
     it('should handle multiple categories, filtering empty ones', async () => {

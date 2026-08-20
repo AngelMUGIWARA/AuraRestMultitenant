@@ -99,14 +99,18 @@ describe('KitchenService', () => {
       findTickets: jest.fn(),
       updateTicketStatus: jest.fn(),
       updateItemStatus: jest.fn(),
-      findTicketItems: jest.fn(),
+      findTicketItems: jest.fn().mockResolvedValue([]),
       findItemWithTicket: jest.fn(),
     };
     activityLogRepo = {
       create: jest.fn().mockResolvedValue(undefined),
     };
+    const gateway = {
+      broadcastQueue: jest.fn(),
+      broadcastTicket: jest.fn(),
+    };
 
-    service = new KitchenService(repo, activityLogRepo);
+    service = new KitchenService(repo, activityLogRepo, gateway);
   });
 
   describe('createTicket', () => {
@@ -827,6 +831,9 @@ describe('KitchenService', () => {
         { id: 'kti-1', status: 'CANCELLED', version: 2 },
         { id: 'kti-2', status: 'CANCELLED', version: 2 },
       ]);
+      repo.updateTicketStatus.mockResolvedValue(
+        makeTicket({ status: 'READY', version: 2 }),
+      );
 
       await expect(
         service.updateTicketStatus(

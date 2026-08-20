@@ -10,12 +10,12 @@ export class ReservationQueryDto {
     @Min(1)
     page?: number;
 
-    @ApiPropertyOptional({ default: 20, minimum: 1, maximum: 1000 })
+    @ApiPropertyOptional({ default: 20, minimum: 1, maximum: 100 })
     @IsOptional()
     @Type(() => Number)
     @IsInt()
     @Min(1)
-    @Max(1000)
+    @Max(100)
     limit?: number;
 
     @ApiPropertyOptional({ description: 'Filtrar por estado (PENDING, CONFIRMED, ARRIVED, COMPLETED, CANCELLED, NO_SHOW)' })
