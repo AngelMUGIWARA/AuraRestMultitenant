@@ -1,102 +1,108 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { federation } from '@module-federation/vite';
 
-export default defineConfig({
-  plugins: [
-    react(),
-    federation({
-      name: 'core_auth_dashboard_mf',
-      filename: 'remoteEntry.js',
-      exposes: {
-        './AuthApp': './src/AppAuth.tsx',
-        './DashboardApp': './src/AppDashboard.tsx',
-        './ManagerApp': './src/AppManagerDashboard.tsx',
-      },
-      shared: {
-        react: { singleton: true, requiredVersion: '^19' },
-        'react-dom': { singleton: true, requiredVersion: '^19' },
-        'react/jsx-runtime': { singleton: true },
-        'react-router-dom': { singleton: true, requiredVersion: '^7' },
-        '@maison/ui': { singleton: true },
-        '@maison/api-client': { singleton: true },
-        '@maison/types': { singleton: true },
-        '@maison/event-bus': { singleton: true },
-        '@maison/auth-client': { singleton: true },
-      },
-    }),
-  ],
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
 
-  // ✅ OPTIMIZACIÓN DE BUILD
-  build: {
-    target: 'esnext',
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        unused: true,
-        passes: 2,
-      },
-      mangle: true,
-      format: {
-        comments: false,
-      },
-    },
-    sourcemap: false,
-    cssCodeSplit: true,
-    chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-libs': ['react', 'react-dom'],
-          'router': ['react-router-dom'],
-          'ui': ['@maison/ui'],
+  return {
+    plugins: [
+      react(),
+      federation({
+        name: 'core_auth_dashboard_mf',
+        filename: 'remoteEntry.js',
+        exposes: {
+          './AuthApp': './src/AppAuth.tsx',
+          './DashboardApp': './src/AppDashboard.tsx',
+          './ManagerApp': './src/AppManagerDashboard.tsx',
         },
-        chunkFileNames: 'chunks/[name]-[hash].js',
-        entryFileNames: '[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash][extname]',
+        shared: {
+          react: { singleton: true, requiredVersion: '^19' },
+          'react-dom': { singleton: true, requiredVersion: '^19' },
+          'react/jsx-runtime': { singleton: true },
+          'react-router-dom': { singleton: true, requiredVersion: '^7' },
+          '@maison/ui': { singleton: true },
+          '@maison/api-client': { singleton: true },
+          '@maison/types': { singleton: true },
+          '@maison/event-bus': { singleton: true },
+          '@maison/auth-client': { singleton: true },
+        },
+      }),
+    ],
+
+    // ✅ OPTIMIZACIÓN DE BUILD
+    build: {
+      target: 'esnext',
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          unused: true,
+          passes: 2,
+        },
+        mangle: true,
+        format: {
+          comments: false,
+        },
+      },
+      sourcemap: false,
+      cssCodeSplit: true,
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-libs': ['react', 'react-dom'],
+            'router': ['react-router-dom'],
+            'ui': ['@maison/ui'],
+          },
+          chunkFileNames: 'chunks/[name]-[hash].js',
+          entryFileNames: '[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash][extname]',
+        },
       },
     },
-  },
 
-  // ✅ OPTIMIZACIÓN DE DEV SERVER
-  server: {
-    port: 5011,
-    cors: true,
-    fs: {
-      strict: false,
-    },
-    middlewareMode: false,
-    hmr: {
-      protocol: 'ws',
-      host: 'localhost',
+    // ✅ OPTIMIZACIÓN DE DEV SERVER
+    server: {
       port: 5011,
-      timeout: 60000,
+      host: true,
+      cors: true,
+      fs: {
+        strict: false,
+      },
+      middlewareMode: false,
+      hmr: {
+        protocol: 'ws',
+        host: env.VITE_HMR_HOST || 'localhost',
+        port: 5011,
+        timeout: 60000,
+      },
     },
-  },
 
-  preview: {
-    port: 5011,
-    cors: true,
-  },
+    preview: {
+      port: 5011,
+      host: true,
+      cors: true,
+    },
 
-  // ✅ OPTIMIZACIÓN GENERAL
-  resolve: {
-    dedupe: ['react', 'react-dom'],
-  },
+    // ✅ OPTIMIZACIÓN GENERAL
+    resolve: {
+      dedupe: ['react', 'react-dom'],
+    },
 
-  optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      'react-router-dom',
-      '@maison/ui',
-      '@maison/api-client',
-      '@maison/auth-client',
-    ],
-  },
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        '@maison/ui',
+        '@maison/api-client',
+        '@maison/auth-client',
+      ],
+    },
 
-  esbuild: {
-    drop: ['console', 'debugger'],
-  },
+    esbuild: {
+      drop: ['console', 'debugger'],
+    },
+  };
 });

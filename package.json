@@ -29,6 +29,7 @@
     "dev:mfes": "concurrently --names \"core,orders,reserv,kitchen,cashier,menu\" --prefix-colors \"cyan,blue,magenta,yellow,red,green\" --kill-others-on-fail \"pnpm dev:core\" \"pnpm dev:orders\" \"pnpm dev:reserv\" \"pnpm dev:kitchen\" \"pnpm dev:cashier\" \"pnpm dev:menu\"",
     "dev:backend": "cross-env NODE_OPTIONS='--max-old-space-size=512' pnpm --filter backend start:dev",
     "dev:all": "concurrently --names \"shell,core,orders,reserv,kitchen,cashier,menu\" --prefix-colors \"bgBlue,cyan,blue,magenta,yellow,red,green\" --kill-others-on-fail \"pnpm dev:shell\" \"pnpm dev:core\" \"pnpm dev:orders\" \"pnpm dev:reserv\" \"pnpm dev:kitchen\" \"pnpm dev:cashier\" \"pnpm dev:menu\"",
+    "dev:ec2": "concurrently --names \"frontend,backend\" --prefix-colors \"green,cyan\" --kill-others-on-fail \"pnpm dev:all\" \"pnpm dev:backend\"",
     "dev:clean": "node ./scripts/clean.js && pnpm install",
     "build:shell": "NODE_OPTIONS='--max-old-space-size=1024' pnpm --filter @maison/web-shell build",
     "build:core": "NODE_OPTIONS='--max-old-space-size=768' pnpm --filter core_auth_dashboard_mf build",

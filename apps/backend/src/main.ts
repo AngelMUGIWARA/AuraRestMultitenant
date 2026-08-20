@@ -65,12 +65,14 @@ async function bootstrap() {
   }
 
   const port = process.env.PORT ?? 4000;
-  await app.listen(port);
+  // 0.0.0.0 → escucha en todas las interfaces para exponer la API
+  // al exterior (EC2). En localhost-only basta con no pasar el host.
+  await app.listen(port, '0.0.0.0');
 
   const logger = new Logger('Bootstrap');
-  logger.log(`API: http://localhost:${port}/api/v1`);
+  logger.log(`API: http://0.0.0.0:${port}/api/v1`);
   if (swaggerEnabled) {
-    logger.log(`Swagger: http://localhost:${port}/api/docs`);
+    logger.log(`Swagger: http://0.0.0.0:${port}/api/docs`);
   }
 }
 
