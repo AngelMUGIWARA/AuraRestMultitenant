@@ -84,3 +84,46 @@ describe('OrdersService.findAll – paymentStatus filter', () => {
     );
   });
 });
+
+describe('OrdersService.findAll – status active filter', () => {
+  const ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'READY'];
+  const INACTIVE_STATUSES = ['DELIVERED', 'PAID', 'CANCELLED'];
+
+  it('active → where.status uses $in with the 4 active statuses', async () => {
+    const { service, repo } = buildService();
+    await service.findAll('tenant', { status: 'active' });
+    expect(repo.findMany).toHaveBeenCalledWith(
+      'tenant',
+      expect.objectContaining({
+        where: expect.objectContaining({ status: { in: ACTIVE_STATUSES } }),
+      }),
+    );
+  });
+
+  it('active excludes DELIVERED, PAID, CANCELLED', async () => {
+    const { service, repo } = buildService();
+    await service.findAll('tenant', { status: 'active' });
+    const where = repo.findMany.mock.calls[0][1].where;
+    for (const s of INACTIVE_STATUSES) {
+      expect(where.status.in).not.toContain(s);
+    }
+  });
+
+  it('active includes exactly PENDING, CONFIRMED, IN_PROGRESS, READY', async () => {
+    const { service, repo } = buildService();
+    await service.findAll('tenant', { status: 'active' });
+    const where = repo.findMany.mock.calls[0][1].where;
+    expect(where.status.in).toEqual(ACTIVE_STATUSES);
+  });
+
+  it('pending → maps to single DB enum PENDING', async () => {
+    const { service, repo } = buildService();
+    await service.findAll('tenant', { status: 'pending' });
+    expect(repo.findMany).toHaveBeenCalledWith(
+      'tenant',
+      expect.objectContaining({
+        where: expect.objectContaining({ status: 'PENDING' }),
+      }),
+    );
+  });
+});

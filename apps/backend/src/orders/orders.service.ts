@@ -199,7 +199,8 @@ export class OrdersService {
     }
 
     if (query.status) {
-      const map: Record<string, string> = {
+      const ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'READY'];
+      const statusMap: Record<string, string> = {
         pending: 'PENDING',
         confirmed: 'CONFIRMED',
         preparing: 'IN_PROGRESS',
@@ -208,7 +209,9 @@ export class OrdersService {
         paid: 'PAID',
         cancelled: 'CANCELLED',
       };
-      where.status = map[query.status] || query.status;
+      where.status = query.status === 'active'
+        ? { in: ACTIVE_STATUSES }
+        : statusMap[query.status] || query.status;
     }
     if (query.paymentStatus) {
       const paymentMap: Record<string, string> = {
