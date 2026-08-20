@@ -18,6 +18,8 @@ export const ordersService = {
     apiClient.post<Order>(`/orders/${id}/cancel`, { reason }),
   createOrder: (payload: CreateOrderPayload) =>
     apiClient.post<Order>('/orders', payload),
+  addItems: (id: string, items: Array<{ menuItemId: string; quantity: number; notes?: string }>) =>
+    apiClient.post<Order>(`/orders/${id}/items`, { items }),
   getMenuItems: async (categoryId?: string) => {
     // /admin/menus responde envuelto en { data: { data: MenuItem[], total, ... }, ... }
     const res = await apiClient.get<ApiResponse<PaginatedResponse<MenuItem>>>('/admin/menus', {

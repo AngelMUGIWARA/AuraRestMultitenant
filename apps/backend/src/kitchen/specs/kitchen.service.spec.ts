@@ -88,6 +88,8 @@ describe('KitchenService', () => {
   let service: KitchenService;
   let repo: any;
   let activityLogRepo: any;
+  let gateway: any;
+  let eventBus: any;
 
   beforeEach(() => {
     repo = {
@@ -111,6 +113,29 @@ describe('KitchenService', () => {
     };
 
     service = new KitchenService(repo, activityLogRepo, gateway);
+
+    gateway = {
+      broadcastQueue: jest.fn(),
+    };
+    eventBus = {
+      emit: jest.fn(),
+      on: jest.fn(),
+    };
+
+    service = new KitchenService(repo, activityLogRepo, gateway, eventBus);
+
+  });
+
+    gateway = {
+      broadcastQueue: jest.fn(),
+    };
+    eventBus = {
+      emit: jest.fn(),
+      on: jest.fn(),
+    };
+
+    service = new KitchenService(repo, activityLogRepo, gateway, eventBus);
+
   });
 
   describe('createTicket', () => {

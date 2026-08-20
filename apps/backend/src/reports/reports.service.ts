@@ -209,7 +209,7 @@ export class ReportsService {
     schemaName: string,
     query: ExportReportQueryDto,
   ): Promise<{ csv: string; filename: string }> {
-    const dateParams = { startDate: query.startDate, endDate: query.endDate };
+    const dateParams = { startDate: query.startDate, endDate: query.endDate, branchId: query.branchId };
 
     switch (query.type) {
       case 'sales': {
@@ -220,6 +220,7 @@ export class ReportsService {
             ordenes: d.orders,
             ingresos: d.revenue,
           })),
+          ['fecha', 'ordenes', 'ingresos'],
         );
         return {
           csv,
@@ -236,6 +237,7 @@ export class ReportsService {
             unidades_vendidas: p.totalQuantity,
             ingresos: p.totalRevenue,
           })),
+          ['producto', 'categoria', 'unidades_vendidas', 'ingresos'],
         );
         return {
           csv,
@@ -252,6 +254,7 @@ export class ReportsService {
             monto: m.amount,
             porcentaje: m.percentage,
           })),
+          ['metodo', 'transacciones', 'monto', 'porcentaje'],
         );
         return {
           csv,
@@ -267,6 +270,7 @@ export class ReportsService {
             ordenes: h.orders,
             ingresos: h.revenue,
           })),
+          ['hora', 'ordenes', 'ingresos'],
         );
         return {
           csv,

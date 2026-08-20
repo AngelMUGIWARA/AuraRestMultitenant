@@ -9,10 +9,13 @@ interface AvailabilityBoardProps {
   /** Al hacer click en un platillo (p. ej. ver receta) */
   onSelect?: (item: MenuAvailability) => void;
   selectedId?: string;
+  /** KITCHEN_STAFF/MANAGER/OWNER: permite marcar manualmente agotado/disponible */
+  onToggleAvailable?: (item: MenuAvailability) => void;
+  togglingId?: string | null;
 }
 
-/** Tablero de disponibilidad: la única lectura de inventario de sala/caja */
-export function AvailabilityBoard({ items, onSelect, selectedId }: AvailabilityBoardProps) {
+/** Tablero de disponibilidad: lectura para sala/caja, editable para cocina/manager/owner */
+export function AvailabilityBoard({ items, onSelect, selectedId, onToggleAvailable, togglingId }: AvailabilityBoardProps) {
   if (items.length === 0) {
     return (
       <EmptyState
@@ -32,7 +35,7 @@ export function AvailabilityBoard({ items, onSelect, selectedId }: AvailabilityB
       </p>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item, idx) => {
-          const Tag = onSelect ? 'button' : 'div';
+          const Tag = onSelect && !onToggleAvailable ? 'button' : 'div';
           return (
             <Tag
               key={item.menuItemId}
@@ -60,14 +63,31 @@ export function AvailabilityBoard({ items, onSelect, selectedId }: AvailabilityB
               >
                 {item.name}
               </span>
-              <span
-                className={cn(
-                  'font-mono text-2xs uppercase tracking-wider',
-                  item.available ? 'text-maison-sage' : 'text-maison-ruby',
-                )}
-              >
-                {item.available ? 'Sí' : 'Agotado'}
-              </span>
+              {onToggleAvailable ? (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onToggleAvailable(item); }}
+                  disabled={togglingId === item.menuItemId}
+                  className={cn(
+                    'flex-shrink-0 rounded border px-2 py-1 font-mono text-2xs uppercase tracking-wider transition-colors disabled:opacity-50',
+                    item.available
+                      ? 'border-maison-sage/30 text-maison-sage hover:border-maison-ruby/40 hover:bg-maison-ruby-bg hover:text-maison-ruby'
+                      : 'border-maison-ruby/30 text-maison-ruby hover:border-maison-sage/40 hover:bg-maison-sage-bg hover:text-maison-sage',
+                  )}
+                  aria-label={item.available ? `Marcar ${item.name} como agotado` : `Marcar ${item.name} como disponible`}
+                >
+                  {togglingId === item.menuItemId ? '…' : item.available ? 'Marcar agotado' : 'Marcar disponible'}
+                </button>
+              ) : (
+                <span
+                  className={cn(
+                    'font-mono text-2xs uppercase tracking-wider',
+                    item.available ? 'text-maison-sage' : 'text-maison-ruby',
+                  )}
+                >
+                  {item.available ? 'Sí' : 'Agotado'}
+                </span>
+              )}
             </Tag>
           );
         })}

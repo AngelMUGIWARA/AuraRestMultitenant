@@ -65,7 +65,7 @@ describe('ReservationsService', () => {
       guestPhone: mockDto.guestPhone,
       guestEmail: mockDto.guestEmail,
       partySize: mockDto.partySize,
-      scheduledAt: new Date(`${mockDto.date}T${mockDto.time}:00.000Z`),
+      scheduledAt: new Date(`${mockDto.date}T${mockDto.time}:00.000-06:00`),
       durationMinutes: mockDto.durationMinutes,
       status: ReservationStatus.PENDING,
       branchId: mockDto.branchId,

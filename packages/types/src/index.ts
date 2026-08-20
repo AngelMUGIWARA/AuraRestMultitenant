@@ -872,6 +872,8 @@ export interface Reservation {
   durationMinutes: number;
   status: ReservationStatus;
   tableId: string;
+  tableNumber?: number | null;
+  tableName?: string | null;
   branchId: string;
   notes?: string | null;
   createdAt: Date | string;

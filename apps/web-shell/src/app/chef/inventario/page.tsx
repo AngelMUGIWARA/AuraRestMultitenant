@@ -5,12 +5,13 @@ import { AuthClient } from '@maison/auth-client';
 import { useBranch } from '@maison/ui';
 import { IconAlertTriangle, IconPackage, Skeleton } from '@maison/ui';
 import { cn } from '@/lib/utils';
-import type { InventoryMovementType } from '@maison/types';
+import type { InventoryMovementType, MenuAvailability } from '@maison/types';
 import {
   useInventoryItems,
   useInventoryStock,
   useMenuAvailability,
 } from '@/hooks/useInventory';
+import { inventoryService } from '@/services/inventory.service';
 import { formatQty } from '@/components/inventory/inventory-meta';
 import { StockBar } from '@/components/inventory/StockBar';
 import { AvailabilityBoard } from '@/components/inventory/AvailabilityBoard';
@@ -32,12 +33,28 @@ export default function ChefInventarioPage() {
   );
   const [tab, setTab] = useState<TabId>('existencias');
 
-  const items = useInventoryItems();
+  const items = useInventoryItems(undefined, branchId);
   const stock = useInventoryStock(branchId);
   const availability = useMenuAvailability(branchId);
 
   const [movementOpen, setMovementOpen] = useState(false);
   const [movementType, setMovementType] = useState<InventoryMovementType>('CONSUMPTION');
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  async function handleToggleAvailable(item: MenuAvailability) {
+    setTogglingId(item.menuItemId);
+    try {
+      await inventoryService.updateMenuItemStatus(
+        item.menuItemId,
+        item.available ? 'OUT_OF_STOCK' : 'AVAILABLE',
+      );
+      availability.refresh();
+    } catch {
+      // El error se ignora en la UI; el estado simplemente no cambia y el usuario puede reintentar.
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   const branchOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -180,7 +197,11 @@ export default function ChefInventarioPage() {
           availability.isLoading ? (
             <Skeleton className="h-40 w-full" />
           ) : (
-            <AvailabilityBoard items={availability.data ?? []} />
+            <AvailabilityBoard
+              items={availability.data ?? []}
+              onToggleAvailable={isChef ? handleToggleAvailable : undefined}
+              togglingId={togglingId}
+            />
           )
         )}
 

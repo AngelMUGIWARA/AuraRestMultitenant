@@ -296,16 +296,37 @@ export class ReservationsService {
   }
 
   /**
-   * Transforma una reserva de Prisma a DTO
-   * Convierte scheduledAt en date y time (usando UTC para consistencia)
+   * Formatea un instante UTC como fecha/hora local de Ciudad de México.
+   * México no observa horario de verano desde 2022, así que el offset
+   * -06:00 es fijo (ver misma convención en reservations.repository.ts).
+   */
+  private formatInMexicoCity(date: Date): { date: string; time: string } {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Mexico_City',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(date);
+    const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+    const hour = get('hour') === '24' ? '00' : get('hour');
+    return {
+      date: `${get('year')}-${get('month')}-${get('day')}`,
+      time: `${hour}:${get('minute')}`,
+    };
+  }
+
+  /**
+   * Transforma una reserva de Prisma a DTO. Convierte scheduledAt (UTC) en
+   * date/time en hora local de Ciudad de México, y expone el número/nombre
+   * de la mesa (antes solo se mandaba tableId, sin datos legibles).
    */
   private transformReservation(reservation: any) {
     const scheduledAt = new Date(reservation.scheduledAt);
-
-    // Formatear date (YYYY-MM-DD) y time (HH:MM) usando UTC
-    const isoString = scheduledAt.toISOString();
-    const date = isoString.split('T')[0];
-    const time = isoString.split('T')[1].slice(0, 5);
+    const { date, time } = this.formatInMexicoCity(scheduledAt);
 
     return {
       id: reservation.id,
@@ -318,6 +339,8 @@ export class ReservationsService {
       durationMinutes: reservation.durationMinutes,
       status: reservation.status,
       tableId: reservation.tableId,
+      tableNumber: reservation.table?.number ?? null,
+      tableName: reservation.table?.name ?? null,
       branchId: reservation.branchId,
       notes: reservation.notes,
       createdAt: reservation.createdAt,

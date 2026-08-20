@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { AuthClient } from '@maison/auth-client';
 import { useBranch } from '@maison/ui';
 import {
+  ConfirmDialog,
   IconAlertTriangle,
   IconPackage,
   IconActivity,
@@ -23,6 +24,7 @@ import {
   useStockAlerts,
   useSuppliers,
 } from '@/hooks/useInventory';
+import { inventoryService } from '@/services/inventory.service';
 import { formatMoney, MOVEMENT_TYPES_BY_ROLE } from '@/components/inventory/inventory-meta';
 import { ItemsTable } from '@/components/inventory/ItemsTable';
 import { MovementsLedger } from '@/components/inventory/MovementsLedger';
@@ -63,7 +65,7 @@ export default function InventarioPage() {
   const [tab, setTab] = useState<TabId>('despensa');
 
   // Datos
-  const items = useInventoryItems();
+  const items = useInventoryItems(undefined, branchId);
   const stock = useInventoryStock(branchId);
   const alerts = useStockAlerts(branchId);
   const movements = useInventoryMovements({ branchId });
@@ -75,6 +77,24 @@ export default function InventarioPage() {
   const [movementPreset, setMovementPreset] = useState<{ itemId?: string; type?: InventoryMovementType }>({});
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null);
+  const [isDeletingItem, setIsDeletingItem] = useState(false);
+
+  async function handleConfirmDeleteItem() {
+    if (!deletingItem) return;
+    setIsDeletingItem(true);
+    try {
+      await inventoryService.removeItem(deletingItem.id);
+      items.refresh();
+      stock.refresh();
+      alerts.refresh();
+      setDeletingItem(null);
+    } catch {
+      // El error se descarta; el diálogo permanece abierto para reintentar o cancelar.
+    } finally {
+      setIsDeletingItem(false);
+    }
+  }
 
   // Sucursales visibles derivadas del stock (ya vienen filtradas por el backend según el rol)
   const branchOptions = useMemo(() => {
@@ -220,6 +240,7 @@ export default function InventarioPage() {
               items={items.data ?? []}
               showCosts={isAdmin}
               onEdit={isOwner ? (item) => { setEditingItem(item); setItemModalOpen(true); } : undefined}
+              onDelete={isOwner ? (item) => setDeletingItem(item) : undefined}
             />
           )
         )}
@@ -307,6 +328,16 @@ export default function InventarioPage() {
           item={editingItem}
         />
       )}
+
+      <ConfirmDialog
+        open={deletingItem !== null}
+        title="Desactivar insumo"
+        description={deletingItem ? `¿Seguro que quieres desactivar "${deletingItem.name}"? Las existencias y el historial se conservan, pero dejará de aparecer como activo. Puedes reactivarlo luego desde "Editar".` : ''}
+        confirmLabel="Desactivar"
+        isLoading={isDeletingItem}
+        onConfirm={handleConfirmDeleteItem}
+        onCancel={() => setDeletingItem(null)}
+      />
     </div>
   );
 }

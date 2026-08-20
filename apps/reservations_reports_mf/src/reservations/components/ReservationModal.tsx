@@ -37,22 +37,23 @@ const EMPTY_FORM: FormState = {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Devuelve fecha en formato YYYY-MM-DD UTC
- * Invariante: siempre UTC, nunca local
+ * Devuelve fecha en formato YYYY-MM-DD en hora local de Ciudad de México.
+ * Invariante: siempre horario de México, sin importar la zona del navegador
+ * (coincide con el contrato del backend: date/time = hora local CDMX).
  */
 function todayDateString(): string {
-    return new Date().toISOString().slice(0, 10);
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
 }
 
 /**
- * Devuelve hora en formato HH:MM UTC
- * Invariante: siempre UTC, nunca local
- *
- * IMPORTANTE: JavaScript Date.toTimeString() devuelve hora LOCAL.
- * Este método devuelve hora UTC usando toISOString().
+ * Devuelve hora en formato HH:MM en hora local de Ciudad de México.
  */
 function nowTimeString(): string {
-    return new Date().toISOString().slice(11, 16);
+    return new Date().toLocaleTimeString('en-GB', {
+        timeZone: 'America/Mexico_City',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
 }
 
 export function ReservationModal({ isOpen, onClose, onSuccess, branchId }: ReservationModalProps) {

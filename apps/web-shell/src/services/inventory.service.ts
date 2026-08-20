@@ -8,7 +8,9 @@ import type {
   InventoryMovement,
   InventoryStockRow,
   MenuAvailability,
+  MenuItem,
   MenuItemRecipe,
+  MenuItemStatus,
   StockAlert,
   Supplier,
   UpsertRecipePayload,
@@ -20,10 +22,16 @@ const branchParam = (branchId?: string) =>
 
 export const inventoryService = {
   // ── Insumos ────────────────────────────────────────────────
-  getItems(filters?: { isActive?: boolean; search?: string }) {
+  getItems(filters?: { isActive?: boolean; search?: string; branchId?: string }) {
     return apiClient.get<ApiResponse<{ data: InventoryItem[]; total: number }>>(
       '/admin/inventory/items',
-      { params: filters as Record<string, string | boolean | undefined> },
+      {
+        params: {
+          isActive: filters?.isActive,
+          search: filters?.search,
+          ...branchParam(filters?.branchId),
+        } as Record<string, string | boolean | undefined>,
+      },
     );
   },
 
@@ -106,5 +114,10 @@ export const inventoryService = {
     return apiClient.get<ApiResponse<MenuAvailability[]>>('/admin/inventory/availability', {
       params: branchParam(branchId),
     });
+  },
+
+  // ── Marcar platillo disponible/agotado manualmente (KITCHEN_STAFF/MANAGER/OWNER) ──
+  updateMenuItemStatus(menuItemId: string, status: MenuItemStatus) {
+    return apiClient.patch<ApiResponse<MenuItem>>(`/admin/menus/${menuItemId}/status`, { status });
   },
 };

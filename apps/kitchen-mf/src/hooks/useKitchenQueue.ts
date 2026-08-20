@@ -5,6 +5,15 @@ import type { KitchenTicket, KitchenTicketStatus, OrderStatus } from '@maison/ty
 
 const POLL_INTERVAL_MS = 10_000;
 
+// KitchenTicketStatus ('PREPARING'|'READY'|...) y OrderStatus ('preparing'|'ready'|...)
+// usan vocabularios distintos (mayúsculas vs. minúsculas, valores distintos). Sin este
+// mapeo, STATUS_CONFIG[order.status] en OrdersPage no encuentra la clave y rompe el render.
+const TICKET_TO_ORDER_STATUS: Partial<Record<KitchenTicketStatus, OrderStatus>> = {
+  PREPARING: 'preparing' as OrderStatus,
+  READY: 'ready' as OrderStatus,
+  DELIVERED: 'delivered' as OrderStatus,
+};
+
 export function useKitchenQueue() {
   const [tickets, setTickets] = useState<KitchenTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -101,11 +110,14 @@ export function useKitchenQueue() {
             t.id === ticketId ? { ...t, status, version: version + 1 } : t,
           ),
         );
-        emit('order:status-changed', {
-          orderId,
-          orderNumber,
-          status: status as unknown as OrderStatus,
-        });
+        const mappedStatus = TICKET_TO_ORDER_STATUS[status];
+        if (mappedStatus) {
+          emit('order:status-changed', {
+            orderId,
+            orderNumber,
+            status: mappedStatus,
+          });
+        }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Error al actualizar estado');
       }

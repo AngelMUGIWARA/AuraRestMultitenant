@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { CreateSupplierPayload, Supplier } from '@maison/types';
-import { EmptyState, IconMail, IconPencil, IconPhone, IconPlus, IconUsers, Modal } from '@maison/ui';
+import { ConfirmDialog, EmptyState, IconMail, IconPencil, IconPhone, IconPlus, IconTrash, IconUsers, Modal } from '@maison/ui';
 import { cn } from '@/lib/utils';
 import { inventoryService } from '@/services/inventory.service';
 
@@ -18,6 +18,22 @@ interface SuppliersPanelProps {
 export function SuppliersPanel({ suppliers, onChanged }: SuppliersPanelProps) {
   const [editing, setEditing] = useState<Supplier | null>(null);
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<Supplier | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function handleConfirmDelete() {
+    if (!deleting) return;
+    setIsDeleting(true);
+    try {
+      await inventoryService.removeSupplier(deleting.id);
+      onChanged();
+      setDeleting(null);
+    } catch {
+      // El error se descarta; el diálogo permanece abierto para reintentar o cancelar.
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -54,14 +70,26 @@ export function SuppliersPanel({ suppliers, onChanged }: SuppliersPanelProps) {
                     <p className="mt-0.5 truncate text-xs text-maison-cream-muted">{s.contactName}</p>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setEditing(s)}
-                  className="rounded p-1.5 text-maison-cream-dim opacity-0 transition-all hover:bg-surface-3 hover:text-maison-amber focus:opacity-100 group-hover:opacity-100"
-                  aria-label={`Editar ${s.name}`}
-                >
-                  <IconPencil className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditing(s)}
+                    className="rounded p-1.5 text-maison-cream-dim opacity-0 transition-all hover:bg-surface-3 hover:text-maison-amber focus:opacity-100 group-hover:opacity-100"
+                    aria-label={`Editar ${s.name}`}
+                  >
+                    <IconPencil className="h-3.5 w-3.5" />
+                  </button>
+                  {s.isActive && (
+                    <button
+                      type="button"
+                      onClick={() => setDeleting(s)}
+                      className="rounded p-1.5 text-maison-cream-dim opacity-0 transition-all hover:bg-maison-ruby-bg hover:text-maison-ruby focus:opacity-100 group-hover:opacity-100"
+                      aria-label={`Desactivar ${s.name}`}
+                    >
+                      <IconTrash className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col gap-1 text-xs text-maison-cream-dim">
@@ -95,6 +123,16 @@ export function SuppliersPanel({ suppliers, onChanged }: SuppliersPanelProps) {
         supplier={editing}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSuccess={onChanged}
+      />
+
+      <ConfirmDialog
+        open={deleting !== null}
+        title="Desactivar proveedor"
+        description={deleting ? `¿Seguro que quieres desactivar "${deleting.name}"? Los insumos existentes conservarán el proveedor, pero dejará de aparecer como activo. Puedes reactivarlo luego desde "Editar".` : ''}
+        confirmLabel="Desactivar"
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleting(null)}
       />
     </div>
   );

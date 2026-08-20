@@ -3,6 +3,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   forwardRef,
 } from '@nestjs/common';
@@ -20,6 +21,7 @@ import {
 import { OrdersRepository } from './orders.repository';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { AddOrderItemsDto } from './dto/add-order-items.dto';
 
 const GLOBAL_BRANCH_ROLES = new Set(["OWNER"]);
 
@@ -28,9 +30,29 @@ export interface RequestingUser {
   role: string;
 }
 
+// Mapea el status de un ticket de cocina al status de la orden que sincroniza
+// automáticamente cuando cocina avanza el pedido (ver syncStatusFromKitchen).
+const KITCHEN_TICKET_TO_ORDER_STATUS: Record<string, $Enums.OrderStatus> = {
+  PREPARING: $Enums.OrderStatus.IN_PROGRESS,
+  READY: $Enums.OrderStatus.READY,
+  DELIVERED: $Enums.OrderStatus.DELIVERED,
+};
+
+// Orden de avance del estado de una orden. La sincronización desde cocina solo
+// avanza el estado (nunca lo regresa) y nunca toca órdenes ya PAID/CANCELLED.
+const ORDER_STATUS_RANK: Record<string, number> = {
+  PENDING: 0,
+  CONFIRMED: 1,
+  IN_PROGRESS: 2,
+  READY: 3,
+  DELIVERED: 4,
+  PAID: 5,
+};
+
 @Injectable()
 export class OrdersService {
   private readonly MAX_FOLIO_RETRIES = 5;
+  private readonly logger = new Logger(OrdersService.name);
 
   constructor(
     private readonly ordersRepo: OrdersRepository,
@@ -39,7 +61,61 @@ export class OrdersService {
     private readonly taxConfig: TaxConfigService,
     @Inject(forwardRef(() => OrderPromotionService))
     private readonly orderPromotionService: OrderPromotionService,
-  ) {}
+  ) {
+    this.eventBus.on('kitchen:ticket-status-changed', (data: any) =>
+      this.syncStatusFromKitchen(data).catch((err) => {
+        this.logger.error('Error handling kitchen:ticket-status-changed', err);
+      }),
+    );
+  }
+
+  /**
+   * Sincroniza Order.status cuando cocina avanza un ticket. Antes de esto,
+   * KitchenService nunca tocaba la orden y el estado que veía el mesero se
+   * quedaba congelado sin importar lo que hiciera cocina.
+   */
+  private async syncStatusFromKitchen(eventData: {
+    schemaName: string;
+    orderId: string;
+    ticketId: string;
+    status: string;
+    userId?: string;
+  }) {
+    const { schemaName, orderId, status, userId } = eventData;
+
+    const targetStatus = KITCHEN_TICKET_TO_ORDER_STATUS[status];
+    if (!targetStatus) return;
+
+    const order = await this.ordersRepo.findById(schemaName, orderId);
+    if (!order) return;
+
+    // No tocar órdenes en estado terminal (ya pagadas o canceladas).
+    if (order.status === 'PAID' || order.status === 'CANCELLED') return;
+
+    const currentRank = ORDER_STATUS_RANK[order.status] ?? -1;
+    const targetRank = ORDER_STATUS_RANK[targetStatus];
+    if (targetRank <= currentRank) return;
+
+    const updated = await this.ordersRepo.update(schemaName, orderId, {
+      status: targetStatus,
+    });
+
+    const branchId = updated.table?.branchId || order.table?.branchId;
+    if (branchId && userId) {
+      this.activityLog.log(schemaName, {
+        branchId,
+        userId,
+        action: 'ORDER_STATUS_CHANGED',
+        entity: 'ORDER',
+        entityId: orderId,
+        changes: JSON.stringify({
+          from: order.status,
+          to: targetStatus,
+          source: 'kitchen',
+        }),
+      });
+    }
+  }
 
   private async resolveBranchScope(
     schemaName: string,
@@ -169,6 +245,120 @@ export class OrdersService {
         }
 
         throw lastError ?? new Error('No se pudo generar un folio único');
+      },
+    );
+  }
+
+  /**
+   * Agrega items a una orden ya creada (p. ej. el cliente pide algo extra a
+   * media comida). Solo se permite mientras la orden sigue "abierta" del lado
+   * de cocina (antes no existía forma de tocar una orden después de crearla).
+   * Si ya hay un ticket de cocina para la orden, los items nuevos también se
+   * agregan ahí para que cocina los vea sin tener que crear una orden aparte.
+   */
+  async addItems(
+    schemaName: string,
+    orderId: string,
+    dto: AddOrderItemsDto,
+    userId?: string,
+  ) {
+    const order = await this.ordersRepo.findById(schemaName, orderId);
+    if (!order) throw new NotFoundException('Pedido no encontrado');
+
+    const MUTABLE_STATUSES = new Set(['PENDING', 'CONFIRMED', 'IN_PROGRESS']);
+    if (!MUTABLE_STATUSES.has(order.status)) {
+      throw new BadRequestException(
+        `No se pueden agregar items a un pedido en estado ${order.status}`,
+      );
+    }
+
+    const menuItems = await this.ordersRepo.findMenuItemsByIds(
+      schemaName,
+      dto.items.map((i) => i.menuItemId),
+    );
+    if (menuItems.length !== new Set(dto.items.map((i) => i.menuItemId)).size) {
+      throw new BadRequestException('Algunos platos no existen');
+    }
+    const menuItemMap = new Map(menuItems.map((m) => [m.id, m]));
+
+    const branchId = order.table?.branchId ?? order.branchId ?? undefined;
+    const taxRate = await this.taxConfig.getTaxRate(schemaName, branchId);
+
+    return this.ordersRepo.runTransaction(
+      schemaName,
+      async (tx: PrismaType.TransactionClient) => {
+        const newItemsData = dto.items.map((item) => {
+          const menuItem = menuItemMap.get(item.menuItemId)!;
+          const unitPrice = menuItem.price;
+          const subtotal = new Prisma.Decimal(unitPrice.toString()).mul(item.quantity);
+          return {
+            menuItemId: item.menuItemId,
+            menuItemName: menuItem.name,
+            quantity: item.quantity,
+            unitPrice: unitPrice.toString(),
+            subtotal: subtotal.toFixed(2),
+            notes: item.notes,
+          };
+        });
+
+        const createdItems = await this.ordersRepo.createOrderItems(
+          schemaName,
+          orderId,
+          newItemsData.map(({ menuItemName, ...rest }) => rest),
+          tx,
+        );
+
+        const addedSubtotal = newItemsData.reduce(
+          (acc, i) => acc.plus(i.subtotal),
+          new Prisma.Decimal(0),
+        );
+        const newSubtotal = new Prisma.Decimal(order.subtotal.toString()).plus(addedSubtotal);
+        const newTax = newSubtotal.mul(new Prisma.Decimal(taxRate));
+        const newTotal = newSubtotal.plus(newTax);
+
+        const updated = await this.ordersRepo.update(
+          schemaName,
+          orderId,
+          {
+            subtotal: newSubtotal.toFixed(2),
+            tax: newTax.toFixed(2),
+            total: newTotal.toFixed(2),
+          },
+          tx,
+        );
+
+        const ticket = await this.ordersRepo.findKitchenTicketByOrderId(schemaName, orderId, tx);
+        if (ticket) {
+          await this.ordersRepo.addKitchenTicketItems(
+            schemaName,
+            ticket.id,
+            createdItems.map((ci, idx) => ({
+              orderItemId: ci.id,
+              menuItemName: newItemsData[idx].menuItemName,
+              quantity: ci.quantity,
+              notes: ci.notes ?? undefined,
+            })),
+            tx,
+          );
+        }
+
+        if (branchId && userId) {
+          this.activityLog.log(schemaName, {
+            branchId,
+            userId,
+            action: 'ORDER_ITEMS_ADDED',
+            entity: 'ORDER',
+            entityId: orderId,
+            changes: JSON.stringify({
+              addedItems: dto.items,
+              addedSubtotal: addedSubtotal.toFixed(2),
+            }),
+          }, tx);
+        }
+
+        this.eventBus.emit('order:updated', { schemaName, orderId, status: updated.status });
+
+        return this.toResponse(updated);
       },
     );
   }

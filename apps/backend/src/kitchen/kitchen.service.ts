@@ -13,6 +13,7 @@ import { UpdateKitchenTicketStatusDto } from './dto/update-kitchen-ticket-status
 import { UpdateKitchenItemStatusDto } from './dto/update-kitchen-item-status.dto';
 import { ListKitchenTicketsQueryDto } from './dto/list-kitchen-tickets-query.dto';
 import { KitchenGateway } from './kitchen.gateway';
+import { EventBusService } from '../event-bus/event-bus.service';
 
 const GLOBAL_BRANCH_ROLES = new Set(["OWNER"]);
 
@@ -46,6 +47,7 @@ export class KitchenService {
     private readonly repo: KitchenRepository,
     private readonly activityLogRepo: ActivityLogRepository,
     private readonly gateway: KitchenGateway,
+    private readonly eventBus: EventBusService,
   ) {}
 
   private async resolveBranchScope(
@@ -315,6 +317,17 @@ export class KitchenService {
     });
 
     this.gateway.broadcastQueue();
+
+    if (dto.status === 'PREPARING' || dto.status === 'READY' || dto.status === 'DELIVERED') {
+      this.eventBus.emit('kitchen:ticket-status-changed', {
+        schemaName,
+        orderId: ticket.orderId,
+        ticketId: id,
+        status: dto.status,
+        userId,
+      });
+    }
+
     return result;
   }
 
@@ -349,6 +362,8 @@ export class KitchenService {
     } else if (dto.status === 'READY') {
       updateData.readyAt = now;
     }
+
+    let derivedTicketStatusForEvent: string | null = null;
 
     const result = await this.repo.runTransaction(schemaName, async (tx) => {
       const updatedItem = await this.repo.updateItemStatus(
@@ -396,6 +411,7 @@ export class KitchenService {
       const newTicketStatus = this.deriveTicketStatus(allItems);
 
       if (newTicketStatus && newTicketStatus !== ticket.status) {
+        derivedTicketStatusForEvent = newTicketStatus;
         const ticketUpdateData: any = { status: newTicketStatus };
         if (newTicketStatus === 'PREPARING') ticketUpdateData.startedAt = now;
         if (newTicketStatus === 'READY') ticketUpdateData.readyAt = now;
@@ -443,6 +459,17 @@ export class KitchenService {
     });
 
     this.gateway.broadcastQueue();
+
+    if (derivedTicketStatusForEvent === 'PREPARING' || derivedTicketStatusForEvent === 'READY') {
+      this.eventBus.emit('kitchen:ticket-status-changed', {
+        schemaName,
+        orderId: ticket.orderId,
+        ticketId: ticket.id,
+        status: derivedTicketStatusForEvent,
+        userId,
+      });
+    }
+
     return result;
   }
 
