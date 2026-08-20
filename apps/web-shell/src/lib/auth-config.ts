@@ -25,7 +25,7 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
   '/orders': ['SUPER_ADMIN', 'MANAGER'],
   '/analytics': ['SUPER_ADMIN', 'MANAGER'],
   '/integrations': ['SUPER_ADMIN', 'MANAGER'],
-  '/logs': ['SUPER_ADMIN', 'MANAGER'],
+  '/logs': ['OWNER', 'SUPER_ADMIN', 'MANAGER'],
 
   // CASHIER (CASHIER y SUPER_ADMIN)
   '/cashier': ['CASHIER', 'SUPER_ADMIN'],

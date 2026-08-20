@@ -12,5 +12,7 @@ export const usersService = {
     apiClient.patch<ApiResponse<User>>(`/admin/users/${id}`, payload),
   updateRole: (id: string, payload: UpdateUserRolePayload) =>
     apiClient.patch<ApiResponse<User>>(`/admin/users/${id}/role`, payload),
-  deactivate: (id: string) => apiClient.patch<ApiResponse<void>>(`/admin/users/${id}/deactivate`, {}),
+  changeStatus: (id: string, status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED') =>
+    apiClient.patch<ApiResponse<User>>(`/admin/users/${id}/status`, { status }),
+  deactivate: (id: string) => apiClient.patch<ApiResponse<User>>(`/admin/users/${id}/status`, { status: 'INACTIVE' }),
 };

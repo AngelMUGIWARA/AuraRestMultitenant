@@ -37,6 +37,11 @@ async function bootstrap() {
       if (!origin) return callback(null, true);
       callback(null, isOriginAllowed(origin, origins));
     },
+    // Sin esto, el fetch() del frontend no puede leer Content-Disposition
+    // (CORS oculta headers de respuesta que no estén explícitamente
+    // expuestos), así que la descarga de CSV pierde el nombre de archivo
+    // real que manda el backend.
+    exposedHeaders: ['Content-Disposition'],
   });
 
   const nodeEnv = process.env.NODE_ENV ?? 'development';

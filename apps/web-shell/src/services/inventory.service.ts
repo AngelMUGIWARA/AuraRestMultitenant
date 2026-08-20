@@ -20,10 +20,16 @@ const branchParam = (branchId?: string) =>
 
 export const inventoryService = {
   // ── Insumos ────────────────────────────────────────────────
-  getItems(filters?: { isActive?: boolean; search?: string }) {
+  getItems(filters?: { isActive?: boolean; search?: string; branchId?: string }) {
     return apiClient.get<ApiResponse<{ data: InventoryItem[]; total: number }>>(
       '/admin/inventory/items',
-      { params: filters as Record<string, string | boolean | undefined> },
+      {
+        params: {
+          isActive: filters?.isActive,
+          search: filters?.search,
+          ...branchParam(filters?.branchId),
+        } as Record<string, string | boolean | undefined>,
+      },
     );
   },
 

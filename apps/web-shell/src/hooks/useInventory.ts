@@ -47,10 +47,10 @@ function useAsync<T>(fetcher: () => Promise<T>, deps: unknown[]): AsyncState<T> 
   return { ...state, refresh };
 }
 
-export function useInventoryItems(search?: string) {
+export function useInventoryItems(search?: string, branchId?: string) {
   return useAsync<InventoryItem[]>(
-    () => inventoryService.getItems({ search: search || undefined }).then((r) => r.data.data),
-    [search],
+    () => inventoryService.getItems({ search: search || undefined, branchId }).then((r) => r.data.data),
+    [search, branchId],
   );
 }
 

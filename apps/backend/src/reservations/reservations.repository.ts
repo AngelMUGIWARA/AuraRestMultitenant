@@ -99,15 +99,14 @@ export class ReservationRepository {
    * con reintentos automáticos en caso de conflicto.
    *
    * IMPORTANTE - Timezone:
-   * El frontend debe enviar date y time en UTC.
-   * Internamente se persisten como UTC en PostgreSQL.
-   * No se realizan conversiones de timezone en el backend;
-   * la responsabilidad es del cliente.
+   * date y time llegan en hora local de Ciudad de México. Se convierten a
+   * UTC real usando el offset fijo -06:00 (México no observa horario de
+   * verano desde 2022) y se persisten como UTC en PostgreSQL.
    *
    * Formato esperado:
-   *   date: "2026-07-25" (YYYY-MM-DD)
-   *   time: "19:00" (HH:MM, UTC)
-   *   scheduledAt: 2026-07-25T19:00:00.000Z (DateTime UTC)
+   *   date: "2026-07-25" (YYYY-MM-DD, hora local CDMX)
+   *   time: "19:00" (HH:MM, hora local CDMX)
+   *   scheduledAt: 2026-07-26T01:00:00.000Z (DateTime UTC equivalente)
    */
   async create(
     data: CreateReservationDto,
@@ -115,8 +114,8 @@ export class ReservationRepository {
     userId?: string,
   ) {
     const client = this.prisma.getClient(schema);
-    // Construir UTC explícitamente: date + time son UTC según contrato
-    const scheduledAt = new Date(`${data.date}T${data.time}:00.000Z`);
+    // date + time son hora local de Ciudad de México (offset fijo -06:00)
+    const scheduledAt = new Date(`${data.date}T${data.time}:00.000-06:00`);
     const durationMinutes = data.durationMinutes || 60;
 
     // Validaciones previas
@@ -186,6 +185,7 @@ export class ReservationRepository {
                 notes: data.notes,
                 userId,
               },
+              include: { table: true },
             });
           },
           {
@@ -264,6 +264,7 @@ export class ReservationRepository {
     const [data, total] = await Promise.all([
       client.reservation.findMany({
         where: whereClause,
+        include: { table: true },
         orderBy: {
           scheduledAt: 'desc',
         },
@@ -289,6 +290,7 @@ export class ReservationRepository {
     const client = this.prisma.getClient(schema);
     return client.reservation.findUnique({
       where: { id },
+      include: { table: true },
     });
   }
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AuthClient } from '@maison/auth-client';
+import { useBranch } from '@maison/ui';
 import { useUsers } from '../hooks/useUsers';
 import { formatNumber, cn } from '../utils';
 import { StatCard, StatCardSkeleton, SkeletonRow, EmptyState, IconUsers, IconPlus, IconEdit, IconPower, Modal } from '@maison/ui';
@@ -20,7 +21,8 @@ const STATUS_BADGE: Record<UserStatus, string> = { ACTIVE: 'badge-active', INACT
 const STATUS_LABEL: Record<UserStatus, string> = { ACTIVE: 'Activo', INACTIVE: 'Inactivo', SUSPENDED: 'Suspendido' };
 
 export default function UsersPage() {
-  const { stats, users, isLoading, error, refresh } = useUsers();
+  const { selectedBranch } = useBranch();
+  const { stats, users, isLoading, error, refresh } = useUsers(selectedBranch.id);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deactivatingUserId, setDeactivatingUserId] = useState<string | null>(null);
@@ -36,13 +38,6 @@ export default function UsersPage() {
   const handleCloseModal = () => {
     setModalOpen(false);
     setEditingUser(null);
-  };
-
-  const handleToggleStatus = async (userId: string, currentStatus: UserStatus) => {
-    if (currentStatus === 'SUSPENDED') return;
-
-    const newStatus: UserStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    setDeactivatingUserId(currentStatus === 'ACTIVE' ? userId : null);
   };
 
   const confirmDeactivation = async (userId: string) => {
@@ -61,7 +56,7 @@ export default function UsersPage() {
   const handleActivate = async (userId: string) => {
     setIsDeactivating(true);
     try {
-      await usersService.update(userId, { status: 'ACTIVE' });
+      await usersService.changeStatus(userId, 'ACTIVE');
       await refresh();
     } catch (err) {
       console.error('Error activating user:', err);

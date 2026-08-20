@@ -25,6 +25,12 @@ export const OWNER_NAV: NavConfig = [
       { href: '/admin/settings', label: 'Alexa Skill', icon: 'settings' },
     ],
   },
+  {
+    label: 'Sistema',
+    items: [
+      { href: '/logs', label: 'Registros', icon: 'logs' },
+    ],
+  },
 ];
 
 export const BRANCH_STATUS_LABELS = {

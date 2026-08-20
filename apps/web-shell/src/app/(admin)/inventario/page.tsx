@@ -63,7 +63,7 @@ export default function InventarioPage() {
   const [tab, setTab] = useState<TabId>('despensa');
 
   // Datos
-  const items = useInventoryItems();
+  const items = useInventoryItems(undefined, branchId);
   const stock = useInventoryStock(branchId);
   const alerts = useStockAlerts(branchId);
   const movements = useInventoryMovements({ branchId });
