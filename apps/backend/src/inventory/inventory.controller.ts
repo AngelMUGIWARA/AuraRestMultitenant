@@ -272,7 +272,7 @@ export class InventoryController {
   }
 
   @Put("recipes/:menuItemId")
-  @Roles("OWNER")
+  @Roles("OWNER", "MANAGER")
   @ApiOperation({
     summary: "Reemplazar receta completa de un platillo",
     operationId: "inventory_recipes_replace",

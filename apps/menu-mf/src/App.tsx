@@ -2,7 +2,6 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { BranchProvider } from '@maison/ui';
 import MenusPage from './pages/MenusPage';
 import CategoriasPage from './pages/CategoriasPage';
-import InventarioPage from './pages/InventarioPage';
 import { emit } from '@maison/event-bus';
 import PrintMenuPage from './pages/PrintMenuPage';
 
@@ -10,7 +9,6 @@ export { emit };
 
 function resolveInitialPath(pathname: string) {
   if (pathname.endsWith('/menus/print')) return '/menus/print';
-  if (pathname.endsWith('/inventario')) return '/inventario';
   if (pathname.endsWith('/categorias')) return '/categorias';
   return '/menus';
 }
@@ -26,7 +24,6 @@ export default function MenuApp() {
         <Routes>
           <Route path="/menus"      element={<MenusPage />} />
           <Route path="/categorias" element={<CategoriasPage />} />
-          <Route path="/inventario" element={<InventarioPage />} />
           <Route path="*"           element={<MenusPage />} />
           <Route path="/menus/print" element={<PrintMenuPage />} />
         </Routes>

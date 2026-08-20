@@ -56,7 +56,7 @@ export class UsersController {
   constructor(private readonly service: UsersService) {}
 
   @Get()
-  @Roles('OWNER', 'MANAGER')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Listar usuarios del tenant' })
   @ApiResponse({ status: 200, type: PaginatedUsersDto })
   findAll(
@@ -70,7 +70,7 @@ export class UsersController {
   // Debe declararse ANTES de @Get(':id'): de lo contrario la ruta param
   // captura "stats" como si fuera un id y responde 404.
   @Get('stats')
-  @Roles('OWNER', 'MANAGER')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Estadísticas de usuarios del tenant' })
   @ApiResponse({ status: 200, type: UserStatsDto })
   getStats(@CurrentTenant() tenant: TenantContext): Promise<UserStatsDto> {
@@ -78,7 +78,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles('OWNER', 'MANAGER')
+  @Roles('OWNER')
   @ApiOperation({ summary: 'Obtener un usuario por ID' })
   @ApiResponse({ status: 200, type: UserResponseDto })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })

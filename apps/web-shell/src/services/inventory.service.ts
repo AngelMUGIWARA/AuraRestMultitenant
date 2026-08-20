@@ -8,7 +8,9 @@ import type {
   InventoryMovement,
   InventoryStockRow,
   MenuAvailability,
+  MenuItem,
   MenuItemRecipe,
+  MenuItemStatus,
   StockAlert,
   Supplier,
   UpsertRecipePayload,
@@ -112,5 +114,10 @@ export const inventoryService = {
     return apiClient.get<ApiResponse<MenuAvailability[]>>('/admin/inventory/availability', {
       params: branchParam(branchId),
     });
+  },
+
+  // ── Marcar platillo disponible/agotado manualmente (KITCHEN_STAFF/MANAGER/OWNER) ──
+  updateMenuItemStatus(menuItemId: string, status: MenuItemStatus) {
+    return apiClient.patch<ApiResponse<MenuItem>>(`/admin/menus/${menuItemId}/status`, { status });
   },
 };
