@@ -178,6 +178,7 @@ export class OrdersService {
     query: {
       status?: string;
       type?: string;
+      paymentStatus?: string;
       search?: string;
       date?: string;
       branchId?: string;
@@ -208,6 +209,17 @@ export class OrdersService {
         cancelled: 'CANCELLED',
       };
       where.status = map[query.status] || query.status;
+    }
+    if (query.paymentStatus) {
+      const paymentMap: Record<string, string> = {
+        unpaid: 'UNPAID',
+        partial: 'PARTIALLY_PAID',
+        paid: 'PAID',
+      };
+      const mapped = paymentMap[query.paymentStatus.toLowerCase()];
+      if (mapped) {
+        where.paymentStatus = mapped;
+      }
     }
     if (query.type) where.type = query.type;
     if (query.search) {
