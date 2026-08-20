@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useBranch } from '@maison/ui';
 import { getIsReadOnly } from '@maison/auth-client';
 import { useOrders } from '../hooks/useOrders';
+import { AddItemsModal } from '../components/AddItemsModal';
 import { formatCurrency, formatNumber, formatRelativeTime, cn } from '../utils';
 import { StatCard, StatCardSkeleton } from '@maison/ui';
 import { Skeleton } from '@maison/ui';
@@ -111,6 +112,7 @@ const NEXT_STATUS: Record<string, { label: string; nextStatus: string; icon: str
 };
 
 const CANCELLABLE_STATUSES = new Set(['pending', 'confirmed', 'preparing', 'ready']);
+const ADD_ITEMS_STATUSES = new Set(['pending', 'confirmed', 'preparing']);
 
 /* ─── Order card ────────────────────────────────────────────────── */
 
@@ -118,12 +120,14 @@ function OrderCard({
   order,
   onUpdateStatus,
   onRequestCancel,
+  onRequestAddItems,
   disabled,
   readOnly,
 }: {
   order: Order;
   onUpdateStatus: (orderId: string, status: string) => void;
   onRequestCancel: (order: Order) => void;
+  onRequestAddItems: (order: Order) => void;
   disabled: boolean;
   readOnly: boolean;
 }){
@@ -133,6 +137,7 @@ function OrderCard({
   const remaining = (order.items?.length ?? order.itemCount ?? 0) - maxItems;
   const next = NEXT_STATUS[order.status];
   const canCancel = CANCELLABLE_STATUSES.has(order.status);
+  const canAddItems = ADD_ITEMS_STATUSES.has(order.status);
 
   return (
     <article
@@ -237,10 +242,24 @@ function OrderCard({
         </div>
       </div>
 
-      {/* Card actions — blocked for read-only roles */}
-      {!readOnly && (next || canCancel) && (
+      {/* Card actions. "+ Item" queda disponible incluso para roles de solo lectura
+          (WAITER) para transiciones/cancelación: agregar items es justo lo que
+          el mesero necesita poder hacer aquí. */}
+      {(!readOnly && (next || canCancel) || canAddItems) && (
         <div className="relative flex items-center gap-2 border-t border-maison-border px-4 py-3 bg-surface-2/50">
-          {next && (
+          {canAddItems && (
+            <button
+              type="button"
+              onClick={() => onRequestAddItems(order)}
+              disabled={disabled}
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-maison-border text-maison-cream-muted bg-surface-1 py-2 px-3 text-xs font-bold hover:bg-surface-3 hover:text-maison-cream active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label={`Agregar items al pedido ${order.orderNumber}`}
+            >
+              <span aria-hidden="true">+</span>
+              Item
+            </button>
+          )}
+          {!readOnly && next && (
             <button
               type="button"
               onClick={() => onUpdateStatus(order.id, next.nextStatus)}
@@ -251,7 +270,7 @@ function OrderCard({
               {next.label}
             </button>
           )}
-          {canCancel && (
+          {!readOnly && canCancel && (
             <button
               type="button"
               onClick={() => onRequestCancel(order)}
@@ -316,6 +335,7 @@ export default function OrdersPage() {
   );
   const [activeTab, setActiveTab] = useState<OrderStatus | 'active' | 'all'>('active');
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [addItemsTarget, setAddItemsTarget] = useState<Order | null>(null);
   const hasError = !!error;
 
   function handleTabFilter(val: OrderStatus | 'active' | 'all') {
@@ -501,6 +521,7 @@ export default function OrdersPage() {
                 order={order}
                 onUpdateStatus={updateOrderStatus}
                 onRequestCancel={setCancelTarget}
+                onRequestAddItems={setAddItemsTarget}
                 disabled={isActing}
                 readOnly={readOnly}
               />
@@ -529,6 +550,13 @@ export default function OrdersPage() {
           }
         }}
         onCancel={() => setCancelTarget(null)}
+      />
+
+      {/* ── Add items to an in-progress order ────────────────── */}
+      <AddItemsModal
+        order={addItemsTarget}
+        onClose={() => setAddItemsTarget(null)}
+        onSuccess={refresh}
       />
     </div>
   );
