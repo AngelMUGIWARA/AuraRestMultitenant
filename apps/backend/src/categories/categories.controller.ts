@@ -109,7 +109,7 @@ export class CategoriesController {
   }
 
   @Delete(":id")
-  @Roles("OWNER")
+  @Roles("OWNER", "MANAGER")
   @ApiOperation({ summary: "Eliminar categoría (soft-delete)", operationId: "categories_remove" })
   @ApiResponse({ status: 200, description: "Categoría desactivada" })
   remove(@CurrentTenant() tenant: TenantContext, @Param("id") id: string) {
