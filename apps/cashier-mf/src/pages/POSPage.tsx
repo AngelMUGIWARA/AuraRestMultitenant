@@ -131,6 +131,7 @@ function getTableVisualState(table: RestaurantTable): TableVisualState {
   const order = table.activeOrder;
   if (!order) return 'available';
   if (order.paymentStatus === 'paid') return 'available';
+  if (order.paymentStatus === 'partial') return 'payment-pending';
   if (order.paymentStatus === 'unpaid' && order.ticketPrinted) return 'payment-pending';
   if (order.ticketPrinted) return 'ticket-printed';
   return 'occupied';
@@ -395,7 +396,7 @@ export default function POSPage() {
     cartTotal,
     isLoading, isSubmitting, error, completedOrder, availableDiscounts,
     addToCart, removeFromCart, clearCart, submitOrder, processPayment,
-    applyDiscount, removeDiscount, refreshTables, printTicket,
+    applyDiscount, removeDiscount, refreshTables, printTicket, loadOrderForPayment,
   } = usePOS();
 
   const cashierSettings = useCashierSettings();
@@ -533,17 +534,31 @@ export default function POSPage() {
     const order = table.activeOrder;
     if (order && order.paymentStatus !== 'paid') {
       setDetailTable(table);
-    } else {
-      setSelectedTable(selectedTable?.id === table.id ? null : table);
+      return;
     }
+    // A previous completedOrder/paymentSuccess can be left over from a prior
+    // payment; picking a table for a fresh order must not leak that state.
+    if (completedOrder) {
+      clearCart();
+      resetPaymentLines();
+      setSelectedTable(table);
+      return;
+    }
+    setSelectedTable(selectedTable?.id === table.id ? null : table);
   }
 
-  function handleOpenDetailPay() {
-    if (detailTable?.activeOrder) {
-      setSelectedTable(detailTable);
+  async function handleOpenDetailPay() {
+    const table = detailTable;
+    setDetailTable(null);
+    if (!table?.activeOrder) return;
+    // Reset stale payment form/success state from any previously paid order
+    // before loading this table's actual order into completedOrder.
+    resetPaymentLines();
+    setSelectedTable(table);
+    const order = await loadOrderForPayment(table.activeOrder.id);
+    if (order) {
       setView('payment');
     }
-    setDetailTable(null);
   }
 
   /* ── Loading ── */

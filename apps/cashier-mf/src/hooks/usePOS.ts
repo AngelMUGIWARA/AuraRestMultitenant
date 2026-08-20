@@ -138,6 +138,18 @@ export function usePOS() {
     }
   }, [cart, selectedTable, branchId]);
 
+  const loadOrderForPayment = useCallback(async (orderId: string): Promise<Order | null> => {
+    setError(null);
+    try {
+      const order = await cashierService.getOrderById(orderId);
+      setCompletedOrder(order);
+      return order;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al cargar la orden');
+      return null;
+    }
+  }, []);
+
   const applyDiscount = useCallback(async (discountId: string) => {
     if (!completedOrder) return;
     setIsSubmitting(true);
@@ -237,5 +249,6 @@ export function usePOS() {
     isLoading, isSubmitting, error, completedOrder, availableDiscounts,
     addToCart, removeFromCart, clearCart, submitOrder, processPayment,
     applyDiscount, removeDiscount, refreshTables, printTicket, newOrder,
+    loadOrderForPayment,
   };
 }
