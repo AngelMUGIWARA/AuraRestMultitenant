@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { AuthClient } from '@maison/auth-client';
 import { apiClient } from '@maison/api-client';
-import { EmptyState, Skeleton, IconUsers, IconPlus, IconPencil, IconPower, Modal } from '@maison/ui';
+import { EmptyState, Skeleton, IconUsers, IconPlus, IconPencil, IconPower, Modal, useBranch } from '@maison/ui';
 import { UserModal } from '@/components/users/UserModal';
 import { usersService } from '@/services/users.service';
 import type { User } from '@maison/types';
 
 export default function AdminUsersPage() {
+  const { selectedBranch } = useBranch();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +22,9 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      const response = await apiClient.get<{ data: { data: User[] } }>('/admin/users');
+      const response = await apiClient.get<{ data: { data: User[] } }>('/admin/users', {
+        params: selectedBranch.id !== 'global' ? { branchId: selectedBranch.id } : undefined,
+      });
       setUsers(response.data.data ?? []);
       setError(null);
     } catch (err) {
@@ -33,7 +36,8 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBranch.id]);
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
