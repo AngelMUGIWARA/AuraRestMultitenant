@@ -26,15 +26,23 @@ export const usersService = {
     return apiClient.post<ApiResponse<User>>('/admin/users/invite', payload);
   },
 
+  update(id: string, payload: Partial<CreateUserPayload>): Promise<ApiResponse<User>> {
+    return apiClient.patch<ApiResponse<User>>(`/admin/users/${id}`, payload);
+  },
+
   updateRole(id: string, payload: UpdateUserRolePayload): Promise<ApiResponse<User>> {
     return apiClient.patch<ApiResponse<User>>(`/admin/users/${id}/role`, payload);
   },
 
+  changeStatus(id: string, status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'): Promise<ApiResponse<User>> {
+    return apiClient.patch<ApiResponse<User>>(`/admin/users/${id}/status`, { status });
+  },
+
   deactivate(id: string): Promise<ApiResponse<User>> {
-    return apiClient.patch<ApiResponse<User>>(`/admin/users/${id}/deactivate`, {});
+    return apiClient.patch<ApiResponse<User>>(`/admin/users/${id}/status`, { status: 'INACTIVE' });
   },
 
   activate(id: string): Promise<ApiResponse<User>> {
-    return apiClient.patch<ApiResponse<User>>(`/admin/users/${id}/activate`, {});
+    return apiClient.patch<ApiResponse<User>>(`/admin/users/${id}/status`, { status: 'ACTIVE' });
   },
 };

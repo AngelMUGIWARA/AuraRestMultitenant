@@ -180,10 +180,35 @@ export class UsersRepository {
   }
 
   async update(schemaName: string, id: string, dto: UpdateUserDto) {
-    return this.db(schemaName).user.update({
-      where: { id },
-      data: dto,
-      omit: { passwordHash: true },
+    const { branchId, ...userData } = dto;
+    const db = this.db(schemaName);
+
+    return db.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id },
+        data: userData,
+        omit: { passwordHash: true },
+      });
+
+      // Branch membership lives in the UserBranch join table, not on User.
+      // Only touch it when the caller sent a branchId, or the user just
+      // became OWNER (who never has a branch assignment).
+      if (branchId !== undefined || user.role === 'OWNER') {
+        await tx.userBranch.deleteMany({ where: { userId: id } });
+
+        if (branchId && user.role !== 'OWNER') {
+          const roleRecord = await tx.role.findUnique({
+            where: { name: user.role },
+          });
+          if (roleRecord) {
+            await tx.userBranch.create({
+              data: { userId: id, branchId, roleId: roleRecord.id },
+            });
+          }
+        }
+      }
+
+      return user;
     });
   }
 
