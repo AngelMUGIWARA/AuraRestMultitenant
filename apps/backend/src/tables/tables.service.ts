@@ -5,12 +5,38 @@ import { CreateTableDto } from './dto/create-table.dto';
 import { UpdateTableDto } from './dto/update-table.dto';
 import { TablesRepository } from './tables.repository';
 
+const GLOBAL_BRANCH_ROLES = new Set(['OWNER']);
+
+export interface RequestingUser {
+  id: string;
+  role: string;
+}
+
 @Injectable()
 export class TablesService {
   constructor(private readonly tablesRepo: TablesRepository) {}
 
-  async findAll(schemaName: string, branchId?: string) {
-    const whereInput = branchId ? { branchId } : undefined;
+  private async resolveBranchScope(
+    schemaName: string,
+    user: RequestingUser,
+  ): Promise<string[] | null> {
+    if (GLOBAL_BRANCH_ROLES.has(user.role)) return null;
+    const branchIds = await this.tablesRepo.findUserBranchIds(schemaName, user.id);
+    return branchIds.length > 0 ? branchIds : null;
+  }
+
+  async findAll(schemaName: string, branchId?: string, user?: RequestingUser) {
+    let whereInput: Prisma.RestaurantTableWhereInput | undefined;
+
+    if (branchId) {
+      whereInput = { branchId };
+    } else if (user) {
+      const scope = await this.resolveBranchScope(schemaName, user);
+      if (scope) {
+        whereInput = { branchId: { in: scope } };
+      }
+    }
+
     const tables = await this.tablesRepo.findAll(schemaName, whereInput);
     return tables.map((t) => this.toResponse(t));
   }
