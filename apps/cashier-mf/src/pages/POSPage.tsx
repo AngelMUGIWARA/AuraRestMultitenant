@@ -1,6 +1,11 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { usePOS } from '../hooks/usePOS';
-import type { MenuItem, PaymentMethod, RestaurantTable } from '@maison/types';
+import { useCashierSettings } from '../hooks/useCashierSettings';
+import { usePrintTicket } from '../hooks/usePrintTicket';
+import { TicketPrintView } from '../components/TicketPrintView';
+import { useBranch } from '@maison/ui';
+import { cashierService } from '../services/cashier.service';
+import type { MenuItem, PaymentMethod, RestaurantTable, Payment } from '@maison/types';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(value);
@@ -125,8 +130,8 @@ function getTableVisualState(table: RestaurantTable): TableVisualState {
 
   const order = table.activeOrder;
   if (!order) return 'available';
-  if ((order.paymentStatus as string) === 'paid') return 'available';
-  if ((order.paymentStatus as string) === 'unpaid' && order.ticketPrinted) return 'payment-pending';
+  if (order.paymentStatus === 'paid') return 'available';
+  if (order.paymentStatus === 'unpaid' && order.ticketPrinted) return 'payment-pending';
   if (order.ticketPrinted) return 'ticket-printed';
   return 'occupied';
 }
@@ -275,7 +280,7 @@ function TableDetailDrawer({
                 <div className="text-right">
                   <p className="font-mono text-sm font-bold text-maison-amber">{formatCurrency(order.total)}</p>
                   <p className="text-[10px] text-maison-cream-dim mt-0.5">
-                    {order.paymentStatus === 'paid' ? 'Pagada' : order.paymentStatus === 'partially_paid' ? 'Parcial' : 'Pendiente'}
+                    {order.paymentStatus === 'paid' ? 'Pagada' : order.paymentStatus === 'partial' ? 'Parcial' : 'Pendiente'}
                   </p>
                 </div>
               </div>
@@ -393,6 +398,15 @@ export default function POSPage() {
     applyDiscount, removeDiscount, refreshTables, printTicket,
   } = usePOS();
 
+  const cashierSettings = useCashierSettings();
+  const {
+    previewOrder, directPrintOrder, directPrintRef,
+    ticketPaymentDetails,
+    openPreview, closePreview, printFromPreview,
+    triggerAutoPrint, setPaymentDetailsForTicket, resetAutoPrint,
+  } = usePrintTicket({ onPrintComplete: printTicket });
+  const { selectedBranch } = useBranch();
+
   const [view, setView] = useState<PosView>('tables');
   const [customerName, setCustomerName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -408,7 +422,7 @@ export default function POSPage() {
     reference: string;
   }
   const [paymentLines, setPaymentLines] = useState<PaymentLine[]>(() => [
-    { id: 1, method: 'cash', amount: 0, reference: '' },
+    { id: 1, method: cashierSettings.defaultPaymentMethod.toLowerCase() as PaymentMethod, amount: 0, reference: '' },
   ]);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const lineIdRef = useRef(2);
@@ -427,8 +441,8 @@ export default function POSPage() {
 
   const addPaymentLine = useCallback(() => {
     const newId = lineIdRef.current++;
-    setPaymentLines((prev) => [...prev, { id: newId, method: 'cash', amount: 0, reference: '' }]);
-  }, []);
+    setPaymentLines((prev) => [...prev, { id: newId, method: cashierSettings.defaultPaymentMethod.toLowerCase() as PaymentMethod, amount: 0, reference: '' }]);
+  }, [cashierSettings.defaultPaymentMethod]);
 
   const removePaymentLine = useCallback((id: number) => {
     setPaymentLines((prev) => (prev.length > 1 ? prev.filter((l) => l.id !== id) : prev));
@@ -442,9 +456,52 @@ export default function POSPage() {
   );
 
   const resetPaymentLines = useCallback(() => {
-    setPaymentLines([{ id: 1, method: 'cash', amount: 0, reference: '' }]);
+    setPaymentLines([{ id: 1, method: cashierSettings.defaultPaymentMethod.toLowerCase() as PaymentMethod, amount: 0, reference: '' }]);
     setPaymentSuccess(false);
-  }, []);
+    resetAutoPrint();
+  }, [cashierSettings.defaultPaymentMethod, resetAutoPrint]);
+
+  useEffect(() => {
+    if (completedOrder && completedOrder.remainingAmount > 0 && !paymentSuccess) {
+      setPaymentLines((prev) => {
+        if (prev.length === 1 && prev[0].amount === 0) {
+          return [{ ...prev[0], amount: Math.round(completedOrder.remainingAmount * 100) / 100 }];
+        }
+        return prev;
+      });
+    }
+  }, [completedOrder?.id, completedOrder?.remainingAmount, paymentSuccess]);
+
+  useEffect(() => {
+    if (paymentSuccess && completedOrder && cashierSettings.autoPrintTicket) {
+      cashierService.getPaymentsByOrder(completedOrder.id).then((payments) => {
+        const details = Array.isArray(payments)
+          ? payments.map((p: Payment) => ({ method: p.method, amount: p.amount }))
+          : [];
+        setPaymentDetailsForTicket(details);
+        triggerAutoPrint(completedOrder, cashierSettings.showPrintPreview);
+      }).catch(() => {
+        setPaymentDetailsForTicket([]);
+        triggerAutoPrint(completedOrder, cashierSettings.showPrintPreview);
+      });
+    }
+  }, [paymentSuccess, completedOrder, cashierSettings.autoPrintTicket, cashierSettings.showPrintPreview, triggerAutoPrint, setPaymentDetailsForTicket]);
+
+  const handleManualPrint = useCallback(async (orderId: string) => {
+    try {
+      const [fullOrder, payments] = await Promise.all([
+        cashierService.getOrderById(orderId),
+        cashierService.getPaymentsByOrder(orderId),
+      ]);
+      const details = Array.isArray(payments)
+        ? payments.map((p: Payment) => ({ method: p.method, amount: p.amount }))
+        : [];
+      setPaymentDetailsForTicket(details);
+      openPreview(fullOrder);
+    } catch (err) {
+      console.error('[POS] Error loading ticket for print:', err);
+    }
+  }, [openPreview, setPaymentDetailsForTicket]);
 
   const categories = ['all', ...Array.from(new Set(menuItems.map((i) => i.categoryName).filter(Boolean))) as string[]];
   const filteredItems = menuItems.filter((i) => {
@@ -461,8 +518,14 @@ export default function POSPage() {
 
   async function handlePayment() {
     if (!completedOrder || completedOrder.isFullyPaid) return;
-    await processPayment(paymentLines.map((l) => ({ method: l.method, amount: l.amount, reference: l.reference || undefined })));
-    setPaymentSuccess(true);
+    if (cashierSettings.confirmBeforeClosePayment) {
+      const confirmed = window.confirm('¿Confirmar cierre de cobro?');
+      if (!confirmed) return;
+    }
+    const success = await processPayment(paymentLines.map((l) => ({ method: l.method, amount: l.amount, reference: l.reference || undefined })));
+    if (success) {
+      setPaymentSuccess(true);
+    }
     setCustomerName('');
   }
 
@@ -786,6 +849,27 @@ export default function POSPage() {
                         </>
                       )}
                     </div>
+                    {!completedOrder.ticketPrinted && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const payments = await cashierService.getPaymentsByOrder(completedOrder.id);
+                            const details = Array.isArray(payments)
+                              ? payments.map((p: Payment) => ({ method: p.method, amount: p.amount }))
+                              : [];
+                            setPaymentDetailsForTicket(details);
+                          } catch {
+                            setPaymentDetailsForTicket([]);
+                          }
+                          openPreview(completedOrder);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 rounded-xl border border-maison-border bg-surface-2 text-maison-cream-muted px-6 py-2.5 text-xs font-semibold hover:text-maison-cream hover:bg-surface-3 transition"
+                      >
+                        <IconPrinter className="h-3.5 w-3.5" />
+                        Imprimir ticket
+                      </button>
+                    )}
                     {completedOrder.isFullyPaid ? (
                       <button
                         type="button"
@@ -863,7 +947,7 @@ export default function POSPage() {
                       </div>
 
                       {/* Discount selector */}
-                      {(completedOrder.paymentStatus as string) === 'unpaid' && (
+                      {completedOrder.paymentStatus === 'unpaid' && (
                         <div className="rounded-xl border border-maison-border bg-surface-2 p-3.5 space-y-2.5">
                           <div className="flex items-center justify-between">
                             <p className="text-xs font-bold text-maison-cream-dim uppercase tracking-widest">Descuento de la orden</p>
@@ -1169,9 +1253,41 @@ export default function POSPage() {
           table={detailTable}
           onClose={() => setDetailTable(null)}
           onContinueToMenu={() => { setSelectedTable(detailTable); setDetailTable(null); setView('menu'); }}
-          onPrintTicket={(orderId) => printTicket(orderId)}
+          onPrintTicket={(orderId) => handleManualPrint(orderId)}
           onPay={handleOpenDetailPay}
         />
+      )}
+
+      {/* ── Hidden print area (direct print) ──────────────────────── */}
+      {directPrintOrder && (
+        <div className="ticket-print-area" ref={directPrintRef}>
+          <TicketPrintView order={directPrintOrder} branchName={selectedBranch?.name} paymentDetails={ticketPaymentDetails} />
+        </div>
+      )}
+
+      {/* ── Print preview modal ───────────────────────────────────── */}
+      {previewOrder && (
+        <div className="ticket-preview-overlay">
+          <div className="ticket-preview-modal">
+            <TicketPrintView order={previewOrder} branchName={selectedBranch?.name} paymentDetails={ticketPaymentDetails} />
+            <div className="ticket-preview-actions">
+              <button
+                type="button"
+                onClick={printFromPreview}
+                className="ticket-preview-btn-print"
+              >
+                Imprimir
+              </button>
+              <button
+                type="button"
+                onClick={closePreview}
+                className="ticket-preview-btn-close"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

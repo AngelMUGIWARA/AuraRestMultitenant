@@ -54,7 +54,7 @@ export class KitchenService {
   ): Promise<string[] | null> {
     if (GLOBAL_BRANCH_ROLES.has(user.role)) return null;
     const branchIds = await this.repo.findUserBranchIds(schemaName, user.id);
-    return branchIds.length > 0 ? branchIds : null;
+    return branchIds.length > 0 ? branchIds : [];
   }
 
   async createTicket(

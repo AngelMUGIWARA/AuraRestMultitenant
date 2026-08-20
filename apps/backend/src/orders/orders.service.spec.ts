@@ -1,4 +1,5 @@
 import { OrdersService } from './orders.service';
+import { ForbiddenException } from '@nestjs/common';
 
 function buildService(overrides?: Record<string, jest.Mock>) {
   const defaults = {
@@ -124,6 +125,165 @@ describe('OrdersService.findAll – status active filter', () => {
       expect.objectContaining({
         where: expect.objectContaining({ status: 'PENDING' }),
       }),
+    );
+  });
+});
+
+describe('OrdersService.findAll – branch scoping', () => {
+  const CASHIER = { id: 'u1', role: 'CASHIER' };
+  const MANAGER = { id: 'u1', role: 'MANAGER' };
+  const OWNER = { id: 'u1', role: 'OWNER' };
+  const WAITER = { id: 'u1', role: 'WAITER' };
+
+  it('1. OWNER can query any branchId explicitly', async () => {
+    const { service, repo } = buildService();
+    await service.findAll('tenant', { branchId: 'b999' }, OWNER);
+    expect(repo.findMany).toHaveBeenCalledWith(
+      'tenant',
+      expect.objectContaining({
+        where: expect.objectContaining({ branchId: 'b999' }),
+      }),
+    );
+  });
+
+  it('2. OWNER without branchId → no branch filter (sees all)', async () => {
+    const { service, repo } = buildService();
+    await service.findAll('tenant', {}, OWNER);
+    expect(repo.findMany).toHaveBeenCalledWith(
+      'tenant',
+      expect.objectContaining({
+        where: expect.not.objectContaining({ branchId: expect.anything() }),
+      }),
+    );
+  });
+
+  it('3. CASHIER with branches [b1,b2] → filters to assigned branches', async () => {
+    const { service, repo } = buildService({
+      findUserBranchIds: jest.fn().mockResolvedValue(['b1', 'b2']),
+    });
+    await service.findAll('tenant', {}, CASHIER);
+    expect(repo.findMany).toHaveBeenCalledWith(
+      'tenant',
+      expect.objectContaining({
+        where: expect.objectContaining({ branchId: { in: ['b1', 'b2'] } }),
+      }),
+    );
+  });
+
+  it('4. CASHIER with [b1,b2] querying branchId=b1 → allowed', async () => {
+    const { service, repo } = buildService({
+      findUserBranchIds: jest.fn().mockResolvedValue(['b1', 'b2']),
+    });
+    await service.findAll('tenant', { branchId: 'b1' }, CASHIER);
+    expect(repo.findMany).toHaveBeenCalledWith(
+      'tenant',
+      expect.objectContaining({
+        where: expect.objectContaining({ branchId: 'b1' }),
+      }),
+    );
+  });
+
+  it('5. CASHIER with [b1,b2] querying branchId=b999 → ForbiddenException', async () => {
+    const { service } = buildService({
+      findUserBranchIds: jest.fn().mockResolvedValue(['b1', 'b2']),
+    });
+    await expect(
+      service.findAll('tenant', { branchId: 'b999' }, CASHIER),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('6. CASHIER without branches → returns empty results (no global access)', async () => {
+    const { service, repo } = buildService({
+      findUserBranchIds: jest.fn().mockResolvedValue([]),
+    });
+    await service.findAll('tenant', {}, CASHIER);
+    expect(repo.findMany).toHaveBeenCalledWith(
+      'tenant',
+      expect.objectContaining({
+        where: expect.objectContaining({ branchId: { in: [] } }),
+      }),
+    );
+  });
+
+  it('7. CASHIER without branches querying explicit branchId → ForbiddenException', async () => {
+    const { service } = buildService({
+      findUserBranchIds: jest.fn().mockResolvedValue([]),
+    });
+    await expect(
+      service.findAll('tenant', { branchId: 'b1' }, CASHIER),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('8. MANAGER with [b1] querying branchId=b1 → allowed', async () => {
+    const { service, repo } = buildService({
+      findUserBranchIds: jest.fn().mockResolvedValue(['b1']),
+    });
+    await service.findAll('tenant', { branchId: 'b1' }, MANAGER);
+    expect(repo.findMany).toHaveBeenCalledWith(
+      'tenant',
+      expect.objectContaining({
+        where: expect.objectContaining({ branchId: 'b1' }),
+      }),
+    );
+  });
+
+  it('9. MANAGER with [b1] querying branchId=b2 → ForbiddenException', async () => {
+    const { service } = buildService({
+      findUserBranchIds: jest.fn().mockResolvedValue(['b1']),
+    });
+    await expect(
+      service.findAll('tenant', { branchId: 'b2' }, MANAGER),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('10. WAITER without branches querying branchId → ForbiddenException', async () => {
+    const { service } = buildService({
+      findUserBranchIds: jest.fn().mockResolvedValue([]),
+    });
+    await expect(
+      service.findAll('tenant', { branchId: 'b1' }, WAITER),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('11. no user provided → no branch filter applied', async () => {
+    const { service, repo } = buildService();
+    await service.findAll('tenant', {});
+    expect(repo.findMany).toHaveBeenCalledWith(
+      'tenant',
+      expect.objectContaining({
+        where: expect.not.objectContaining({ branchId: expect.anything() }),
+      }),
+    );
+  });
+});
+
+describe('OrdersService.getStats – branch scoping', () => {
+  const CASHIER = { id: 'u1', role: 'CASHIER' };
+  const OWNER = { id: 'u1', role: 'OWNER' };
+
+  it('CASHIER with [b1,b2] querying branchId=b999 → ForbiddenException', async () => {
+    const { service } = buildService({
+      findUserBranchIds: jest.fn().mockResolvedValue(['b1', 'b2']),
+    });
+    await expect(
+      service.getStats('tenant', 'b999', CASHIER),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('OWNER querying any branchId → allowed', async () => {
+    const { service } = buildService();
+    const stats = await service.getStats('tenant', 'b999', OWNER);
+    expect(stats).toBeDefined();
+  });
+
+  it('CASHIER with [b1,b2] no branchId → scope filters automatically', async () => {
+    const { service, repo } = buildService({
+      findUserBranchIds: jest.fn().mockResolvedValue(['b1', 'b2']),
+    });
+    await service.getStats('tenant', undefined, CASHIER);
+    expect(repo.count).toHaveBeenCalledWith(
+      'tenant',
+      expect.objectContaining({ branchId: { in: ['b1', 'b2'] } }),
     );
   });
 });

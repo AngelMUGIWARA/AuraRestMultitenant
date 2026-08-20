@@ -145,3 +145,284 @@ a {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.5; }
 }
+
+/* ─── Ticket Print Styles ───────────────────────────────────────── */
+
+.ticket-print-area {
+  display: none;
+}
+
+.ticket-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.ticket-preview-modal {
+  background: white;
+  color: #1a1a1a;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  width: 340px;
+}
+
+.ticket-preview-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #e5e5e5;
+  background: #fafafa;
+  border-radius: 0 0 12px 12px;
+}
+
+.ticket-preview-actions button {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s;
+}
+
+.ticket-preview-btn-print {
+  background: #1a1a1a;
+  color: white;
+}
+
+.ticket-preview-btn-print:hover {
+  background: #333;
+}
+
+.ticket-preview-btn-close {
+  background: #f0f0f0;
+  color: #555;
+}
+
+.ticket-preview-btn-close:hover {
+  background: #e0e0e0;
+}
+
+/* ─── Ticket Content (shared between preview + print) ───────────── */
+
+.ticket-content {
+  padding: 20px 16px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #1a1a1a;
+  width: 100%;
+}
+
+.ticket-header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.ticket-restaurant {
+  font-size: 16px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ticket-branch {
+  font-size: 11px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.ticket-folio {
+  font-size: 11px;
+  font-weight: bold;
+  margin-top: 6px;
+}
+
+.ticket-datetime {
+  font-size: 11px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.ticket-meta {
+  font-size: 11px;
+  color: #444;
+  margin-top: 2px;
+}
+
+.ticket-divider {
+  border-top: 1px dashed #ccc;
+  margin: 8px 0;
+}
+
+.ticket-items {
+  margin-bottom: 4px;
+}
+
+.ticket-item {
+  margin-bottom: 6px;
+}
+
+.ticket-item-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
+.ticket-item-qty {
+  font-weight: bold;
+  min-width: 24px;
+  flex-shrink: 0;
+}
+
+.ticket-item-name {
+  flex: 1 1 0%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.ticket-item-price {
+  font-weight: bold;
+  text-align: right;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.ticket-item-unit {
+  font-size: 10px;
+  color: #888;
+  padding-left: 30px;
+}
+
+.ticket-item-notes {
+  font-size: 10px;
+  color: #888;
+  font-style: italic;
+  padding-left: 30px;
+}
+
+.ticket-totals {
+  margin-bottom: 4px;
+}
+
+.ticket-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.ticket-discount {
+  color: #b45648;
+}
+
+.ticket-total {
+  font-size: 14px;
+  font-weight: bold;
+  border-top: 1px solid #ccc;
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.ticket-payment {
+  margin-bottom: 4px;
+}
+
+.ticket-payment-label {
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.ticket-payment-method {
+  font-size: 11px;
+  color: #444;
+}
+
+.ticket-footer {
+  text-align: center;
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+}
+
+/* ─── Print Media Query ─────────────────────────────────────────── */
+
+@page {
+  size: 80mm auto;
+  margin: 0;
+}
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide the entire POS application */
+  body > *:not(.ticket-print-area):not(.ticket-preview-overlay) {
+    display: none !important;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background: white !important;
+    overflow: visible !important;
+  }
+
+  html {
+    overflow: visible !important;
+  }
+
+  /* Direct print: hidden area becomes visible and flows naturally */
+  .ticket-print-area {
+    display: block !important;
+    position: static;
+    width: 80mm;
+    z-index: auto;
+    background: white;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .ticket-print-area .ticket-content {
+    width: 80mm;
+    padding: 4mm 3mm;
+  }
+
+  /* Preview modal: actions hidden, content flows naturally */
+  .ticket-preview-overlay {
+    position: static !important;
+    inset: auto !important;
+    z-index: auto !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .ticket-preview-modal {
+    max-height: none !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .ticket-preview-actions {
+    display: none !important;
+  }
+}

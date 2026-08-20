@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma-tenant';
 import { TableStatus } from '../generated/prisma-tenant';
+import { mapOrderStatusFromDb, mapOrderPaymentStatusFromDb } from '../common/utils/order-mapper';
 import { CreateTableDto } from './dto/create-table.dto';
 import { UpdateTableDto } from './dto/update-table.dto';
 import { TablesRepository } from './tables.repository';
@@ -22,7 +23,7 @@ export class TablesService {
   ): Promise<string[] | null> {
     if (GLOBAL_BRANCH_ROLES.has(user.role)) return null;
     const branchIds = await this.tablesRepo.findUserBranchIds(schemaName, user.id);
-    return branchIds.length > 0 ? branchIds : null;
+    return branchIds.length > 0 ? branchIds : [];
   }
 
   async findAll(schemaName: string, branchId?: string, user?: RequestingUser) {
@@ -147,8 +148,8 @@ export class TablesService {
         ? {
             id: activeOrder.id,
             orderNumber: activeOrder.folio,
-            status: activeOrder.status,
-            paymentStatus: activeOrder.paymentStatus,
+            status: mapOrderStatusFromDb(activeOrder.status),
+            paymentStatus: mapOrderPaymentStatusFromDb(activeOrder.paymentStatus),
             total: Number(activeOrder.total),
             itemCount: activeOrder.orderItems?.length ?? 0,
             waiterName: activeOrder.user?.name || null,

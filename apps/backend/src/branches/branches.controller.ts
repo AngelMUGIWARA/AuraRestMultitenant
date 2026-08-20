@@ -64,7 +64,7 @@ export class BranchesController {
   }
 
   @Get()
-  @Roles('OWNER', 'MANAGER', 'WAITER')
+  @Roles('OWNER', 'MANAGER', 'WAITER', 'CASHIER')
   @ApiOperation({ summary: 'Listar sucursales', operationId: 'branches_getAll' })
   @ApiResponse({ status: 200, type: PaginatedBranchesDto })
   getAll(
@@ -75,7 +75,7 @@ export class BranchesController {
   }
 
   @Get(':id')
-  @Roles('OWNER', 'MANAGER', 'WAITER')
+  @Roles('OWNER', 'MANAGER', 'WAITER', 'CASHIER')
   @ApiOperation({ summary: 'Obtener sucursal por ID', operationId: 'branches_getOne' })
   @ApiResponse({ status: 200, type: BranchResponseDto })
   @ApiResponse({ status: 404, description: 'Sucursal no encontrada' })

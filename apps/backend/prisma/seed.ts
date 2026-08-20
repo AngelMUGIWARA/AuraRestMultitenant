@@ -499,9 +499,14 @@ async function main() {
       if (existingDemoOrder) {
         // Re-seed idempotente: re-ubica las órdenes ya creadas a la sucursal/mesa
         // que les corresponde en la distribución actual (sin duplicar items/pagos).
+        // También corrige paymentStatus si quedó en UNPAID por seeds anteriores.
         await tenantDb.order.update({
           where: { id: existingDemoOrder.id },
-          data: { branchId: table.branchId, tableId: table.id },
+          data: {
+            branchId: table.branchId,
+            tableId: table.id,
+            paymentStatus: 'PAID',
+          },
         });
         continue;
       }
@@ -521,6 +526,7 @@ async function main() {
           userId: mesero.id,
           type: 'DINE_IN',
           status: 'PAID',
+          paymentStatus: 'PAID',
           subtotal,
           tax,
           total,

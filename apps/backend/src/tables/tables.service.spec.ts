@@ -126,16 +126,16 @@ describe('TablesService', () => {
       expect(result).toHaveLength(1);
     });
 
-    it('CASHIER with no UserBranch records sees all tables (graceful fallback)', async () => {
+    it('CASHIER with no UserBranch records gets 0 results (no global access)', async () => {
       repo.findUserBranchIds.mockResolvedValue([]);
-      repo.findAll.mockResolvedValue([tableBranch1, tableBranch2]);
+      repo.findAll.mockResolvedValue([]);
 
       const user = { id: 'user-cashier', role: 'CASHIER' };
       const result = await service.findAll('schema-1', undefined, user);
 
       expect(repo.findUserBranchIds).toHaveBeenCalledWith('schema-1', 'user-cashier');
-      expect(repo.findAll).toHaveBeenCalledWith('schema-1', undefined);
-      expect(result).toHaveLength(2);
+      expect(repo.findAll).toHaveBeenCalledWith('schema-1', { branchId: { in: [] } });
+      expect(result).toHaveLength(0);
     });
 
     it('no user provided — no branch filter applied (backward compatibility)', async () => {

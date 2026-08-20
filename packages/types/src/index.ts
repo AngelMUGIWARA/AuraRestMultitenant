@@ -633,7 +633,7 @@ export type OrderStatus =
   | "delivered"
   | "paid"
   | "cancelled";
-export type PaymentStatus = "pending" | "partial" | "paid" | "partially_refunded" | "refunded" | "failed";
+export type PaymentStatus = "pending" | "unpaid" | "partial" | "paid" | "partially_refunded" | "refunded" | "failed";
 export type OrderType = "dine_in" | "takeaway" | "delivery";
 
 export interface OrderItem {
@@ -931,8 +931,8 @@ export interface RestaurantTable {
   activeOrder?: {
     id: string;
     orderNumber: string;
-    status: string;
-    paymentStatus: string;
+    status: OrderStatus;
+    paymentStatus: PaymentStatus;
     total: number;
     itemCount: number;
     waiterName?: string | null;
