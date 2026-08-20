@@ -181,7 +181,8 @@ function ProductCardSkeleton() {
 export default function MenusPage() {
   const { selectedBranch } = useBranch();
   const navigate = useNavigate();
-  const canManage = getRole() === 'OWNER';
+  const role = getRole();
+  const canManage = role === 'OWNER' || role === 'MANAGER';
   const {
     stats, items, isLoading, error, filters, setFilters, refresh,
     createMenuItem, updateMenuItem, removeMenuItem, isMutating,

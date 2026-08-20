@@ -1,7 +1,7 @@
 'use client';
 
 import type { InventoryItem } from '@maison/types';
-import { IconPackage, IconPencil } from '@maison/ui';
+import { IconPackage, IconPencil, IconTrash } from '@maison/ui';
 import { EmptyState } from '@maison/ui';
 import { cn } from '@/lib/utils';
 import { StockBar } from './StockBar';
@@ -13,9 +13,11 @@ interface ItemsTableProps {
   showCosts: boolean;
   /** Muestra el lápiz de edición (OWNER/ADMIN) */
   onEdit?: (item: InventoryItem) => void;
+  /** Muestra el botón de desactivar (soft-delete, OWNER/ADMIN) */
+  onDelete?: (item: InventoryItem) => void;
 }
 
-export function ItemsTable({ items, showCosts, onEdit }: ItemsTableProps) {
+export function ItemsTable({ items, showCosts, onEdit, onDelete }: ItemsTableProps) {
   if (items.length === 0) {
     return (
       <EmptyState
@@ -40,7 +42,7 @@ export function ItemsTable({ items, showCosts, onEdit }: ItemsTableProps) {
                 <th className="section-label hidden pb-2 font-semibold md:table-cell">Proveedor</th>
               </>
             )}
-            {onEdit && <th className="w-10 pb-2" aria-label="Acciones" />}
+            {(onEdit || onDelete) && <th className="w-16 pb-2" aria-label="Acciones" />}
           </tr>
         </thead>
         <tbody>
@@ -84,16 +86,30 @@ export function ItemsTable({ items, showCosts, onEdit }: ItemsTableProps) {
                     </td>
                   </>
                 )}
-                {onEdit && (
+                {(onEdit || onDelete) && (
                   <td className="py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => onEdit(item)}
-                      className="rounded p-1.5 text-maison-cream-dim opacity-0 transition-all hover:bg-surface-3 hover:text-maison-amber focus:opacity-100 group-hover:opacity-100"
-                      aria-label={`Editar ${item.name}`}
-                    >
-                      <IconPencil className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      {onEdit && (
+                        <button
+                          type="button"
+                          onClick={() => onEdit(item)}
+                          className="rounded p-1.5 text-maison-cream-dim opacity-0 transition-all hover:bg-surface-3 hover:text-maison-amber focus:opacity-100 group-hover:opacity-100"
+                          aria-label={`Editar ${item.name}`}
+                        >
+                          <IconPencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {onDelete && item.isActive && (
+                        <button
+                          type="button"
+                          onClick={() => onDelete(item)}
+                          className="rounded p-1.5 text-maison-cream-dim opacity-0 transition-all hover:bg-maison-ruby-bg hover:text-maison-ruby focus:opacity-100 group-hover:opacity-100"
+                          aria-label={`Desactivar ${item.name}`}
+                        >
+                          <IconTrash className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 )}
               </tr>

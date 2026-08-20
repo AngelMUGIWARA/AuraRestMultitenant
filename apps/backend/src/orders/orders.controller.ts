@@ -24,6 +24,7 @@ import { TenantGuard } from '../common/guards/tenant.guard';
 
 import { CancelOrderDto } from './dto/cancel-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { AddOrderItemsDto } from './dto/add-order-items.dto';
 import { OrderQueryDto } from './dto/order-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderResponseDto, OrderStatsResponseDto, PaginatedOrdersDto } from './dto/order-response.dto';
@@ -167,6 +168,22 @@ export class OrdersController {
   ) {
     const userId = user?.id ?? user?.sub ?? user?.userId;
     return this.orderDiscountService.remove(tenant.schemaName, id, userId);
+  }
+
+  @Roles('MANAGER', 'OWNER', 'WAITER')
+  @Post(':id/items')
+  @ApiOperation({ summary: 'Agregar items a una orden existente', operationId: 'orders_addItems' })
+  @ApiResponse({ status: 201, type: OrderResponseDto })
+  @ApiResponse({ status: 400, description: 'La orden ya no admite items nuevos' })
+  @ApiResponse({ status: 404, description: 'Orden no encontrada' })
+  addItems(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+    @Body() dto: AddOrderItemsDto,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.id ?? user?.sub ?? user?.userId;
+    return this.ordersService.addItems(tenant.schemaName, id, dto, userId);
   }
 
   @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER', 'KITCHEN_STAFF')

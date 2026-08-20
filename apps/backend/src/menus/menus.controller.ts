@@ -109,7 +109,7 @@ export class MenusController {
   }
 
   @Post()
-  @Roles('OWNER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({
     summary: 'Crear producto',
     operationId: 'menus_create',
@@ -159,7 +159,7 @@ export class MenusController {
   }
 
   @Put(':id')
-  @Roles('OWNER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({
     summary: 'Actualizar producto',
     operationId: 'menus_update',
@@ -212,7 +212,7 @@ export class MenusController {
   }
 
   @Patch(':id/price')
-  @Roles('OWNER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({
     summary: 'Actualizar precio',
     operationId: 'menus_updatePrice',
@@ -227,7 +227,7 @@ export class MenusController {
   }
 
   @Patch(':id/status')
-  @Roles('OWNER')
+  @Roles('OWNER', 'MANAGER', 'KITCHEN_STAFF')
   @ApiOperation({
     summary: 'Actualizar estado de disponibilidad',
     operationId: 'menus_updateStatus',
@@ -242,7 +242,7 @@ export class MenusController {
   }
 
   @Delete(':id')
-  @Roles('OWNER')
+  @Roles('OWNER', 'MANAGER')
   @ApiOperation({
     summary: 'Eliminar producto (soft-delete)',
     operationId: 'menus_remove',

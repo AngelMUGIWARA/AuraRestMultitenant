@@ -183,6 +183,62 @@ export class OrdersRepository {
     });
   }
 
+  async createOrderItems(
+    schemaName: string,
+    orderId: string,
+    items: Array<{
+      menuItemId: string;
+      quantity: number;
+      unitPrice: string;
+      subtotal: string;
+      notes?: string;
+    }>,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = this.db(schemaName, tx);
+    const created: Array<Awaited<ReturnType<typeof client.orderItem.create>>> = [];
+    for (const item of items) {
+      const data: Prisma.OrderItemUncheckedCreateInput = { orderId, ...item };
+      created.push(await client.orderItem.create({ data }));
+    }
+    return created;
+  }
+
+  async findKitchenTicketByOrderId(
+    schemaName: string,
+    orderId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).kitchenTicket.findUnique({ where: { orderId } });
+  }
+
+  async addKitchenTicketItems(
+    schemaName: string,
+    ticketId: string,
+    items: Array<{
+      orderItemId: string;
+      menuItemName: string;
+      quantity: number;
+      notes?: string;
+    }>,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.db(schemaName, tx).kitchenTicket.update({
+      where: { id: ticketId },
+      data: {
+        items: {
+          create: items.map((item) => ({
+            orderItemId: item.orderItemId,
+            menuItemName: item.menuItemName,
+            quantity: item.quantity,
+            notes: item.notes,
+            status: 'PENDING' as const,
+          })),
+        },
+      },
+    });
+  }
+
   async findUserBranchIds(schemaName: string, userId: string): Promise<string[]> {
     const rows = await this.db(schemaName).userBranch.findMany({
       where: { userId },

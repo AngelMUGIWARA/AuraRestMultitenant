@@ -83,7 +83,7 @@ function CategoryCard({ cat, index, canEdit, canDelete, onEdit, onDelete }: Cate
             type="button"
             onClick={() => onDelete(cat)}
             className="flex items-center justify-center gap-1.5 rounded border border-maison-border bg-surface-2 px-2.5 py-1 text-2xs font-medium text-maison-cream-muted transition-colors hover:border-maison-ruby/30 hover:bg-maison-ruby-bg hover:text-maison-ruby"
-            aria-label={`Eliminar ${cat.name}`}
+            aria-label={`Desactivar ${cat.name}`}
           >
             <IconTrash className="h-3 w-3" />
           </button>
@@ -120,7 +120,7 @@ export default function CategoriasPage() {
   const { selectedBranch } = useBranch();
   const role = getRole();
   const canManage = role === 'OWNER' || role === 'MANAGER';
-  const canDelete = role === 'OWNER';
+  const canDelete = role === 'OWNER' || role === 'MANAGER';
   const {
     stats, categories, isLoading, error, filters, setFilters, refresh,
     createCategory, updateCategory, removeCategory, isMutating,
@@ -321,13 +321,13 @@ export default function CategoriasPage() {
 
       <ConfirmDialog
         open={!!deletingCategory}
-        title="Eliminar categoría"
+        title="Desactivar categoría"
         description={
           deletingCategory
-            ? `¿Seguro que quieres desactivar "${deletingCategory.name}"? Los productos existentes conservarán la categoría, pero dejará de aparecer como activa.`
+            ? `¿Seguro que quieres desactivar "${deletingCategory.name}"? Los productos existentes conservarán la categoría, pero dejará de aparecer como activa. Puedes reactivarla luego desde "Editar".`
             : ''
         }
-        confirmLabel="Eliminar"
+        confirmLabel="Desactivar"
         isLoading={isMutating}
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeletingCategory(null)}

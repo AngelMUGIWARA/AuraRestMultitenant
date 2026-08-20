@@ -10,8 +10,8 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
   '/dashboard': ['OWNER', 'SUPER_ADMIN'],
   '/reportes': ['OWNER', 'SUPER_ADMIN', 'MANAGER'],
   '/reservaciones': ['OWNER', 'SUPER_ADMIN', 'MANAGER'],
-  '/admin/users': ['OWNER', 'SUPER_ADMIN', 'MANAGER'],
-  '/sucursales': ['OWNER', 'SUPER_ADMIN', 'MANAGER'],
+  '/admin/users': ['OWNER', 'SUPER_ADMIN'],
+  '/sucursales': ['OWNER', 'SUPER_ADMIN'],
   '/settings': ['OWNER', 'SUPER_ADMIN'],
   '/inventario': ['OWNER', 'SUPER_ADMIN', 'MANAGER'],
 
@@ -24,8 +24,8 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
   '/menus': ['SUPER_ADMIN', 'MANAGER'],
   '/orders': ['SUPER_ADMIN', 'MANAGER'],
   '/analytics': ['SUPER_ADMIN', 'MANAGER'],
-  '/integrations': ['SUPER_ADMIN', 'MANAGER'],
-  '/logs': ['SUPER_ADMIN', 'MANAGER'],
+  '/integrations': ['SUPER_ADMIN'],
+  '/logs': ['SUPER_ADMIN'],
 
   // CASHIER (CASHIER y SUPER_ADMIN)
   '/cashier': ['CASHIER', 'SUPER_ADMIN'],

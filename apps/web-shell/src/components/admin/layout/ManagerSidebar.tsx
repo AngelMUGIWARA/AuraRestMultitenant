@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AuthClient } from '@maison/auth-client';
 import { cn } from '@/lib/utils';
-import { ADMIN_NAV, OWNER_NAV } from '@/lib/constants';
+import { ADMIN_NAV, OWNER_NAV, MANAGER_NAV } from '@/lib/constants';
 import { useSidebar } from '@/contexts/SidebarContext';
 import {
   IconDashboard, IconAnalytics,
@@ -98,10 +98,10 @@ interface SidebarContentProps {
 
 function SidebarContent({ isCollapsed, isMobile, onClose, onToggle }: SidebarContentProps) {
   const pathname = usePathname();
-  const isOwner = AuthClient.getRole() === 'OWNER';
-  const nav = isOwner ? OWNER_NAV : ADMIN_NAV;
+  const userRole = AuthClient.getRole();
+  const nav = userRole === 'OWNER' ? OWNER_NAV : userRole === 'MANAGER' ? MANAGER_NAV : ADMIN_NAV;
   const userEmail = AuthClient.getUser()?.email ?? '';
-  const role = AuthClient.getRole() ?? 'Usuario';
+  const role = userRole ?? 'Usuario';
 
   async function handleLogout() {
     await AuthClient.logout(true);
