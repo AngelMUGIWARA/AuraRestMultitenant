@@ -1,5 +1,13 @@
-export function arrayToCsv(rows: Record<string, string | number>[]): string {
-  if (rows.length === 0) return '';
+export function arrayToCsv(
+  rows: Record<string, string | number>[],
+  fallbackHeaders?: string[],
+): string {
+  if (rows.length === 0) {
+    // Sin datos en el rango seleccionado: igual devolvemos la fila de
+    // encabezados (si se conoce) en vez de un archivo vacío de 0 bytes,
+    // que en el navegador se percibe como "no se generó nada".
+    return fallbackHeaders ? fallbackHeaders.join(',') : '';
+  }
 
   const headers = Object.keys(rows[0]);
   const headerLine = headers.join(',');

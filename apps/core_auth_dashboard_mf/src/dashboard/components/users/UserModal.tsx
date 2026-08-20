@@ -8,6 +8,14 @@ interface UserModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  editingUser?: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    phone?: string;
+    branchId?: string;
+  } | null;
 }
 
 const FIELD = 'flex flex-col gap-1.5';
@@ -20,7 +28,8 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'KITCHEN_STAFF', label: 'Cocina' },
 ];
 
-export function UserModal({ open, onClose, onSuccess }: UserModalProps) {
+export function UserModal({ open, onClose, onSuccess, editingUser }: UserModalProps) {
+  const isEditing = !!editingUser;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,12 +44,21 @@ export function UserModal({ open, onClose, onSuccess }: UserModalProps) {
 
   useEffect(() => {
     if (open) {
-      setName('');
-      setEmail('');
-      setPassword('');
-      setRole('WAITER');
-      setPhone('');
-      setBranchId('');
+      if (isEditing && editingUser) {
+        setName(editingUser.name);
+        setEmail(editingUser.email);
+        setPassword('');
+        setRole(editingUser.role);
+        setPhone(editingUser.phone || '');
+        setBranchId(editingUser.branchId || '');
+      } else {
+        setName('');
+        setEmail('');
+        setPassword('');
+        setRole('WAITER');
+        setPhone('');
+        setBranchId('');
+      }
       setError(null);
 
       branchesService.getAll({ status: 'active' }).then((res) => {
@@ -48,7 +66,7 @@ export function UserModal({ open, onClose, onSuccess }: UserModalProps) {
         setBranches(items.map((b) => ({ id: b.id, name: b.name })));
       }).catch(() => setBranches([]));
     }
-  }, [open]);
+  }, [open, isEditing, editingUser]);
 
   useEffect(() => {
     if (!showBranch) setBranchId('');
@@ -60,18 +78,27 @@ export function UserModal({ open, onClose, onSuccess }: UserModalProps) {
     setError(null);
 
     try {
-      await usersService.create({
-        name,
-        email,
-        password,
-        role,
-        phone: phone || undefined,
-        branchId: showBranch && branchId ? branchId : undefined,
-      });
+      if (isEditing && editingUser) {
+        await usersService.update(editingUser.id, {
+          name,
+          role,
+          phone: phone || undefined,
+          branchId: showBranch && branchId ? branchId : undefined,
+        });
+      } else {
+        await usersService.create({
+          name,
+          email,
+          password,
+          role,
+          phone: phone || undefined,
+          branchId: showBranch && branchId ? branchId : undefined,
+        });
+      }
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'No se pudo crear el usuario';
+      const message = err instanceof Error ? err.message : `No se pudo ${isEditing ? 'actualizar' : 'crear'} el usuario`;
       setError(message);
     } finally {
       setSubmitting(false);
@@ -82,8 +109,8 @@ export function UserModal({ open, onClose, onSuccess }: UserModalProps) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Nuevo usuario"
-      description="Crea una cuenta de acceso para tu equipo."
+      title={isEditing ? "Editar usuario" : "Nuevo usuario"}
+      description={isEditing ? "Actualiza los datos del usuario." : "Crea una cuenta de acceso para tu equipo."}
       size="md"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -106,23 +133,26 @@ export function UserModal({ open, onClose, onSuccess }: UserModalProps) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            readOnly={isEditing}
             className="input-base"
             placeholder="juan@restaurante.com"
           />
         </label>
 
-        <label className={FIELD}>
-          <span className={LABEL}>Contraseña</span>
-          <input
-            required
-            type="password"
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="input-base"
-            placeholder="Mínimo 6 caracteres"
-          />
-        </label>
+        {!isEditing && (
+          <label className={FIELD}>
+            <span className={LABEL}>Contraseña</span>
+            <input
+              required
+              type="password"
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input-base"
+              placeholder="Mínimo 6 caracteres"
+            />
+          </label>
+        )}
 
         <label className={FIELD}>
           <span className={LABEL}>Rol</span>
@@ -177,7 +207,7 @@ export function UserModal({ open, onClose, onSuccess }: UserModalProps) {
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" onClick={onClose} className="btn-ghost">Cancelar</button>
           <button type="submit" disabled={submitting} className="btn-primary disabled:opacity-50">
-            {submitting ? 'Creando…' : 'Crear usuario'}
+            {submitting ? (isEditing ? 'Actualizando…' : 'Creando…') : (isEditing ? 'Guardar cambios' : 'Crear usuario')}
           </button>
         </div>
       </form>

@@ -1,17 +1,34 @@
 /**
- * Tests de Timezone: Verificar que fecha/hora se envían en UTC
+ * Tests de Timezone: Verificar que fecha/hora se interpretan como hora
+ * local de Ciudad de México (offset fijo -06:00, sin horario de verano
+ * desde 2022).
  *
- * El contrato establece que frontend debe enviar UTC.
- * Estos tests verif que las funciones helper producen UTC.
+ * El contrato establece que frontend y backend hablan en hora de CDMX,
+ * no en UTC crudo. Antes, el frontend calculaba "hoy"/"ahora" en UTC
+ * mientras el backend interpretaba esos mismos valores como si fueran
+ * UTC también — el resultado práctico era que una reserva capturada a
+ * las 7pm (hora real de México) se guardaba/mostraba con 6 horas de
+ * diferencia, y el "día" cambiaba a medianoche UTC (6pm hora de México)
+ * en vez de a medianoche real.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-describe('Timezone - Frontend UTC Conversion', () => {
-  let originalDate: typeof Date;
+function todayDateString(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+}
 
+function nowTimeString(): string {
+  return new Date().toLocaleTimeString('en-GB', {
+    timeZone: 'America/Mexico_City',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+describe('Timezone - Frontend en hora de Ciudad de México', () => {
   beforeEach(() => {
-    originalDate = Date;
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
@@ -19,241 +36,154 @@ describe('Timezone - Frontend UTC Conversion', () => {
   });
 
   describe('todayDateString()', () => {
-    it('debe devolver fecha en formato YYYY-MM-DD UTC', () => {
-      // Mock date: 2026-07-24T15:30:45.000Z
-      vi.useFakeTimers();
+    it('debe devolver la fecha en formato YYYY-MM-DD, hora de México', () => {
+      // 15:30 UTC = 09:30 en México (UTC-6): mismo día calendario
       vi.setSystemTime(new Date('2026-07-24T15:30:45.000Z'));
 
-      // Simular todayDateString inline
-      const today = new Date().toISOString().slice(0, 10);
-
-      expect(today).toBe('2026-07-24');
-      expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(todayDateString()).toBe('2026-07-24');
+      expect(todayDateString()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
-    it('debe ser UTC, no zona local', () => {
-      vi.useFakeTimers();
-      // Simular hora en UTC: 2026-07-24 23:45 UTC
-      vi.setSystemTime(new Date('2026-07-24T23:45:00.000Z'));
+    it('NO debe ser la fecha UTC cuando difieren por el offset de México', () => {
+      // 04:00 UTC del día 25 = 22:00 del día 24 en México (UTC-6).
+      // La fecha UTC ya es 25, pero la fecha real en México sigue siendo 24.
+      vi.setSystemTime(new Date('2026-07-25T04:00:00.000Z'));
 
-      const today = new Date().toISOString().slice(0, 10);
-
-      // Debe ser 2026-07-24, incluso si en zona local es 2026-07-25
-      expect(today).toBe('2026-07-24');
+      expect(todayDateString()).toBe('2026-07-24');
     });
 
-    it('debe cambiar fecha solo cuando cruza medianoche UTC', () => {
-      vi.useFakeTimers();
+    it('debe cambiar de día hasta medianoche real de México (06:00 UTC), no a medianoche UTC', () => {
+      // 05:59:59 UTC = 23:59:59 del día anterior en México
+      vi.setSystemTime(new Date('2026-07-25T05:59:59.000Z'));
+      expect(todayDateString()).toBe('2026-07-24');
 
-      // Noche: 23:59:59 UTC
-      vi.setSystemTime(new Date('2026-07-24T23:59:59.000Z'));
-      const before = new Date().toISOString().slice(0, 10);
-
-      // 1 segundo después: medianoche UTC
-      vi.setSystemTime(new Date('2026-07-25T00:00:00.000Z'));
-      const after = new Date().toISOString().slice(0, 10);
-
-      expect(before).toBe('2026-07-24');
-      expect(after).toBe('2026-07-25');
+      // 06:00:00 UTC = 00:00:00 en México: aquí sí cambia el día
+      vi.setSystemTime(new Date('2026-07-25T06:00:00.000Z'));
+      expect(todayDateString()).toBe('2026-07-25');
     });
   });
 
   describe('nowTimeString()', () => {
-    it('debe devolver hora en formato HH:MM UTC', () => {
-      vi.useFakeTimers();
+    it('debe devolver la hora en formato HH:MM, hora de México (UTC-6)', () => {
       vi.setSystemTime(new Date('2026-07-24T14:35:45.000Z'));
 
-      // Simular nowTimeString inline con toISOString()
-      const now = new Date().toISOString().slice(11, 16);
-
-      expect(now).toBe('14:35');
-      expect(now).toMatch(/^\d{2}:\d{2}$/);
+      // 14:35 UTC - 6h = 08:35 en México
+      expect(nowTimeString()).toBe('08:35');
+      expect(nowTimeString()).toMatch(/^\d{2}:\d{2}$/);
     });
 
-    it('debe usar UTC, no hora local', () => {
-      vi.useFakeTimers();
-      // Simular: 2026-07-24T23:45:00Z (UTC)
-      // En zona local México (-6), sería 17:45
-      vi.setSystemTime(new Date('2026-07-24T23:45:00.000Z'));
-
-      const now = new Date().toISOString().slice(11, 16);
-
-      // Debe ser 23:45 UTC, NO 17:45 local
-      expect(now).toBe('23:45');
-    });
-
-    it('debe cambiar hora exactamente cada minuto', () => {
-      vi.useFakeTimers();
-
-      // 14:35:59 UTC
+    it('debe cambiar de hora exactamente cada minuto (en hora de México)', () => {
       vi.setSystemTime(new Date('2026-07-24T14:35:59.999Z'));
-      const before = new Date().toISOString().slice(11, 16);
+      expect(nowTimeString()).toBe('08:35');
 
-      // 14:36:00 UTC
       vi.setSystemTime(new Date('2026-07-24T14:36:00.000Z'));
-      const after = new Date().toISOString().slice(11, 16);
-
-      expect(before).toBe('14:35');
-      expect(after).toBe('14:36');
+      expect(nowTimeString()).toBe('08:36');
     });
 
-    it('debe preservar segundos = 00 (no redondear)', () => {
-      vi.useFakeTimers();
+    it('debe preservar minutos exactos sin redondear segundos', () => {
       vi.setSystemTime(new Date('2026-07-24T14:35:45.000Z'));
 
-      const now = new Date().toISOString().slice(11, 16);
-
-      // Debe ser "14:35", no "14:36"
-      expect(now).toBe('14:35');
-      expect(now).not.toBe('14:36');
+      expect(nowTimeString()).toBe('08:35');
+      expect(nowTimeString()).not.toBe('08:36');
     });
   });
 
-  describe('Flujo Completo: Date + Time → Backend', () => {
-    it('fecha actual + hora actual = UTC correcto', () => {
-      vi.useFakeTimers();
+  describe('Flujo completo: Date + Time (México) → UTC real en el backend', () => {
+    it('fecha/hora local de México se reconstruye al instante UTC correcto', () => {
       vi.setSystemTime(new Date('2026-07-24T14:35:00.000Z'));
 
-      const date = new Date().toISOString().slice(0, 10);
-      const time = new Date().toISOString().slice(11, 16);
+      const date = todayDateString(); // "2026-07-24"
+      const time = nowTimeString(); // "08:35" (14:35 UTC - 6h)
 
-      // Frontend envía al backend
-      const payload = {
-        date, // "2026-07-24"
-        time, // "14:35"
-      };
-
-      // Backend reconstruye: new Date(`${date}T${time}:00.000Z`)
-      const scheduledAt = new Date(`${payload.date}T${payload.time}:00.000Z`);
+      // Backend reconstruye: new Date(`${date}T${time}:00.000-06:00`)
+      const scheduledAt = new Date(`${date}T${time}:00.000-06:00`);
 
       expect(scheduledAt.toISOString()).toBe('2026-07-24T14:35:00.000Z');
-      expect(scheduledAt.getUTCHours()).toBe(14);
-      expect(scheduledAt.getUTCMinutes()).toBe(35);
     });
 
-    it('cambio de día en UTC se propaga correctamente', () => {
-      vi.useFakeTimers();
-      // 23:50 UTC el día 24
-      vi.setSystemTime(new Date('2026-07-24T23:50:00.000Z'));
+    it('el cambio de día en México (06:00 UTC) se propaga correctamente al reconstruir', () => {
+      // 23:50 hora de México del día 24
+      vi.setSystemTime(new Date('2026-07-25T05:50:00.000Z'));
 
-      const date = new Date().toISOString().slice(0, 10);
-      const time = new Date().toISOString().slice(11, 16);
-
+      const date = todayDateString();
+      const time = nowTimeString();
       expect(date).toBe('2026-07-24');
       expect(time).toBe('23:50');
 
-      const scheduledAt = new Date(`${date}T${time}:00.000Z`);
-      expect(scheduledAt.toISOString()).toBe('2026-07-24T23:50:00.000Z');
+      const scheduledAt = new Date(`${date}T${time}:00.000-06:00`);
+      expect(scheduledAt.toISOString()).toBe('2026-07-25T05:50:00.000Z');
 
-      // 10 minutos después: 00:00 UTC el día 25
-      vi.setSystemTime(new Date('2026-07-25T00:00:00.000Z'));
+      // 10 minutos después: 00:00 hora de México del día 25
+      vi.setSystemTime(new Date('2026-07-25T06:00:00.000Z'));
 
-      const dateAfter = new Date().toISOString().slice(0, 10);
-      const timeAfter = new Date().toISOString().slice(11, 16);
-
+      const dateAfter = todayDateString();
+      const timeAfter = nowTimeString();
       expect(dateAfter).toBe('2026-07-25');
       expect(timeAfter).toBe('00:00');
 
-      const scheduledAtAfter = new Date(`${dateAfter}T${timeAfter}:00.000Z`);
-      expect(scheduledAtAfter.toISOString()).toBe('2026-07-25T00:00:00.000Z');
+      const scheduledAtAfter = new Date(`${dateAfter}T${timeAfter}:00.000-06:00`);
+      expect(scheduledAtAfter.toISOString()).toBe('2026-07-25T06:00:00.000Z');
     });
 
-    it('payload enviado al backend es siempre UTC', () => {
-      vi.useFakeTimers();
-
-      const testCases = [
-        {
-          mockTime: '2026-07-25T00:00:00.000Z',
-          expectedDate: '2026-07-25',
-          expectedTime: '00:00',
-          expectedIso: '2026-07-25T00:00:00.000Z',
-        },
-        {
-          mockTime: '2026-07-25T12:30:45.000Z',
-          expectedDate: '2026-07-25',
-          expectedTime: '12:30',
-          expectedIso: '2026-07-25T12:30:00.000Z',
-        },
-        {
-          mockTime: '2026-12-31T23:59:59.000Z',
-          expectedDate: '2026-12-31',
-          expectedTime: '23:59',
-          expectedIso: '2026-12-31T23:59:00.000Z',
-        },
+    it('el payload enviado al backend siempre reconstruye el instante UTC correcto', () => {
+      const cases = [
+        { mockTime: '2026-07-25T06:00:00.000Z', expectedDate: '2026-07-25', expectedTime: '00:00' },
+        { mockTime: '2026-07-25T18:30:00.000Z', expectedDate: '2026-07-25', expectedTime: '12:30' },
+        { mockTime: '2026-12-31T05:59:00.000Z', expectedDate: '2026-12-30', expectedTime: '23:59' },
       ];
 
-      testCases.forEach(({ mockTime, expectedDate, expectedTime, expectedIso }) => {
+      cases.forEach(({ mockTime, expectedDate, expectedTime }) => {
         vi.setSystemTime(new Date(mockTime));
 
-        const date = new Date().toISOString().slice(0, 10);
-        const time = new Date().toISOString().slice(11, 16);
+        const date = todayDateString();
+        const time = nowTimeString();
 
         expect(date).toBe(expectedDate);
         expect(time).toBe(expectedTime);
 
-        const scheduledAt = new Date(`${date}T${time}:00.000Z`);
-        expect(scheduledAt.toISOString()).toBe(expectedIso);
+        const scheduledAt = new Date(`${date}T${time}:00.000-06:00`);
+        expect(scheduledAt.toISOString()).toBe(mockTime);
       });
     });
   });
 
-  describe('Validaciones Temporales en Frontend', () => {
-    it('comparación de fecha debe usar UTC', () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2026-07-24T14:35:00.000Z'));
+  describe('Validaciones temporales en el frontend (comparación lexicográfica de strings)', () => {
+    it('comparación de fecha funciona igual en formato YYYY-MM-DD', () => {
+      vi.setSystemTime(new Date('2026-07-24T14:35:00.000Z')); // "2026-07-24" en México
 
-      const today = new Date().toISOString().slice(0, 10); // "2026-07-24"
-      const userInput = '2026-07-23';
-
-      // Validación: userInput < today ?
-      expect(userInput < today).toBe(true); // "2026-07-23" < "2026-07-24"
-
-      const futureDate = '2026-07-25';
-      expect(futureDate < today).toBe(false); // "2026-07-25" > "2026-07-24"
+      const today = todayDateString();
+      expect('2026-07-23' < today).toBe(true);
+      expect('2026-07-25' < today).toBe(false);
     });
 
-    it('comparación de hora debe usar UTC', () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2026-07-24T14:35:00.000Z'));
+    it('comparación de hora funciona igual en formato HH:MM', () => {
+      vi.setSystemTime(new Date('2026-07-24T14:35:00.000Z')); // "08:35" en México
 
-      const now = new Date().toISOString().slice(11, 16); // "14:35"
-      const userInput = '14:30';
-
-      // Validación: userInput < now ?
-      expect(userInput < now).toBe(true); // "14:30" < "14:35"
-
-      const futureTime = '14:40';
-      expect(futureTime < now).toBe(false); // "14:40" > "14:35"
+      const now = nowTimeString();
+      expect('08:30' < now).toBe(true);
+      expect('08:40' < now).toBe(false);
     });
 
-    it('debe rechazar hora pasada hoy (UTC)', () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2026-07-24T14:35:00.000Z'));
+    it('debe rechazar una hora ya pasada hoy (hora de México)', () => {
+      vi.setSystemTime(new Date('2026-07-24T14:35:00.000Z')); // "2026-07-24" "08:35"
 
-      const today = new Date().toISOString().slice(0, 10);
-      const now = new Date().toISOString().slice(11, 16);
+      const today = todayDateString();
+      const now = nowTimeString();
       const userDate = today;
-      const userTime = '14:30'; // Hace 5 minutos
+      const userTime = '08:30'; // 5 minutos antes
 
-      const isToday = userDate === today;
-      const isPast = userTime < now;
-
-      expect(isToday && isPast).toBe(true); // Debe rechazarse
+      expect(userDate === today && userTime < now).toBe(true);
     });
 
-    it('debe permitir hora futura hoy (UTC)', () => {
-      vi.useFakeTimers();
+    it('debe permitir una hora futura hoy (hora de México)', () => {
       vi.setSystemTime(new Date('2026-07-24T14:35:00.000Z'));
 
-      const today = new Date().toISOString().slice(0, 10);
-      const now = new Date().toISOString().slice(11, 16);
+      const today = todayDateString();
+      const now = nowTimeString();
       const userDate = today;
-      const userTime = '15:00'; // 25 minutos después
+      const userTime = '09:00'; // 25 minutos después
 
-      const isToday = userDate === today;
-      const isPast = userTime < now;
-
-      expect(isToday && isPast).toBe(false); // Debe permitirse
+      expect(userDate === today && userTime < now).toBe(false);
     });
   });
 });

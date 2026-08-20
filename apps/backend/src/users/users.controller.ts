@@ -62,8 +62,9 @@ export class UsersController {
   findAll(
     @CurrentTenant() tenant: TenantContext,
     @Query() pagination: PaginationDto,
+    @Query('branchId') branchId?: string,
   ): Promise<PaginatedUsersDto> {
-    return this.service.findAll(tenant.schemaName, pagination);
+    return this.service.findAll(tenant.schemaName, pagination, branchId);
   }
 
   // Debe declararse ANTES de @Get(':id'): de lo contrario la ruta param

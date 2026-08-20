@@ -16,14 +16,19 @@ export const OWNER_NAV: NavConfig = [
     items: [
       { href: '/dashboard',  label: 'Dashboard',     icon: 'dashboard' },
       { href: '/reportes',   label: 'Reportes',      icon: 'analytics' },
-      { href: '/reservaciones', label: 'Reservaciones',  icon: 'reservations' },
     ],
   },
   {
     label: 'Gestión',
     items: [
       { href: '/sucursales', label: 'Sucursales',    icon: 'branches' },
-      { href: '/admin/settings', label: 'Configuración', icon: 'settings' },
+      { href: '/admin/settings', label: 'Alexa Skill', icon: 'settings' },
+    ],
+  },
+  {
+    label: 'Sistema',
+    items: [
+      { href: '/logs', label: 'Registros', icon: 'logs' },
     ],
   },
 ];

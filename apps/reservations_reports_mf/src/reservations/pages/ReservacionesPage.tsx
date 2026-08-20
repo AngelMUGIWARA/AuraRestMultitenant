@@ -447,12 +447,12 @@ export default function ReservacionesPage() {
                   <ReservationRow
                     key={r.id}
                     id={r.id}
-                    confirmationCode={r.confirmationCode}
+                    confirmationCode={r.confirmationCode || r.guestName}
                     guestName={r.guestName}
                     guestPhone={r.guestPhone}
                     time={r.time}
                     partySize={r.partySize}
-                    tableName={r.tableName || r.table?.number}
+                    tableName={r.tableName || (r.tableNumber != null ? `Mesa ${r.tableNumber}` : undefined)}
                     status={r.status}
                     notes={r.notes}
                     readOnly={readOnly}

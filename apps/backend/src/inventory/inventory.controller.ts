@@ -122,17 +122,20 @@ export class InventoryController {
   })
   @ApiQuery({ name: "isActive", required: false, type: Boolean })
   @ApiQuery({ name: "search", required: false })
+  @ApiQuery({ name: "branchId", required: false })
   findItems(
     @CurrentTenant() tenant: TenantContext,
     @CurrentUser() user: AuthenticatedUser,
     @Query("isActive") isActive?: string,
     @Query("search") search?: string,
+    @Query("branchId") branchId?: string,
   ) {
     const parsed =
       isActive === "true" ? true : isActive === "false" ? false : undefined;
     return this.service.findItems(tenant.schemaName, user, {
       isActive: parsed,
       search,
+      branchId,
     });
   }
 

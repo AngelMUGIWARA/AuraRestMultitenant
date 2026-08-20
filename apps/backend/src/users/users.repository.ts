@@ -21,10 +21,20 @@ export class UsersRepository {
     return this.db(schemaName).user.count({ where: { role: { not: 'OWNER' } } });
   }
 
-  async findAll(schemaName: string, params: { skip: number; take: number }) {
+  async findAll(schemaName: string, params: { skip: number; take: number }, branchId?: string) {
     const db = this.db(schemaName);
+
+    const whereClause = branchId
+      ? {
+          userBranches: {
+            some: { branchId },
+          },
+        }
+      : {};
+
     const [data, total] = await Promise.all([
       db.user.findMany({
+        where: whereClause,
         skip: params.skip,
         take: params.take,
         orderBy: { createdAt: 'desc' },
@@ -36,7 +46,7 @@ export class UsersRepository {
           },
         },
       }),
-      db.user.count(),
+      db.user.count({ where: whereClause }),
     ]);
 
     const mapped = data.map((u) => {

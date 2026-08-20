@@ -33,7 +33,7 @@ export default function ChefInventarioPage() {
   );
   const [tab, setTab] = useState<TabId>('existencias');
 
-  const items = useInventoryItems();
+  const items = useInventoryItems(undefined, branchId);
   const stock = useInventoryStock(branchId);
   const availability = useMenuAvailability(branchId);
 

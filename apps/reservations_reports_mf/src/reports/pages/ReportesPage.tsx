@@ -40,13 +40,16 @@ export default function ReportesPage() {
   }
 
   const [isExporting, setIsExporting] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   async function handleExportCsv(type: 'sales' | 'products' | 'payments' | 'peak-hours') {
     setIsExporting(type);
+    setExportError(null);
     try {
       await reportsService.exportCsv(type, filterParams);
     } catch (err) {
       console.error('Error al exportar CSV:', err);
+      setExportError(err instanceof Error ? err.message : 'No se pudo exportar el reporte.');
     } finally {
       setIsExporting(null);
     }
@@ -126,6 +129,11 @@ export default function ReportesPage() {
             </button>
           </div>
         </div>
+        {exportError && (
+          <p role="alert" className="mt-2 text-sm text-maison-ruby">
+            {exportError}
+          </p>
+        )}
       </header>
 
       {/* ── KPI Cards ── */}
