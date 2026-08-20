@@ -268,6 +268,12 @@ export class KitchenService {
 
       if (dto.status === 'PREPARING' || dto.status === 'READY') {
         const items = await this.repo.findTicketItems(schemaName, id, tx);
+        const nonCancelledItems = items.filter((item) => item.status !== 'CANCELLED');
+
+        if (dto.status === 'READY' && nonCancelledItems.length === 0) {
+          throw new BadRequestException('No hay items para marcar como listo');
+        }
+
         for (const item of items) {
           if (item.status === 'CANCELLED') continue;
           if (item.status === dto.status) continue;

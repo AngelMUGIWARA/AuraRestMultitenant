@@ -13,7 +13,7 @@ describe('ReservationRepository', () => {
   describe('findAll - search filter', () => {
     it('debe buscar por guestName, guestPhone y guestEmail (no confirmationCode)', async () => {
       const mockFindMany = jest.fn().mockResolvedValue([]);
-      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany } });
+      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany, count: jest.fn().mockResolvedValue(0) } });
 
       await repo.findAll('test_schema', { search: 'Juan' });
 
@@ -25,13 +25,15 @@ describe('ReservationRepository', () => {
             { guestEmail: { contains: 'Juan', mode: 'insensitive' } },
           ],
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { scheduledAt: 'desc' },
+        skip: 0,
+        take: 20,
       });
     });
 
     it('debe buscar por teléfono correctamente', async () => {
       const mockFindMany = jest.fn().mockResolvedValue([]);
-      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany } });
+      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany, count: jest.fn().mockResolvedValue(0) } });
 
       await repo.findAll('test_schema', { search: '555-1234' });
 
@@ -43,13 +45,15 @@ describe('ReservationRepository', () => {
             { guestEmail: { contains: '555-1234', mode: 'insensitive' } },
           ],
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { scheduledAt: 'desc' },
+        skip: 0,
+        take: 20,
       });
     });
 
     it('NO debe contener confirmationCode en ningún filtro OR', async () => {
       const mockFindMany = jest.fn().mockResolvedValue([]);
-      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany } });
+      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany, count: jest.fn().mockResolvedValue(0) } });
 
       await repo.findAll('test_schema', { search: 'test' });
 
@@ -63,31 +67,35 @@ describe('ReservationRepository', () => {
 
     it('debe ignorar search cuando no se proporciona', async () => {
       const mockFindMany = jest.fn().mockResolvedValue([]);
-      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany } });
+      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany, count: jest.fn().mockResolvedValue(0) } });
 
       await repo.findAll('test_schema', {});
 
       expect(mockFindMany).toHaveBeenCalledWith({
         where: {},
-        orderBy: { createdAt: 'desc' },
+        orderBy: { scheduledAt: 'desc' },
+        skip: 0,
+        take: 20,
       });
     });
 
     it('debe ignorar search cuando es string vacío', async () => {
       const mockFindMany = jest.fn().mockResolvedValue([]);
-      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany } });
+      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany, count: jest.fn().mockResolvedValue(0) } });
 
       await repo.findAll('test_schema', { search: '' });
 
       expect(mockFindMany).toHaveBeenCalledWith({
         where: {},
-        orderBy: { createdAt: 'desc' },
+        orderBy: { scheduledAt: 'desc' },
+        skip: 0,
+        take: 20,
       });
     });
 
     it('no debe usar findMany cuando search es undefined', async () => {
       const mockFindMany = jest.fn().mockResolvedValue([]);
-      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany } });
+      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany, count: jest.fn().mockResolvedValue(0) } });
 
       await repo.findAll('test_schema', { search: undefined });
 
@@ -99,7 +107,7 @@ describe('ReservationRepository', () => {
   describe('findAll - combined filters', () => {
     it('debe combinar search con branchId y status', async () => {
       const mockFindMany = jest.fn().mockResolvedValue([]);
-      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany } });
+      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany, count: jest.fn().mockResolvedValue(0) } });
 
       await repo.findAll('test_schema', {
         search: 'María',
@@ -117,13 +125,15 @@ describe('ReservationRepository', () => {
             { guestEmail: { contains: 'María', mode: 'insensitive' } },
           ],
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { scheduledAt: 'desc' },
+        skip: 0,
+        take: 20,
       });
     });
 
     it('no debe incluir status cuando es "all"', async () => {
       const mockFindMany = jest.fn().mockResolvedValue([]);
-      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany } });
+      mockGetClient.mockReturnValue({ reservation: { findMany: mockFindMany, count: jest.fn().mockResolvedValue(0) } });
 
       await repo.findAll('test_schema', { status: 'all' });
 

@@ -28,7 +28,7 @@ async function bootstrap() {
       ? allowedOrigins
       : isDev
         ? parseAllowedOrigins(
-            'http://localhost:3030,http://localhost:5001,http://localhost:5002,http://localhost:5003,http://localhost:5004,http://localhost:5005,http://localhost:5006,http://localhost:5007,http://localhost:5008,http://localhost:5014',
+            'http://localhost:3030,http://localhost:5003,http://localhost:5005,http://localhost:5006,http://localhost:5011,http://localhost:5012,http://localhost:5013',
           )
         : [];
 

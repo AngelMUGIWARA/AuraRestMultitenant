@@ -36,19 +36,29 @@ const SERVICES = {
     color: 'blue',
     checked: true,
   },
-  'auth-mf': {
-    label: 'auth-mf — microfrontend de autenticacion (:5001)',
-    dir: 'apps/auth-mf',
+  'core_auth_dashboard_mf': {
+    label: 'core_auth_dashboard_mf — autenticacion, dashboard y admin (:5011)',
+    dir: 'apps/core_auth_dashboard_mf',
     command: 'pnpm',
-    args: ['dev:auth'],
+    args: ['dev:core'],
     color: 'cyan',
+    checked: true,
   },
-  'dashboard-mf': {
-    label: 'dashboard-mf — microfrontend de dashboard (:5002)',
-    dir: 'apps/dashboard-mf',
+  'orders_tables_mf': {
+    label: 'orders_tables_mf — ordenes y gestion de mesas (:5012)',
+    dir: 'apps/orders_tables_mf',
     command: 'pnpm',
-    args: ['dev:dashboard'],
-    color: 'green',
+    args: ['dev:orders'],
+    color: 'red',
+    checked: true,
+  },
+  'reservations_reports_mf': {
+    label: 'reservations_reports_mf — reservaciones e informes (:5013)',
+    dir: 'apps/reservations_reports_mf',
+    command: 'pnpm',
+    args: ['dev:reserv'],
+    color: 'magentaBright',
+    checked: true,
   },
   'menu-mf': {
     label: 'menu-mf — microfrontend de menu (:5003)',
@@ -56,13 +66,6 @@ const SERVICES = {
     command: 'pnpm',
     args: ['dev:menu'],
     color: 'yellow',
-  },
-  'orders-mf': {
-    label: 'orders-mf — microfrontend de ordenes (:5004)',
-    dir: 'apps/orders-mf',
-    command: 'pnpm',
-    args: ['dev:orders'],
-    color: 'red',
   },
   'kitchen-mf': {
     label: 'kitchen-mf — microfrontend de cocina (:5005)',
@@ -78,27 +81,6 @@ const SERVICES = {
     args: ['dev:cashier'],
     color: 'white',
   },
-  'reports-mf': {
-    label: 'reports-mf — microfrontend de reportes (:5007)',
-    dir: 'apps/reports-mf',
-    command: 'pnpm',
-    args: ['dev:reports'],
-    color: 'blueBright',
-  },
-  'reservations-mf': {
-    label: 'reservations-mf — microfrontend de reservaciones (:5008)',
-    dir: 'apps/reservations-mf',
-    command: 'pnpm',
-    args: ['dev:reservations'],
-    color: 'magentaBright',
-  },
-  'tables-mf': {
-    label: 'tables-mf — microfrontend de mesas (:5014)',
-    dir: 'apps/tables-mf',
-    command: 'pnpm',
-    args: ['dev:tables'],
-    color: 'cyanBright',
-  },
 };
 
 const children = [];
@@ -106,9 +88,9 @@ const children = [];
 function banner() {
   let art;
   try {
-    art = figlet.textSync('CHRIS', { font: 'ANSI Shadow' });
+    art = figlet.textSync('HEXACODE', { font: 'ANSI Shadow' });
   } catch {
-    art = 'CHRIS';
+    art = 'HEXACODE';
   }
   console.log(chalk.green(art));
   console.log(chalk.bold('  Panel de arranque de microservicios\n'));

@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set PORTS=4000 3030 5001 5002 5003 5004 5005 5006 5007 5008 5014
+set PORTS=4000 3030 5003 5005 5006 5011 5012 5013
 
 echo Liberando puertos de los servicios (backend, web-shell, MFEs)...
 echo.

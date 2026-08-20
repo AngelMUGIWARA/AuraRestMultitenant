@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     root: path.join(__dirname, "..", ".."),
   },
 
-  output: "export",
+  output: "standalone",
   images: { unoptimized: true },
 
   transpilePackages: [
