@@ -41,7 +41,7 @@ export const cashierService = {
 
   // Payments
   processPayment: (payload: ProcessPaymentPayload) =>
-    apiClient.post<Payment>('/payments/process', payload),
+    apiClient.post<Payment[]>('/payments/process', payload),
 
   // Get payments by order
   getPaymentsByOrder: (orderId: string) =>

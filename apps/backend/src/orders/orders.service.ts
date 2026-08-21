@@ -668,9 +668,14 @@ export class OrdersService {
       this.ordersRepo.count(schemaName, { status: 'PENDING', ...branchWhere }),
       this.ordersRepo.count(schemaName, { status: 'IN_PROGRESS', ...branchWhere }),
       this.ordersRepo.count(schemaName, { status: 'READY', ...branchWhere }),
+      // `paymentStatus`, not `status` — processPayment only updates the
+      // former; the cashier flow never drives `status` to 'PAID' (that only
+      // happens via the separate kitchen/delivery status endpoint). Same
+      // root cause already fixed for the owner dashboard/reports.
       this.ordersRepo.count(schemaName, {
         ...baseWhere,
-        status: 'PAID',
+        paymentStatus: 'PAID',
+        status: { not: 'CANCELLED' },
         ...branchWhere,
       }),
       this.ordersRepo.count(schemaName, {
@@ -683,7 +688,8 @@ export class OrdersService {
     const paidOrders = await this.ordersRepo.findMany(schemaName, {
       where: {
         ...baseWhere,
-        status: 'PAID',
+        paymentStatus: 'PAID',
+        status: { not: 'CANCELLED' },
         ...branchWhere,
       },
     });
@@ -704,6 +710,58 @@ export class OrdersService {
       revenueToday,
       avgOrderValue,
     };
+  }
+
+  /**
+   * Ingresos cobrados por día para los últimos `days` días (incluye hoy).
+   * Sin `branchId`, agrega el scope de sucursales del usuario (todas para
+   * roles globales como OWNER) — igual semántica que `getStats`.
+   */
+  async getRevenueByDay(
+    schemaName: string,
+    branchId?: string,
+    user?: RequestingUser,
+    days = 7,
+  ) {
+    let branchFilter: any = undefined;
+    if (branchId) {
+      await this.assertBranchAccess(schemaName, user, branchId);
+      branchFilter = branchId;
+    } else if (user) {
+      const scope = await this.resolveBranchScope(schemaName, user);
+      if (scope) {
+        branchFilter = { in: scope };
+      }
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const since = new Date(today);
+    since.setDate(since.getDate() - (days - 1));
+
+    const branchWhere = branchFilter ? { branchId: branchFilter } : {};
+
+    const paidOrders = await this.ordersRepo.findMany(schemaName, {
+      where: {
+        paymentStatus: 'PAID',
+        status: { not: 'CANCELLED' },
+        createdAt: { gte: since },
+        ...branchWhere,
+      },
+    });
+
+    const points: { date: string; revenue: number }[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const dayStart = new Date(today);
+      dayStart.setDate(dayStart.getDate() - i);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+      const revenue = paidOrders
+        .filter((o: any) => o.createdAt >= dayStart && o.createdAt < dayEnd)
+        .reduce((sum: number, o: any) => sum + Number(o.total), 0);
+      points.push({ date: dayStart.toISOString().slice(0, 10), revenue });
+    }
+    return points;
   }
 
   private async generateFolio(

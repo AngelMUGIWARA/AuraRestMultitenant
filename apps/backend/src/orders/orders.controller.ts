@@ -27,7 +27,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { AddOrderItemsDto } from './dto/add-order-items.dto';
 import { OrderQueryDto } from './dto/order-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-import { OrderResponseDto, OrderStatsResponseDto, PaginatedOrdersDto } from './dto/order-response.dto';
+import { OrderResponseDto, OrderStatsResponseDto, PaginatedOrdersDto, RevenueByDayPointDto } from './dto/order-response.dto';
 import { OrdersService } from './orders.service';
 import { OrderDiscountService } from '../discounts/order-discount.service';
 import { ApplyDiscountDto } from '../discounts/dto/apply-discount.dto';
@@ -91,6 +91,21 @@ export class OrdersController {
   ) {
     const requestingUser = user ? { id: user.id ?? user.sub ?? user.userId, role: user.role } : undefined;
     return this.ordersService.getStats(tenant.schemaName, branchId, requestingUser);
+  }
+
+  @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER', 'KITCHEN_STAFF')
+  @Get('stats/revenue-by-day')
+  @ApiOperation({ summary: 'Ingresos cobrados por día (últimos N días)', operationId: 'orders_getRevenueByDay' })
+  @ApiResponse({ status: 200, type: [RevenueByDayPointDto] })
+  getRevenueByDay(
+    @CurrentTenant() tenant: TenantContext,
+    @Query('branchId') branchId: string,
+    @Query('days') days: string,
+    @CurrentUser() user: any,
+  ) {
+    const requestingUser = user ? { id: user.id ?? user.sub ?? user.userId, role: user.role } : undefined;
+    const parsedDays = Math.min(Math.max(parseInt(days, 10) || 7, 1), 30);
+    return this.ordersService.getRevenueByDay(tenant.schemaName, branchId, requestingUser, parsedDays);
   }
 
   @Roles('MANAGER', 'OWNER', 'CASHIER', 'WAITER', 'KITCHEN_STAFF')

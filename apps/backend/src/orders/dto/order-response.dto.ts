@@ -79,6 +79,11 @@ export class OrderStatsResponseDto {
   @ApiProperty() avgOrderValue: number;
 }
 
+export class RevenueByDayPointDto {
+  @ApiProperty() date: string;
+  @ApiProperty() revenue: number;
+}
+
 export class PaginatedOrdersDto {
   @ApiProperty({ type: [OrderResponseDto] })
   data: OrderResponseDto[];

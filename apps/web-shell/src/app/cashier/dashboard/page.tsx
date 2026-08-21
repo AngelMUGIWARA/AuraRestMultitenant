@@ -5,12 +5,19 @@ import Link from 'next/link';
 import { apiClient } from '@maison/api-client';
 import { Skeleton, useBranch } from '@maison/ui';
 
+// Mirrors the actual shape returned by GET /orders/stats
+// (OrdersService.getStats / OrderStatsResponseDto) — field names here
+// previously didn't match the real response, so every card silently read
+// `undefined` and fell back to 0 regardless of the backend fix below.
 interface OrderStats {
-  totalOrders: number;
-  totalRevenue: number;
-  paidOrders: number;
+  totalToday: number;
   pendingOrders: number;
-  averageTicket: number;
+  preparingOrders: number;
+  readyOrders: number;
+  completedToday: number;
+  cancelledToday: number;
+  revenueToday: number;
+  avgOrderValue: number;
 }
 
 interface OrderSummary {
@@ -31,6 +38,25 @@ interface TableInfo {
   number: number;
   status: string;
   capacity: number;
+}
+
+interface RevenueByDayPoint {
+  date: string;
+  revenue: number;
+}
+
+const WEEKDAY_LABELS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+
+function formatDayLabel(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return WEEKDAY_LABELS[date.getDay()];
+}
+
+function isToday(dateStr: string): boolean {
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  return dateStr === todayStr;
 }
 
 function formatCurrency(value: number): string {
@@ -76,6 +102,7 @@ export default function CashierDashboardPage() {
   const branchId = selectedBranch?.isGlobal ? undefined : selectedBranch?.id;
 
   const [stats, setStats] = useState<OrderStats | null>(null);
+  const [revenueByDay, setRevenueByDay] = useState<RevenueByDayPoint[]>([]);
   const [recentOrders, setRecentOrders] = useState<OrderSummary[]>([]);
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,14 +121,19 @@ export default function CashierDashboardPage() {
       if (paymentFilter !== 'all') params.paymentStatus = paymentFilter;
       if (searchQuery.trim()) params.search = searchQuery.trim();
 
-      const [statsRes, ordersRes, tablesRes] = await Promise.allSettled([
+      const [statsRes, revenueByDayRes, ordersRes, tablesRes] = await Promise.allSettled([
         apiClient.get<OrderStats>('/orders/stats', { params: branchId ? { branchId } : {} }),
+        apiClient.get<RevenueByDayPoint[]>('/orders/stats/revenue-by-day', { params: { ...(branchId ? { branchId } : {}), days: 7 } }),
         apiClient.get<{ data: OrderSummary[] }>('/orders', { params: { ...params, limit: 20 } }),
         apiClient.get<TableInfo[]>('/tables', { params: branchId ? { branchId } : {} }),
       ]);
 
       if (statsRes.status === 'fulfilled') {
         setStats(statsRes.value);
+      }
+
+      if (revenueByDayRes.status === 'fulfilled') {
+        setRevenueByDay(revenueByDayRes.value);
       }
 
       if (ordersRes.status === 'fulfilled') {
@@ -185,23 +217,72 @@ export default function CashierDashboardPage() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
           label="Cobros hoy"
-          value={stats?.paidOrders ?? 0}
+          value={stats?.completedToday ?? 0}
           accent
         />
         <StatCard
           label="Total cobrado"
-          value={formatCurrency(stats?.totalRevenue ?? 0)}
+          value={formatCurrency(stats?.revenueToday ?? 0)}
         />
         <StatCard
           label="Pedidos pendientes"
           value={stats?.pendingOrders ?? 0}
-          sub={`${stats?.totalOrders ?? 0} pedidos totales`}
+          sub={`${stats?.totalToday ?? 0} pedidos totales`}
         />
         <StatCard
           label="Mesas disponibles"
           value={availableTables}
           sub={`${activeTables} ocupadas / ${tables.length} total`}
         />
+      </div>
+
+      {/* Total cobrado por día */}
+      <div className="rounded-xl border border-maison-border bg-surface-1 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-medium text-maison-cream">Total cobrado por día</h2>
+            <p className="text-2xs text-maison-cream-dim">
+              {selectedBranch?.isGlobal ? 'Todas las sucursales' : selectedBranch?.name ?? 'Últimos 7 días'}
+            </p>
+          </div>
+        </div>
+
+        {revenueByDay.length === 0 ? (
+          <p className="mt-4 text-center text-xs text-maison-cream-muted py-6">Sin datos de cobros recientes</p>
+        ) : (
+          <div className="mt-4 flex flex-col gap-2">
+            <div className="flex items-end gap-2 h-32">
+              {revenueByDay.map((point) => {
+                const max = Math.max(...revenueByDay.map((p) => p.revenue), 1);
+                const today = isToday(point.date);
+                return (
+                  <div
+                    key={point.date}
+                    className="flex-1 h-full flex flex-col justify-end group cursor-default"
+                    title={`${point.date}: ${formatCurrency(point.revenue)}`}
+                  >
+                    <div
+                      className={`w-full rounded-sm transition-colors ${
+                        today ? 'bg-accent group-hover:bg-accent/80' : 'bg-accent/30 group-hover:bg-accent/50'
+                      }`}
+                      style={{ height: `${(point.revenue / max) * 100}%`, minHeight: point.revenue > 0 ? '4px' : '0px' }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-2">
+              {revenueByDay.map((point) => (
+                <div key={point.date} className="flex-1 text-center">
+                  <p className={`text-2xs font-medium uppercase ${isToday(point.date) ? 'text-accent' : 'text-maison-cream-dim'}`}>
+                    {formatDayLabel(point.date)}
+                  </p>
+                  <p className="text-2xs font-mono text-maison-cream-dim truncate">{formatCurrency(point.revenue)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Recent orders */}

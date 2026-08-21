@@ -146,11 +146,11 @@ a {
   50%       { opacity: 0.5; }
 }
 
-/* ─── Ticket Print Styles ───────────────────────────────────────── */
-
-.ticket-print-area {
-  display: none;
-}
+/* ─── Ticket Preview Styles ──────────────────────────────────────
+   On-screen only: the printed ticket is generated as a fully isolated
+   HTML document (see src/lib/ticketDocument.tsx + src/lib/printFrame.ts)
+   and never rendered into this host document, so no @media print rules
+   are needed here. ────────────────────────────────────────────── */
 
 .ticket-preview-overlay {
   position: fixed;
@@ -356,73 +356,3 @@ a {
   margin-top: 4px;
 }
 
-/* ─── Print Media Query ─────────────────────────────────────────── */
-
-@page {
-  size: 80mm auto;
-  margin: 0;
-}
-
-@media print {
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  /* Hide the entire POS application */
-  body > *:not(.ticket-print-area):not(.ticket-preview-overlay) {
-    display: none !important;
-  }
-
-  body {
-    margin: 0;
-    padding: 0;
-    background: white !important;
-    overflow: visible !important;
-  }
-
-  html {
-    overflow: visible !important;
-  }
-
-  /* Direct print: hidden area becomes visible and flows naturally */
-  .ticket-print-area {
-    display: block !important;
-    position: static;
-    width: 80mm;
-    z-index: auto;
-    background: white;
-    padding: 0;
-    overflow: visible;
-  }
-
-  .ticket-print-area .ticket-content {
-    width: 80mm;
-    padding: 4mm 3mm;
-  }
-
-  /* Preview modal: actions hidden, content flows naturally */
-  .ticket-preview-overlay {
-    position: static !important;
-    inset: auto !important;
-    z-index: auto !important;
-    background: transparent !important;
-    backdrop-filter: none !important;
-    display: block !important;
-    overflow: visible !important;
-  }
-
-  .ticket-preview-modal {
-    max-height: none !important;
-    overflow: visible !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    width: 80mm !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .ticket-preview-actions {
-    display: none !important;
-  }
-}

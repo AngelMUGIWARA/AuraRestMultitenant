@@ -1,46 +1,21 @@
 import type { Order } from '@maison/types';
+import { toSafeNumber, toSafeString, fmtDate, fmtTime, fmtCurrency, PAYMENT_LABELS, ORDER_TYPE_LABELS } from '../lib/ticketFormat';
 
 interface PaymentDetail {
   method: string;
   amount: number;
 }
 
-interface TicketPrintViewProps {
+export interface TicketPrintViewProps {
   order: Order;
   restaurantName?: string;
   branchName?: string;
   paymentDetails?: PaymentDetail[];
+  /** Change given back to the customer (cash overpayment only). Not persisted server-side. */
+  changeAmount?: number;
 }
 
-function fmtDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function fmtTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-}
-
-function fmtCurrency(v: number): string {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 }).format(v);
-}
-
-const PAYMENT_LABELS: Record<string, string> = {
-  cash: 'Efectivo',
-  card: 'Tarjeta',
-  transfer: 'Transferencia',
-  qr: 'Código QR',
-  other: 'Otro',
-};
-
-const ORDER_TYPE_LABELS: Record<string, string> = {
-  dine_in: 'Para aquí',
-  takeaway: 'Para llevar',
-  delivery: 'Delivery',
-};
-
-export function TicketPrintView({ order, restaurantName, branchName, paymentDetails }: TicketPrintViewProps) {
+export function TicketPrintView({ order, restaurantName, branchName, paymentDetails, changeAmount }: TicketPrintViewProps) {
   return (
     <div className="ticket-content">
       <div className="ticket-header">
@@ -51,7 +26,7 @@ export function TicketPrintView({ order, restaurantName, branchName, paymentDeta
           {fmtDate(order.createdAt)} {fmtTime(order.createdAt)}
         </div>
         {order.tableNumber && <div className="ticket-meta">Mesa: {order.tableNumber}</div>}
-        <div className="ticket-meta">{ORDER_TYPE_LABELS[order.type] || order.type}</div>
+        <div className="ticket-meta">{ORDER_TYPE_LABELS[toSafeString(order.type)] || toSafeString(order.type)}</div>
         {order.customerName && <div className="ticket-meta">Cliente: {order.customerName}</div>}
         {order.waiterName && <div className="ticket-meta">Mesero: {order.waiterName}</div>}
       </div>
@@ -86,25 +61,25 @@ export function TicketPrintView({ order, restaurantName, branchName, paymentDeta
           <span>Subtotal</span>
           <span>{fmtCurrency(order.subtotal)}</span>
         </div>
-        {order.discount && order.discountAmount != null && order.discountAmount > 0 && (
+        {order.discount && toSafeNumber(order.discountAmount) > 0 && (
           <div className="ticket-row ticket-discount">
-            <span>Dcto. ({order.discount.name})</span>
+            <span>Dcto. ({toSafeString(order.discount.name)})</span>
             <span>-{fmtCurrency(order.discountAmount)}</span>
           </div>
         )}
-        {order.promotionAmount != null && order.promotionAmount > 0 && (
+        {toSafeNumber(order.promotionAmount) > 0 && (
           <div className="ticket-row ticket-discount">
             <span>Promoción</span>
             <span>-{fmtCurrency(order.promotionAmount)}</span>
           </div>
         )}
-        {order.tax > 0 && (
+        {toSafeNumber(order.tax) > 0 && (
           <div className="ticket-row">
-            <span>IVA ({Math.round(order.taxRate * 100)}%)</span>
+            <span>IVA ({Math.round(toSafeNumber(order.taxRate) * 100)}%)</span>
             <span>{fmtCurrency(order.tax)}</span>
           </div>
         )}
-        {order.tipAmount > 0 && (
+        {toSafeNumber(order.tipAmount) > 0 && (
           <div className="ticket-row">
             <span>Propina</span>
             <span>{fmtCurrency(order.tipAmount)}</span>
@@ -122,17 +97,29 @@ export function TicketPrintView({ order, restaurantName, branchName, paymentDeta
           <div className="ticket-payment">
             <div className="ticket-payment-label">Pago:</div>
             {paymentDetails && paymentDetails.length > 0 ? (
-              paymentDetails.map((pd, i) => (
-                <div key={i} className="ticket-payment-method">
-                  {PAYMENT_LABELS[pd.method.toLowerCase()] || pd.method} {fmtCurrency(pd.amount)}
-                </div>
-              ))
+              paymentDetails.map((pd, i) => {
+                const methodKey = toSafeString(pd.method).toLowerCase();
+                return (
+                  <div key={i} className="ticket-payment-method">
+                    {PAYMENT_LABELS[methodKey] || toSafeString(pd.method)} {fmtCurrency(pd.amount)}
+                  </div>
+                );
+              })
             ) : (
-              order.paymentMethods.map((m, i) => (
-                <div key={i} className="ticket-payment-method">
-                  {PAYMENT_LABELS[m.toLowerCase()] || m}
-                </div>
-              ))
+              order.paymentMethods.map((m, i) => {
+                const methodKey = toSafeString(m).toLowerCase();
+                return (
+                  <div key={i} className="ticket-payment-method">
+                    {PAYMENT_LABELS[methodKey] || toSafeString(m)}
+                  </div>
+                );
+              })
+            )}
+            {toSafeNumber(changeAmount) > 0 && (
+              <div className="ticket-row ticket-total" style={{ marginTop: 4, paddingTop: 4, borderTop: '1px dashed #ccc' }}>
+                <span>Cambio</span>
+                <span>{fmtCurrency(changeAmount)}</span>
+              </div>
             )}
           </div>
         </>
