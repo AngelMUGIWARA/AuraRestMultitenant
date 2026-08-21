@@ -800,6 +800,11 @@ export interface OrderStats {
   avgOrderValue: number;
 }
 
+export interface RevenueByDayPoint {
+  date: string;
+  revenue: number;
+}
+
 export interface OrderFilters {
   status?: OrderStatus;
   type?: OrderType;
@@ -840,6 +845,10 @@ export interface Payment {
   reference?: string | null;
   tipAmount?: number | null;
   createdAt: string;
+  /** Cash physically received from the customer; only set for CASH payments with change. Not persisted — echoed back from the request that created this payment. */
+  receivedAmount?: number;
+  /** receivedAmount - amount; only set for CASH payments with change. */
+  change?: number;
 }
 
 export interface ProcessPaymentPayload {
@@ -848,6 +857,8 @@ export interface ProcessPaymentPayload {
     method: 'CASH' | 'CARD' | 'TRANSFER' | 'QR' | 'OTHER';
     amount: string;
     reference?: string;
+    /** Cash physically received from the customer; only valid for CASH. Must be >= amount. */
+    receivedAmount?: string;
   }>;
 }
 

@@ -32,6 +32,14 @@ class SplitPaymentDto {
   @IsOptional()
   @IsString()
   reference?: string;
+
+  @ApiPropertyOptional({
+    description: 'Cash physically received from the customer; only valid for CASH. Must be >= amount. The excess is returned as change and is never applied to the order.',
+    example: '100.00',
+  })
+  @IsOptional()
+  @IsString()
+  receivedAmount?: string;
 }
 
 

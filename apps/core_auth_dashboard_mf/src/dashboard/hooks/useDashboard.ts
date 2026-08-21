@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useBranch } from '@maison/ui';
+import { useEventBus } from '@maison/event-bus';
 import { dashboardService, type BranchSummary } from '../services/dashboard.service';
 import type { DashboardStats, ActivityItem, RevenueDataPoint } from '@maison/types';
 
@@ -40,5 +41,13 @@ export function useDashboard() {
     return () => { cancelled = true; };
   }, [pathname, selectedBranch.id, tick]);
 
-  return { data, isLoading, error, refresh: () => setTick((t) => t + 1) };
+  const refresh = useCallback(() => setTick((t) => t + 1), []);
+
+  // A cobro completado en cashier-mf debe reflejarse aquí sin recargar la
+  // página. `selectedBranch.id` ya forma parte de las deps del efecto de
+  // arriba, así que el refetch dispara con la sucursal actualmente
+  // seleccionada — no hace falta que el evento traiga branchId.
+  useEventBus('payment:completed', () => refresh());
+
+  return { data, isLoading, error, refresh };
 }

@@ -55,19 +55,26 @@ export class DashboardRepository {
     };
   }
 
-  /** Suma de órdenes PAID en [gte, lt). */
+  /**
+   * Suma de órdenes con pago completo en [gte, lt). Filtra por
+   * `paymentStatus` (la fuente de verdad que sí actualiza `processPayment`),
+   * no por `status` (la máquina de estados de cocina/entrega, que solo
+   * llega a 'PAID' vía un endpoint separado que el flujo de caja nunca
+   * invoca). `status !== CANCELLED` excluye una orden cancelada después de
+   * haber sido pagada, cuyo `paymentStatus` puede seguir en 'PAID'.
+   */
   async getRevenueBetween(schemaName: string, gte: Date, lt: Date, branchId?: string) {
     const result = await this.db(schemaName).order.aggregate({
-      where: { status: 'PAID', createdAt: { gte, lt }, ...(branchId && { branchId }) },
+      where: { paymentStatus: 'PAID', status: { not: 'CANCELLED' }, createdAt: { gte, lt }, ...(branchId && { branchId }) },
       _sum: { total: true },
     });
     return Number(result._sum.total ?? 0);
   }
 
-  /** Órdenes PAID desde una fecha, para agrupar por mes en el service. */
+  /** Órdenes con pago completo desde una fecha, para agrupar por mes en el service. */
   async getPaidOrdersSince(schemaName: string, since: Date, branchId?: string) {
     return this.db(schemaName).order.findMany({
-      where: { status: 'PAID', createdAt: { gte: since }, ...(branchId && { branchId }) },
+      where: { paymentStatus: 'PAID', status: { not: 'CANCELLED' }, createdAt: { gte: since }, ...(branchId && { branchId }) },
       select: { total: true, createdAt: true },
     });
   }
@@ -107,7 +114,7 @@ export class DashboardRepository {
       }),
       db.order.groupBy({
         by: ['branchId'],
-        where: { status: 'PAID', createdAt: { gte: monthStart }, ...(branchId && { branchId }) },
+        where: { paymentStatus: 'PAID', status: { not: 'CANCELLED' }, createdAt: { gte: monthStart }, ...(branchId && { branchId }) },
         _sum: { total: true },
         _count: { _all: true },
       }),

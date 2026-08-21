@@ -106,6 +106,26 @@ export class PaymentsService {
             );
           }
 
+          for (const split of dto.payments) {
+            if (split.receivedAmount === undefined) continue;
+
+            if (split.method !== $Enums.PaymentMethod.CASH) {
+              throw new BadRequestException(
+                'El monto recibido con cambio solo aplica a pagos en efectivo.',
+              );
+            }
+
+            const received = Number(split.receivedAmount);
+            if (!Number.isFinite(received)) {
+              throw new BadRequestException('El monto recibido no es un número válido.');
+            }
+            if (received < Number(split.amount)) {
+              throw new BadRequestException(
+                'El monto recibido no puede ser menor al monto del pago.',
+              );
+            }
+          }
+
           const paymentRecords: any[] = [];
 
           for (let i = 0; i < dto.payments.length; i++) {
@@ -199,15 +219,22 @@ export class PaymentsService {
         userId: userId ?? null,
       });
 
-      return txResult.paymentRecords.map((p: any) => ({
-        id: p.id,
-        orderId: p.orderId,
-        amount: Number(p.amount),
-        method: mapPaymentMethodFromDb(p.method),
-        status: mapPaymentStatusFromDb(p.status),
-        reference: p.reference || null,
-        createdAt: p.createdAt?.toISOString(),
-      }));
+      return txResult.paymentRecords.map((p: any, i: number) => {
+        const split = dto.payments[i];
+        const receivedAmount = split?.receivedAmount !== undefined ? Number(split.receivedAmount) : undefined;
+        const change = receivedAmount !== undefined ? Number((receivedAmount - Number(p.amount)).toFixed(2)) : undefined;
+
+        return {
+          id: p.id,
+          orderId: p.orderId,
+          amount: Number(p.amount),
+          method: mapPaymentMethodFromDb(p.method),
+          status: mapPaymentStatusFromDb(p.status),
+          reference: p.reference || null,
+          createdAt: p.createdAt?.toISOString(),
+          ...(receivedAmount !== undefined ? { receivedAmount, change } : {}),
+        };
+      });
     } catch (err: any) {
       if (err?.code === 'P2002' && idempotencyKey) {
         const existing = await this.paymentsRepo.findPaymentByIdempotencyKey(

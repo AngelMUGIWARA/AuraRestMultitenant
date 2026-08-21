@@ -88,10 +88,13 @@ export class ReportsRepository {
       (query.period && this.resolvePeriodRange(query.period)) ||
       this.resolveDateRange(query);
 
-    // Trae todas las órdenes PAID en el período, con su pago
+    // Trae todas las órdenes con pago completo en el período, con su pago.
+    // Filtra por `paymentStatus` (lo que sí actualiza processPayment), no
+    // por `status` (máquina de estados de cocina/entrega, distinta).
     const orders = await db.order.findMany({
       where: {
-        status: 'PAID',
+        paymentStatus: 'PAID',
+        status: { not: 'CANCELLED' },
         createdAt: {
           gte: startDate,
           lte: endDate,
@@ -113,12 +116,13 @@ export class ReportsRepository {
     const { startDate, endDate } = this.resolveDateRange(query);
 
     //Agrupa OrderItem por menuItemId sumando cantidades y subtotales,
-    //pero solo de órdenes que estén en estado PAID
+    //pero solo de órdenes con pago completo (paymentStatus, no status)
     const grouped = await db.orderItem.groupBy({
       by: ['menuItemId'],
       where: {
         order: {
-          status: 'PAID',
+          paymentStatus: 'PAID',
+          status: { not: 'CANCELLED' },
           createdAt: {
             gte: startDate,
             lte: endDate,
@@ -184,7 +188,8 @@ export class ReportsRepository {
       const orderItems = await db.orderItem.findMany({
         where: {
           order: {
-            status: 'PAID',
+            paymentStatus: 'PAID',
+            status: { not: 'CANCELLED' },
             createdAt: {
               gte: startDate,
               lte: endDate,
@@ -212,10 +217,12 @@ export class ReportsRepository {
     }
 
     // Horario pico general: cada orden pagada cuenta como 1 ocurrencia,
-    // con su total como importe (comportamiento histórico sin cambios).
+    // con su total como importe (comportamiento histórico sin cambios,
+    // salvo el filtro corregido a paymentStatus).
     const orders = await db.order.findMany({
       where: {
-        status: 'PAID',
+        paymentStatus: 'PAID',
+        status: { not: 'CANCELLED' },
         createdAt: {
           gte: startDate,
           lte: endDate,

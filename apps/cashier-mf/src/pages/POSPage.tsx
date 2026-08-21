@@ -3,6 +3,7 @@ import { usePOS } from '../hooks/usePOS';
 import { useCashierSettings } from '../hooks/useCashierSettings';
 import { usePrintTicket } from '../hooks/usePrintTicket';
 import { TicketPrintView } from '../components/TicketPrintView';
+import { PaymentConfirmModal } from '../components/PaymentConfirmModal';
 import { useBranch } from '@maison/ui';
 import { cashierService } from '../services/cashier.service';
 import type { MenuItem, PaymentMethod, RestaurantTable, Payment } from '@maison/types';
@@ -400,13 +401,14 @@ export default function POSPage() {
   } = usePOS();
 
   const cashierSettings = useCashierSettings();
-  const {
-    previewOrder, directPrintOrder, directPrintRef,
-    ticketPaymentDetails,
-    openPreview, closePreview, printFromPreview,
-    triggerAutoPrint, setPaymentDetailsForTicket, resetAutoPrint,
-  } = usePrintTicket({ onPrintComplete: printTicket });
   const { selectedBranch } = useBranch();
+  const {
+    previewOrder,
+    ticketPaymentDetails,
+    ticketChangeAmount,
+    openPreview, closePreview, printFromPreview,
+    triggerAutoPrint, setPaymentDetailsForTicket, setChangeForTicket, resetAutoPrint,
+  } = usePrintTicket({ onPrintComplete: printTicket, branchName: selectedBranch?.name });
 
   const [view, setView] = useState<PosView>('tables');
   const [customerName, setCustomerName] = useState('');
@@ -419,13 +421,19 @@ export default function POSPage() {
   interface PaymentLine {
     id: number;
     method: PaymentMethod;
+    /** Amount actually applied to the order (what gets sent as `amount`); always capped to what's left to pay. */
     amount: number;
+    /** CASH only: cash physically handed over by the customer. Can exceed `amount` — the excess is change and is never applied to the order. */
+    receivedAmount?: number;
     reference: string;
   }
   const [paymentLines, setPaymentLines] = useState<PaymentLine[]>(() => [
     { id: 1, method: cashierSettings.defaultPaymentMethod.toLowerCase() as PaymentMethod, amount: 0, reference: '' },
   ]);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [changeGiven, setChangeGiven] = useState(0);
+  const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
+  const isConfirmingPaymentRef = useRef(false);
   const lineIdRef = useRef(2);
 
   const capturedTotal = paymentLines.reduce((sum, l) => sum + (l.amount || 0), 0);
@@ -449,16 +457,41 @@ export default function POSPage() {
     setPaymentLines((prev) => (prev.length > 1 ? prev.filter((l) => l.id !== id) : prev));
   }, []);
 
+  // Overpayment (change) only makes sense for CASH: when `receivedAmount` is
+  // set on a cash line, `amount` is auto-capped to what's left to pay across
+  // the other lines, so the applied total sent to the backend never exceeds
+  // the order's pending balance regardless of what was typed as received.
   const updatePaymentLine = useCallback(
-    (id: number, patch: Partial<Pick<PaymentLine, 'method' | 'amount' | 'reference'>>) => {
-      setPaymentLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+    (id: number, patch: Partial<Pick<PaymentLine, 'method' | 'amount' | 'receivedAmount' | 'reference'>>) => {
+      setPaymentLines((prev) => {
+        const othersApplied = prev.filter((l) => l.id !== id).reduce((sum, l) => sum + (l.amount || 0), 0);
+        return prev.map((l) => {
+          if (l.id !== id) return l;
+          const next = { ...l, ...patch };
+
+          if (patch.method !== undefined && patch.method !== 'cash') {
+            next.receivedAmount = undefined;
+          } else if (patch.method === 'cash' && l.method !== 'cash') {
+            next.receivedAmount = next.amount;
+          }
+
+          if (next.method === 'cash' && patch.receivedAmount !== undefined) {
+            const capacity = Math.max(0, remainingAmount - othersApplied);
+            next.amount = Math.min(patch.receivedAmount, capacity);
+          }
+
+          return next;
+        });
+      });
     },
-    [],
+    [remainingAmount],
   );
 
   const resetPaymentLines = useCallback(() => {
     setPaymentLines([{ id: 1, method: cashierSettings.defaultPaymentMethod.toLowerCase() as PaymentMethod, amount: 0, reference: '' }]);
     setPaymentSuccess(false);
+    setChangeGiven(0);
+    setShowPaymentConfirm(false);
     resetAutoPrint();
   }, [cashierSettings.defaultPaymentMethod, resetAutoPrint]);
 
@@ -466,7 +499,8 @@ export default function POSPage() {
     if (completedOrder && completedOrder.remainingAmount > 0 && !paymentSuccess) {
       setPaymentLines((prev) => {
         if (prev.length === 1 && prev[0].amount === 0) {
-          return [{ ...prev[0], amount: Math.round(completedOrder.remainingAmount * 100) / 100 }];
+          const amount = Math.round(completedOrder.remainingAmount * 100) / 100;
+          return [{ ...prev[0], amount, ...(prev[0].method === 'cash' ? { receivedAmount: amount } : {}) }];
         }
         return prev;
       });
@@ -480,14 +514,17 @@ export default function POSPage() {
           ? payments.map((p: Payment) => ({ method: p.method, amount: p.amount }))
           : [];
         setPaymentDetailsForTicket(details);
-        triggerAutoPrint(completedOrder, cashierSettings.showPrintPreview);
+        triggerAutoPrint(completedOrder, cashierSettings.showPrintPreview, details, changeGiven);
       }).catch(() => {
         setPaymentDetailsForTicket([]);
-        triggerAutoPrint(completedOrder, cashierSettings.showPrintPreview);
+        triggerAutoPrint(completedOrder, cashierSettings.showPrintPreview, [], changeGiven);
       });
     }
-  }, [paymentSuccess, completedOrder, cashierSettings.autoPrintTicket, cashierSettings.showPrintPreview, triggerAutoPrint, setPaymentDetailsForTicket]);
+  }, [paymentSuccess, completedOrder, cashierSettings.autoPrintTicket, cashierSettings.showPrintPreview, triggerAutoPrint, setPaymentDetailsForTicket, changeGiven]);
 
+  // Generic reprint of a (possibly older/different) order's ticket — the
+  // change shown by the live payment flow does not apply here, since this
+  // order's change (if any) was never persisted server-side.
   const handleManualPrint = useCallback(async (orderId: string) => {
     try {
       const [fullOrder, payments] = await Promise.all([
@@ -498,11 +535,12 @@ export default function POSPage() {
         ? payments.map((p: Payment) => ({ method: p.method, amount: p.amount }))
         : [];
       setPaymentDetailsForTicket(details);
+      setChangeForTicket(0);
       openPreview(fullOrder);
     } catch (err) {
       console.error('[POS] Error loading ticket for print:', err);
     }
-  }, [openPreview, setPaymentDetailsForTicket]);
+  }, [openPreview, setPaymentDetailsForTicket, setChangeForTicket]);
 
   const categories = ['all', ...Array.from(new Set(menuItems.map((i) => i.categoryName).filter(Boolean))) as string[]];
   const filteredItems = menuItems.filter((i) => {
@@ -517,17 +555,44 @@ export default function POSPage() {
     setView('payment');
   }
 
-  async function handlePayment() {
-    if (!completedOrder || completedOrder.isFullyPaid) return;
+  // "Cobrar" never processes the payment directly — it only opens the
+  // confirmation modal (or, if the cashier disabled that setting, goes
+  // straight to handleConfirmPayment). Only the modal's own "Confirmar
+  // cobro" button actually sends the request.
+  function handleOpenPaymentConfirm() {
+    if (!completedOrder || completedOrder.isFullyPaid || !canPay) return;
     if (cashierSettings.confirmBeforeClosePayment) {
-      const confirmed = window.confirm('¿Confirmar cierre de cobro?');
-      if (!confirmed) return;
+      setShowPaymentConfirm(true);
+    } else {
+      handleConfirmPayment();
     }
-    const success = await processPayment(paymentLines.map((l) => ({ method: l.method, amount: l.amount, reference: l.reference || undefined })));
-    if (success) {
-      setPaymentSuccess(true);
+  }
+
+  async function handleConfirmPayment() {
+    // `isSubmitting` alone can lag one render behind a rapid double-click;
+    // this ref makes the guard synchronous.
+    if (isConfirmingPaymentRef.current || isSubmitting) return;
+    if (!completedOrder || completedOrder.isFullyPaid) return;
+    isConfirmingPaymentRef.current = true;
+    try {
+      const { success, changeAmount } = await processPayment(paymentLines.map((l) => ({
+        method: l.method,
+        amount: l.amount,
+        receivedAmount: l.method === 'cash' && l.receivedAmount && l.receivedAmount > l.amount ? l.receivedAmount : undefined,
+        reference: l.reference || undefined,
+      })));
+      if (success) {
+        setPaymentSuccess(true);
+        setChangeGiven(changeAmount);
+        setShowPaymentConfirm(false);
+      }
+      // On failure the modal (if open) stays open, showing `error` from
+      // usePOS so the cashier can correct the payment lines and retry —
+      // paymentLines are left untouched, nothing is cleared.
+      setCustomerName('');
+    } finally {
+      isConfirmingPaymentRef.current = false;
     }
-    setCustomerName('');
   }
 
   function handleTableSelect(table: RestaurantTable) {
@@ -811,29 +876,13 @@ export default function POSPage() {
             <div className="max-w-lg mx-auto space-y-4">
 
               {completedOrder ? (
-                completedOrder.isFullyPaid ? (
-                  /* Already paid */
-                  <div className="rounded-2xl border border-maison-border bg-surface-1 p-8 text-center space-y-4">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-maison-sage/10 border-2 border-maison-sage/30">
-                      <IconCheck className="h-8 w-8 text-maison-sage" />
-                    </div>
-                    <div>
-                      <p className="text-base font-bold text-maison-cream">Orden #{completedOrder.orderNumber} ya pagada</p>
-                      <p className="text-sm text-maison-cream-muted mt-1">Esta orden fue cobrada anteriormente.</p>
-                    </div>
-                    <div className="rounded-xl bg-surface-2 px-4 py-3 font-mono text-lg font-bold text-maison-sage">
-                      {formatCurrency(completedOrder.total)}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => { clearCart(); resetPaymentLines(); setView('tables'); }}
-                      className="w-full rounded-xl bg-maison-amber text-surface-0 px-6 py-3 text-sm font-semibold hover:bg-maison-amber/90 transition"
-                    >
-                      Nueva orden
-                    </button>
-                  </div>
-
-                ) : paymentSuccess ? (
+                // `paymentSuccess` must be checked BEFORE `isFullyPaid`: the
+                // moment a payment completes, isFullyPaid also becomes true,
+                // so checking it first always short-circuited straight to
+                // the generic "already paid" screen (meant for reopening an
+                // order paid in a PREVIOUS session) and skipped the actual
+                // payment-success screen — the one with the ticket button.
+                paymentSuccess ? (
                   /* Payment success */
                   <div className="rounded-2xl border border-maison-sage/30 bg-maison-sage/5 p-8 text-center space-y-4">
                     <div className="relative mx-auto h-16 w-16">
@@ -855,6 +904,12 @@ export default function POSPage() {
                         <span className="text-maison-sage font-medium">Total cobrado</span>
                         <span className="font-mono font-bold text-maison-sage">{formatCurrency(completedOrder.paidAmount)}</span>
                       </div>
+                      {changeGiven > 0 && (
+                        <div className="border-t border-maison-sage/20 pt-2 flex justify-between text-sm">
+                          <span className="text-maison-amber font-medium">Cambio entregado</span>
+                          <span className="font-mono font-bold text-maison-amber">{formatCurrency(changeGiven)}</span>
+                        </div>
+                      )}
                       {!completedOrder.isFullyPaid && (
                         <>
                           <div className="border-t border-maison-sage/20 pt-2 flex justify-between text-sm">
@@ -877,6 +932,7 @@ export default function POSPage() {
                           } catch {
                             setPaymentDetailsForTicket([]);
                           }
+                          setChangeForTicket(changeGiven);
                           openPreview(completedOrder);
                         }}
                         className="w-full flex items-center justify-center gap-2 rounded-xl border border-maison-border bg-surface-2 text-maison-cream-muted px-6 py-2.5 text-xs font-semibold hover:text-maison-cream hover:bg-surface-3 transition"
@@ -911,6 +967,28 @@ export default function POSPage() {
                         </button>
                       </div>
                     )}
+                  </div>
+
+                ) : completedOrder.isFullyPaid ? (
+                  /* Already paid (reopened without paying in this session) */
+                  <div className="rounded-2xl border border-maison-border bg-surface-1 p-8 text-center space-y-4">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-maison-sage/10 border-2 border-maison-sage/30">
+                      <IconCheck className="h-8 w-8 text-maison-sage" />
+                    </div>
+                    <div>
+                      <p className="text-base font-bold text-maison-cream">Orden #{completedOrder.orderNumber} ya pagada</p>
+                      <p className="text-sm text-maison-cream-muted mt-1">Esta orden fue cobrada anteriormente.</p>
+                    </div>
+                    <div className="rounded-xl bg-surface-2 px-4 py-3 font-mono text-lg font-bold text-maison-sage">
+                      {formatCurrency(completedOrder.total)}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { clearCart(); resetPaymentLines(); setView('tables'); }}
+                      className="w-full rounded-xl bg-maison-amber text-surface-0 px-6 py-3 text-sm font-semibold hover:bg-maison-amber/90 transition"
+                    >
+                      Nueva orden
+                    </button>
                   </div>
 
                 ) : (
@@ -1051,9 +1129,16 @@ export default function POSPage() {
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                value={line.amount || ''}
-                                placeholder="Monto"
-                                onChange={(e) => updatePaymentLine(line.id, { amount: parseFloat(e.target.value) || 0 })}
+                                value={(line.method === 'cash' ? line.receivedAmount : line.amount) || ''}
+                                placeholder={line.method === 'cash' ? 'Recibido' : 'Monto'}
+                                onChange={(e) => {
+                                  const raw = parseFloat(e.target.value) || 0;
+                                  if (line.method === 'cash') {
+                                    updatePaymentLine(line.id, { receivedAmount: raw });
+                                  } else {
+                                    updatePaymentLine(line.id, { amount: raw });
+                                  }
+                                }}
                                 className="rounded-lg border border-maison-border bg-surface-1 px-2 py-2 text-xs text-maison-cream placeholder:text-maison-cream-dim focus:outline-none focus:border-maison-amber font-mono col-span-1"
                               />
                               <input
@@ -1064,6 +1149,14 @@ export default function POSPage() {
                                 className="rounded-lg border border-maison-border bg-surface-1 px-2 py-2 text-xs text-maison-cream placeholder:text-maison-cream-dim focus:outline-none focus:border-maison-amber col-span-1"
                               />
                             </div>
+                            {line.method === 'cash' && !!line.receivedAmount && (
+                              <div className="flex items-center justify-between text-[11px] font-mono px-0.5">
+                                <span className="text-maison-cream-dim">Aplicado: {formatCurrency(line.amount)}</span>
+                                {line.receivedAmount > line.amount && (
+                                  <span className="font-bold text-maison-amber">Cambio: {formatCurrency(line.receivedAmount - line.amount)}</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
 
@@ -1098,8 +1191,8 @@ export default function POSPage() {
                       {/* Pay button */}
                       <button
                         type="button"
-                        onClick={handlePayment}
-                        disabled={!canPay}
+                        onClick={handleOpenPaymentConfirm}
+                        disabled={!canPay || isSubmitting}
                         className="w-full flex items-center justify-center gap-2 rounded-xl bg-maison-sage text-surface-0 py-4 text-sm font-bold hover:bg-maison-sage/90 active:scale-[0.99] transition-all shadow-lg shadow-maison-sage/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
                       >
                         {isSubmitting ? (
@@ -1262,6 +1355,17 @@ export default function POSPage() {
         </div>
       </div>
 
+      {/* ── Payment confirmation modal ────────────────────────────── */}
+      <PaymentConfirmModal
+        open={showPaymentConfirm}
+        lines={paymentLines.map((l) => ({ method: l.method, amount: l.amount, receivedAmount: l.receivedAmount }))}
+        totalDue={capturedTotal}
+        isSubmitting={isSubmitting}
+        error={error}
+        onCancel={() => setShowPaymentConfirm(false)}
+        onConfirm={handleConfirmPayment}
+      />
+
       {/* ── Table Detail Drawer ────────────────────────────────────── */}
       {detailTable && (
         <TableDetailDrawer
@@ -1273,18 +1377,11 @@ export default function POSPage() {
         />
       )}
 
-      {/* ── Hidden print area (direct print) ──────────────────────── */}
-      {directPrintOrder && (
-        <div className="ticket-print-area" ref={directPrintRef}>
-          <TicketPrintView order={directPrintOrder} branchName={selectedBranch?.name} paymentDetails={ticketPaymentDetails} />
-        </div>
-      )}
-
       {/* ── Print preview modal ───────────────────────────────────── */}
       {previewOrder && (
         <div className="ticket-preview-overlay">
           <div className="ticket-preview-modal">
-            <TicketPrintView order={previewOrder} branchName={selectedBranch?.name} paymentDetails={ticketPaymentDetails} />
+            <TicketPrintView order={previewOrder} branchName={selectedBranch?.name} paymentDetails={ticketPaymentDetails} changeAmount={ticketChangeAmount} />
             <div className="ticket-preview-actions">
               <button
                 type="button"

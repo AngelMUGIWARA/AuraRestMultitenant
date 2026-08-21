@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { on, emit } from '@maison/event-bus';
+import { AuthClient } from '@maison/auth-client';
 import { cashierService } from '../services/cashier.service';
 import type { MenuItem, RestaurantTable, Order, PaymentMethod, Discount } from '@maison/types';
 
@@ -69,7 +70,22 @@ export function usePOS() {
   }, []);
 
   useEffect(() => {
-    loadData(branchId);
+    // The first load must use the correct branch from the very first
+    // request. BranchProvider (web-shell) resolves it asynchronously and
+    // announces it via the `branch:changed` event below, but cashier-mf
+    // loads lazily via Module Federation — by the time this effect
+    // subscribes, that one-shot event may already have fired and been
+    // missed (the bus doesn't replay past events to late subscribers).
+    //
+    // Reading `AuthClient.getUser().branchId` sidesteps that race entirely:
+    // it's the same claim BranchProvider itself uses to resolve the branch
+    // (decoded synchronously from the JWT in localStorage, no network call,
+    // no React Context to bridge across the MF boundary — just what a
+    // CASHIER's token already carries). For a role with no assigned branch
+    // (e.g. SUPER_ADMIN), it's undefined, which correctly means "no filter".
+    const initialBranchId = AuthClient.getUser()?.branchId ?? undefined;
+    setBranchId(initialBranchId);
+    loadData(initialBranchId);
 
     const offBranch = on('branch:changed', ({ branchId: id, isGlobal }) => {
       const newBranchId = isGlobal ? undefined : id;
@@ -198,21 +214,28 @@ export function usePOS() {
   }, [fetchTables, branchId]);
 
   const processPayment = useCallback(async (
-    payments: Array<{ method: PaymentMethod; amount: number; reference?: string }>,
-  ): Promise<boolean> => {
-    if (!completedOrder) return false;
+    payments: Array<{ method: PaymentMethod; amount: number; receivedAmount?: number; reference?: string }>,
+  ): Promise<{ success: boolean; changeAmount: number }> => {
+    if (!completedOrder) return { success: false, changeAmount: 0 };
     setIsSubmitting(true);
     setError(null);
     try {
       const totalPayment = payments.reduce((sum, p) => sum + p.amount, 0);
-      await cashierService.processPayment({
+      const result = await cashierService.processPayment({
         orderId: completedOrder.id,
         payments: payments.map((p) => ({
           method: p.method.toUpperCase() as 'CASH' | 'CARD' | 'TRANSFER' | 'QR' | 'OTHER',
           amount: p.amount.toFixed(2),
           reference: p.reference || undefined,
+          receivedAmount: p.receivedAmount !== undefined ? p.receivedAmount.toFixed(2) : undefined,
         })),
       });
+      // Change is never persisted server-side; it's echoed back from this
+      // response only. Sum it here rather than re-deriving it after the
+      // getOrderById refetch below, which has no notion of change at all.
+      const changeAmount = Array.isArray(result)
+        ? Number(result.reduce((sum, p) => sum + (p.change ?? 0), 0).toFixed(2))
+        : 0;
 
       const updatedOrder = await cashierService.getOrderById(completedOrder.id);
       setCompletedOrder(updatedOrder);
@@ -230,10 +253,10 @@ export function usePOS() {
       if (updatedOrder.isFullyPaid) {
         refreshTables();
       }
-      return true;
+      return { success: true, changeAmount };
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al procesar el pago');
-      return false;
+      return { success: false, changeAmount: 0 };
     } finally {
       setIsSubmitting(false);
     }

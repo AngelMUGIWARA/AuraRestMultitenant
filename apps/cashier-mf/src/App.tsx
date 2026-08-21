@@ -1,3 +1,4 @@
+import './index.css';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import POSPage from './pages/POSPage';
 

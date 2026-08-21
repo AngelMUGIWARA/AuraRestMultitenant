@@ -179,7 +179,12 @@ export function CashierLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
-        <header className="sticky top-0 z-10 flex h-[60px] items-center gap-3 border-b border-maison-border bg-surface-1 px-4 lg:px-5">
+        {/* z-20: must out-stack cashier-mf's own internal sticky header
+            (z-10, see POSPage.tsx), which is a sibling stacking context
+            (position: sticky + z-index both create one) that would
+            otherwise sit on top of this header's BranchSelector dropdown
+            because it comes later in DOM order. */}
+        <header className="sticky top-0 z-20 flex h-[60px] items-center gap-3 border-b border-maison-border bg-surface-1 px-4 lg:px-5">
           <button
             type="button"
             onClick={() => setIsMobileOpen(true)}
