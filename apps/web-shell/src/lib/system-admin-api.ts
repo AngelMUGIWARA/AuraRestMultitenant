@@ -79,4 +79,7 @@ export const systemAdminApi = {
   patch<T>(endpoint: string, data: unknown) {
     return request<T>(endpoint, { method: 'PATCH', body: JSON.stringify(data) });
   },
+  put<T>(endpoint: string, data: unknown) {
+    return request<T>(endpoint, { method: 'PUT', body: JSON.stringify(data) });
+  },
 };

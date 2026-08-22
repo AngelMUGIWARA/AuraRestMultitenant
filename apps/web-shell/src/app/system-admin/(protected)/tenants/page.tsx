@@ -1,5 +1,6 @@
 'use client';
 
+import { Modal } from '@maison/ui';
 import { systemAdminTenantsService } from '@/services/system-admin-tenants.service';
 import type { Tenant, TenantOwnerCredentials, TenantPlan, TenantPlanUsage } from '@maison/types';
 import { useEffect, useState, type FormEvent } from 'react';
@@ -12,9 +13,74 @@ const STATUS_BADGE: Record<Tenant['status'], string> = {
 
 const PLAN_OPTIONS: TenantPlan[] = ['FREE', 'BASIC', 'PRO', 'ENTERPRISE'];
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+const LIMITS = {
+  name: 100,
+  slug: 60,
+  email: 150,
+  ownerName: 100,
+  ownerEmail: 150,
+};
+
 interface CredentialsBanner {
   title: string;
   credentials: TenantOwnerCredentials;
+}
+
+interface CreateForm {
+  name: string;
+  slug: string;
+  email: string;
+  ownerName: string;
+  ownerEmail: string;
+  plan: TenantPlan;
+}
+
+const EMPTY_CREATE_FORM: CreateForm = { name: '', slug: '', email: '', ownerName: '', ownerEmail: '', plan: 'FREE' };
+
+function validateCreateForm(form: CreateForm): Record<string, string> {
+  const errors: Record<string, string> = {};
+
+  if (form.name.trim().length < 2) errors.name = 'Debe tener al menos 2 caracteres.';
+  else if (form.name.length > LIMITS.name) errors.name = `No puede superar los ${LIMITS.name} caracteres.`;
+
+  if (!SLUG_REGEX.test(form.slug)) errors.slug = 'Solo minúsculas, números y guiones (ej. mi-restaurante).';
+  else if (form.slug.length > LIMITS.slug) errors.slug = `No puede superar los ${LIMITS.slug} caracteres.`;
+
+  if (!EMAIL_REGEX.test(form.email)) errors.email = 'Correo inválido: debe llevar @ y un dominio (ej. nombre@dominio.com).';
+  else if (form.email.length > LIMITS.email) errors.email = `No puede superar los ${LIMITS.email} caracteres.`;
+
+  if (form.ownerName.trim().length < 2) errors.ownerName = 'Debe tener al menos 2 caracteres.';
+  else if (form.ownerName.length > LIMITS.ownerName) errors.ownerName = `No puede superar los ${LIMITS.ownerName} caracteres.`;
+
+  if (!EMAIL_REGEX.test(form.ownerEmail)) errors.ownerEmail = 'Correo inválido: debe llevar @ y un dominio (ej. nombre@dominio.com).';
+  else if (form.ownerEmail.length > LIMITS.ownerEmail) errors.ownerEmail = `No puede superar los ${LIMITS.ownerEmail} caracteres.`;
+
+  return errors;
+}
+
+interface EditForm {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+function validateEditForm(form: EditForm): Record<string, string> {
+  const errors: Record<string, string> = {};
+
+  if (form.name.trim().length < 2) errors.name = 'Debe tener al menos 2 caracteres.';
+  else if (form.name.length > LIMITS.name) errors.name = `No puede superar los ${LIMITS.name} caracteres.`;
+
+  if (!EMAIL_REGEX.test(form.email)) errors.email = 'Correo inválido: debe llevar @ y un dominio (ej. nombre@dominio.com).';
+  else if (form.email.length > LIMITS.email) errors.email = `No puede superar los ${LIMITS.email} caracteres.`;
+
+  if (form.phone.length > 30) errors.phone = 'No puede superar los 30 caracteres.';
+  if (form.address.length > 255) errors.address = 'No puede superar los 255 caracteres.';
+
+  return errors;
 }
 
 export default function SystemAdminTenantsPage() {
@@ -24,20 +90,20 @@ export default function SystemAdminTenantsPage() {
   const [showForm, setShowForm] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createFieldErrors, setCreateFieldErrors] = useState<Record<string, string>>({});
   const [credentialsBanner, setCredentialsBanner] = useState<CredentialsBanner | null>(null);
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [planUsage, setPlanUsage] = useState<Record<string, TenantPlanUsage>>({});
   const [updatingPlanId, setUpdatingPlanId] = useState<string | null>(null);
   const [justCopied, setJustCopied] = useState(false);
 
-  const [form, setForm] = useState({
-    name: '',
-    slug: '',
-    email: '',
-    ownerName: '',
-    ownerEmail: '',
-    plan: 'FREE' as TenantPlan,
-  });
+  const [form, setForm] = useState<CreateForm>(EMPTY_CREATE_FORM);
+
+  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
+  const [editForm, setEditForm] = useState<EditForm>({ name: '', email: '', phone: '', address: '' });
+  const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({});
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   async function loadTenants() {
     setIsLoading(true);
@@ -73,13 +139,21 @@ export default function SystemAdminTenantsPage() {
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
+    const fieldErrors = validateCreateForm(form);
+    setCreateFieldErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) {
+      setCreateError('Corrige los campos marcados antes de continuar.');
+      return;
+    }
+
     setIsCreating(true);
     setCreateError(null);
     try {
       const result = await systemAdminTenantsService.create(form);
       setCredentialsBanner({ title: 'Tenant creado. Credenciales del OWNER', credentials: result.owner });
       setShowForm(false);
-      setForm({ name: '', slug: '', email: '', ownerName: '', ownerEmail: '', plan: 'FREE' });
+      setForm(EMPTY_CREATE_FORM);
+      setCreateFieldErrors({});
       await loadTenants();
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Error al crear el tenant');
@@ -158,6 +232,46 @@ export default function SystemAdminTenantsPage() {
     }
   }
 
+  function openEdit(t: Tenant) {
+    setEditingTenant(t);
+    setEditForm({ name: t.name, email: t.email, phone: t.phone ?? '', address: t.address ?? '' });
+    setEditFieldErrors({});
+    setEditError(null);
+  }
+
+  function closeEdit() {
+    setEditingTenant(null);
+  }
+
+  async function handleUpdate(e: FormEvent) {
+    e.preventDefault();
+    if (!editingTenant) return;
+
+    const fieldErrors = validateEditForm(editForm);
+    setEditFieldErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) {
+      setEditError('Corrige los campos marcados antes de continuar.');
+      return;
+    }
+
+    setIsSavingEdit(true);
+    setEditError(null);
+    try {
+      const updated = await systemAdminTenantsService.update(editingTenant.id, {
+        name: editForm.name,
+        email: editForm.email,
+        phone: editForm.phone || undefined,
+        address: editForm.address || undefined,
+      });
+      setTenants((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+      setEditingTenant(null);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Error al actualizar el tenant');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center justify-between">
@@ -212,17 +326,34 @@ export default function SystemAdminTenantsPage() {
       )}
 
       {showForm && (
-        <form onSubmit={handleCreate} className="card p-6 space-y-4">
+        <form onSubmit={handleCreate} noValidate className="card p-6 space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Nombre del restaurante" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required />
+            <Field
+              label="Nombre del restaurante"
+              value={form.name}
+              onChange={(v) => setForm({ ...form, name: v })}
+              required
+              maxLength={LIMITS.name}
+              error={createFieldErrors.name}
+            />
             <Field
               label="Slug"
               value={form.slug}
               onChange={(v) => setForm({ ...form, slug: v.toLowerCase().replace(/\s+/g, '-') })}
               placeholder="mi-restaurante"
               required
+              maxLength={LIMITS.slug}
+              error={createFieldErrors.slug}
             />
-            <Field label="Email del restaurante" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} required />
+            <Field
+              label="Email del restaurante"
+              type="email"
+              value={form.email}
+              onChange={(v) => setForm({ ...form, email: v })}
+              required
+              maxLength={LIMITS.email}
+              error={createFieldErrors.email}
+            />
             <div className="space-y-1">
               <label className="text-xs font-medium text-maison-cream-dim uppercase tracking-wider">Plan</label>
               <select
@@ -235,8 +366,23 @@ export default function SystemAdminTenantsPage() {
                 ))}
               </select>
             </div>
-            <Field label="Nombre del OWNER" value={form.ownerName} onChange={(v) => setForm({ ...form, ownerName: v })} required />
-            <Field label="Email del OWNER" type="email" value={form.ownerEmail} onChange={(v) => setForm({ ...form, ownerEmail: v })} required />
+            <Field
+              label="Nombre del OWNER"
+              value={form.ownerName}
+              onChange={(v) => setForm({ ...form, ownerName: v })}
+              required
+              maxLength={LIMITS.ownerName}
+              error={createFieldErrors.ownerName}
+            />
+            <Field
+              label="Email del OWNER"
+              type="email"
+              value={form.ownerEmail}
+              onChange={(v) => setForm({ ...form, ownerEmail: v })}
+              required
+              maxLength={LIMITS.ownerEmail}
+              error={createFieldErrors.ownerEmail}
+            />
           </div>
 
           {createError && (
@@ -305,6 +451,13 @@ export default function SystemAdminTenantsPage() {
                     <td className="px-4 py-3 text-right space-x-3 whitespace-nowrap">
                       <button
                         type="button"
+                        onClick={() => openEdit(t)}
+                        className="text-maison-cream-muted hover:text-maison-cream hover:underline"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleResetOwnerPassword(t.id, t.name)}
                         disabled={resettingId === t.id}
                         className="text-maison-cream-muted hover:text-maison-cream hover:underline disabled:opacity-50"
@@ -328,6 +481,72 @@ export default function SystemAdminTenantsPage() {
           </div>
         )}
       </section>
+
+      <Modal
+        open={editingTenant !== null}
+        onClose={closeEdit}
+        title={`Editar "${editingTenant?.name ?? ''}"`}
+        description="Actualiza los datos de contacto del restaurante."
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={closeEdit}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-maison-cream-muted hover:text-maison-cream transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              form="edit-tenant-form"
+              disabled={isSavingEdit}
+              className="rounded-lg bg-maison-amber px-4 py-2 text-sm font-medium text-surface-0 hover:bg-maison-amber/90 transition disabled:opacity-50"
+            >
+              {isSavingEdit ? 'Guardando…' : 'Guardar cambios'}
+            </button>
+          </>
+        }
+      >
+        <form id="edit-tenant-form" onSubmit={handleUpdate} noValidate className="space-y-4">
+          <Field
+            label="Nombre del restaurante"
+            value={editForm.name}
+            onChange={(v) => setEditForm({ ...editForm, name: v })}
+            required
+            maxLength={LIMITS.name}
+            error={editFieldErrors.name}
+          />
+          <Field
+            label="Email del restaurante"
+            type="email"
+            value={editForm.email}
+            onChange={(v) => setEditForm({ ...editForm, email: v })}
+            required
+            maxLength={LIMITS.email}
+            error={editFieldErrors.email}
+          />
+          <Field
+            label="Teléfono"
+            value={editForm.phone}
+            onChange={(v) => setEditForm({ ...editForm, phone: v })}
+            maxLength={30}
+            error={editFieldErrors.phone}
+          />
+          <Field
+            label="Dirección"
+            value={editForm.address}
+            onChange={(v) => setEditForm({ ...editForm, address: v })}
+            maxLength={255}
+            error={editFieldErrors.address}
+          />
+          {editError && (
+            <div className="rounded-lg bg-maison-ruby/10 border border-maison-ruby/30 px-3 py-2">
+              <p className="text-xs text-maison-ruby">{editError}</p>
+            </div>
+          )}
+        </form>
+      </Modal>
     </div>
   );
 }
@@ -339,6 +558,8 @@ function Field({
   type = 'text',
   placeholder,
   required,
+  maxLength,
+  error,
 }: {
   label: string;
   value: string;
@@ -346,6 +567,8 @@ function Field({
   type?: string;
   placeholder?: string;
   required?: boolean;
+  maxLength?: number;
+  error?: string;
 }) {
   return (
     <div className="space-y-1">
@@ -354,10 +577,20 @@ function Field({
         type={type}
         required={required}
         value={value}
+        maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-surface-2 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-maison-cream placeholder:text-maison-cream-muted focus:outline-none focus:border-maison-amber/50 focus:ring-1 focus:ring-maison-amber/30 transition"
+        aria-invalid={Boolean(error)}
+        className={`w-full bg-surface-2 border rounded-lg px-3 py-2.5 text-sm text-maison-cream placeholder:text-maison-cream-muted focus:outline-none focus:ring-1 transition ${
+          error
+            ? 'border-maison-ruby/50 focus:border-maison-ruby focus:ring-maison-ruby/30'
+            : 'border-white/10 focus:border-maison-amber/50 focus:ring-maison-amber/30'
+        }`}
       />
+      {maxLength && (
+        <p className="text-2xs text-maison-cream-dim text-right">{value.length}/{maxLength}</p>
+      )}
+      {error && <p className="text-2xs text-maison-ruby">{error}</p>}
     </div>
   );
 }

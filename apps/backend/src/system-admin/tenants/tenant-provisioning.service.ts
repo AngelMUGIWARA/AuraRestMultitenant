@@ -71,6 +71,11 @@ export class TenantProvisioningService {
       throw new ConflictException(`Ya existe un tenant con slug="${dto.slug}"`);
     }
 
+    const existingEmail = await this.repository.findByEmail(dto.email);
+    if (existingEmail) {
+      throw new ConflictException(`Ya existe un tenant registrado con el correo "${dto.email}"`);
+    }
+
     const schemaName = deriveSchemaNameFromSlug(dto.slug);
 
     await this.createPostgresSchema(schemaName);

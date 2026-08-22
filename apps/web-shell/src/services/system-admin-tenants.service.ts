@@ -6,6 +6,7 @@ import type {
     Tenant,
     TenantOwnerCredentials,
     TenantPlanUsage,
+    UpdateTenantPayload,
 } from '@maison/types';
 
 export const systemAdminTenantsService = {
@@ -13,6 +14,9 @@ export const systemAdminTenantsService = {
 
   create: (payload: CreateTenantPayload) =>
     systemAdminApi.post<CreateTenantResponse>('/system-admin/tenants', payload),
+
+  update: (id: string, payload: UpdateTenantPayload) =>
+    systemAdminApi.put<Tenant>(`/system-admin/tenants/${id}`, payload),
 
   suspend: (id: string, payload: SuspendTenantPayload) =>
     systemAdminApi.patch<Tenant>(`/system-admin/tenants/${id}/suspend`, payload),

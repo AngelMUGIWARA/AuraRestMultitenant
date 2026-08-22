@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PLAN_LIMITS } from '../../common/plan-limits/plan-limits.config';
 import { TenantPrismaService } from '../../database/tenant-prisma.service';
 import { SystemAuditLogService } from '../audit-log/system-audit-log.service';
@@ -50,9 +50,27 @@ export class SystemTenantsService {
     return result;
   }
 
-  async update(id: string, dto: UpdateSystemTenantDto) {
-    await this.findOne(id);
-    return this.repository.update(id, dto);
+  async update(id: string, dto: UpdateSystemTenantDto, superAdminId: string) {
+    const tenant = await this.findOne(id);
+
+    if (dto.email && dto.email !== tenant.email) {
+      const existingEmail = await this.repository.findByEmail(dto.email);
+      if (existingEmail && existingEmail.id !== id) {
+        throw new ConflictException(`Ya existe un tenant registrado con el correo "${dto.email}"`);
+      }
+    }
+
+    const updated = await this.repository.update(id, dto);
+
+    await this.auditLog.log({
+      superAdminId,
+      action: 'TENANT_UPDATED',
+      targetType: 'TENANT',
+      targetId: id,
+      metadata: { fields: Object.keys(dto) },
+    });
+
+    return updated;
   }
 
   async updatePlan(id: string, plan: TenantPlan, superAdminId: string) {

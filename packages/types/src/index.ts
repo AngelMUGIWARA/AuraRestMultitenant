@@ -139,6 +139,15 @@ export interface CreateTenantPayload {
   ownerEmail: string;
 }
 
+export interface UpdateTenantPayload {
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  logoUrl?: string;
+  plan?: TenantPlan;
+}
+
 export interface TenantOwnerCredentials {
   email: string;
   temporaryPassword: string;

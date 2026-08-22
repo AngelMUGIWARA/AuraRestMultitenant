@@ -29,6 +29,10 @@ export class SystemTenantsRepository {
     return this.prisma.tenant.findUnique({ where: { slug } });
   }
 
+  findByEmail(email: string) {
+    return this.prisma.tenant.findUnique({ where: { email } });
+  }
+
   create(data: CreateTenantRow) {
     return this.prisma.tenant.create({ data: data as any });
   }

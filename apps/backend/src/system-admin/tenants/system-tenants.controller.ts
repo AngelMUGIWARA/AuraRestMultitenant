@@ -46,8 +46,9 @@ export class SystemTenantsController {
   @Put(':id')
   @ApiOperation({ summary: 'Actualizar datos de un tenant existente (solo Super Admin)', operationId: 'systemAdmin_updateTenant' })
   @ApiResponse({ status: 200, type: TenantResponseDto })
-  update(@Param('id') id: string, @Body() dto: UpdateSystemTenantDto) {
-    return this.service.update(id, dto);
+  @ApiResponse({ status: 409, description: 'El correo ya está en uso por otro tenant' })
+  update(@Param('id') id: string, @Body() dto: UpdateSystemTenantDto, @CurrentSystemAdmin() admin: AuthenticatedSystemAdmin) {
+    return this.service.update(id, dto, admin.id);
   }
 
   @Patch(':id/plan')
