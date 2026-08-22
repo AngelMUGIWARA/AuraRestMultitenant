@@ -198,6 +198,17 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {/* ── Super Admin ── */}
+          <a
+            href="/system-admin/login"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-maison-border py-2.5 text-xs font-medium tracking-wide text-maison-cream-dim transition hover:border-maison-cream-dim/40 hover:text-maison-cream-muted"
+          >
+            <svg style={{ width: 14, height: 14, flexShrink: 0 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 4.556-3.03 8.365-7.183 9.573-.324.094-.667.094-.99 0C8.673 20.365 5.643 16.556 5.643 12V7.5a1.5 1.5 0 011.5-1.5c1.75 0 3.375-.583 4.674-1.567a1.5 1.5 0 011.834 0C15.25 5.417 16.875 6 18.625 6a1.5 1.5 0 011.5 1.5V12z" />
+            </svg>
+            <span>Ir como Super Admin</span>
+          </a>
+
           {/* ── Forgot password ── */}
           <div className="text-center">
             <a

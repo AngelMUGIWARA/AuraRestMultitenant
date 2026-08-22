@@ -11,6 +11,12 @@ const STATUS_BADGE: Record<Tenant['status'], string> = {
   SUSPENDED: 'badge-suspended',
 };
 
+const STATUS_LABEL: Record<Tenant['status'], string> = {
+  ACTIVE: 'Activo',
+  INACTIVE: 'Inactivo',
+  SUSPENDED: 'Suspendido',
+};
+
 const PLAN_OPTIONS: TenantPlan[] = ['FREE', 'BASIC', 'PRO', 'ENTERPRISE'];
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -27,6 +33,20 @@ const LIMITS = {
 interface CredentialsBanner {
   title: string;
   credentials: TenantOwnerCredentials;
+}
+
+interface ConfirmState {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  danger?: boolean;
+  withReason?: boolean;
+  onConfirm: (reason: string) => Promise<void> | void;
+}
+
+interface AlertState {
+  title: string;
+  message: string;
 }
 
 interface CreateForm {
@@ -105,6 +125,11 @@ export default function SystemAdminTenantsPage() {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+  const [confirmReason, setConfirmReason] = useState('');
+  const [isConfirmBusy, setIsConfirmBusy] = useState(false);
+  const [alertState, setAlertState] = useState<AlertState | null>(null);
+
   async function loadTenants() {
     setIsLoading(true);
     setError(null);
@@ -162,10 +187,19 @@ export default function SystemAdminTenantsPage() {
     }
   }
 
-  async function handleSuspend(id: string) {
-    const reason = window.prompt('Motivo de la suspensión (opcional):') ?? undefined;
-    await systemAdminTenantsService.suspend(id, { reason });
-    await loadTenants();
+  function handleSuspend(id: string, tenantName: string) {
+    setConfirmReason('');
+    setConfirmState({
+      title: `Suspender "${tenantName}"`,
+      description: 'El restaurante perderá acceso a la plataforma hasta que lo reactives. Puedes indicar un motivo (opcional).',
+      confirmLabel: 'Suspender',
+      danger: true,
+      withReason: true,
+      onConfirm: async (reason) => {
+        await systemAdminTenantsService.suspend(id, { reason: reason.trim() || undefined });
+        await loadTenants();
+      },
+    });
   }
 
   async function handleActivate(id: string) {
@@ -184,7 +218,10 @@ export default function SystemAdminTenantsPage() {
       const usage = await systemAdminTenantsService.getPlanUsage(id);
       setPlanUsage((currentUsage) => ({ ...currentUsage, [id]: usage }));
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'Error al cambiar el plan');
+      setAlertState({
+        title: 'No se pudo cambiar el plan',
+        message: err instanceof Error ? err.message : 'Error al cambiar el plan',
+      });
     } finally {
       setUpdatingPlanId(null);
     }
@@ -193,7 +230,7 @@ export default function SystemAdminTenantsPage() {
   function credentialsAsText(banner: CredentialsBanner): string {
     return [
       banner.title,
-      `Email: ${banner.credentials.email}`,
+      `Correo: ${banner.credentials.email}`,
       `Contraseña temporal: ${banner.credentials.temporaryPassword}`,
       'Se le pedirá cambiarla en su próximo inicio de sesión.',
     ].join('\n');
@@ -217,18 +254,37 @@ export default function SystemAdminTenantsPage() {
     URL.revokeObjectURL(url);
   }
 
-  async function handleResetOwnerPassword(id: string, tenantName: string) {
-    if (!window.confirm(`Esto invalida la contraseña actual del OWNER de "${tenantName}" y genera una nueva. ¿Continuar?`)) {
-      return;
-    }
-    setResettingId(id);
+  function handleResetOwnerPassword(id: string, tenantName: string) {
+    setConfirmState({
+      title: 'Restablecer contraseña',
+      description: `Esto invalida la contraseña actual del OWNER de "${tenantName}" y genera una nueva.`,
+      confirmLabel: 'Restablecer',
+      danger: true,
+      onConfirm: async () => {
+        setResettingId(id);
+        try {
+          const credentials = await systemAdminTenantsService.resetOwnerPassword(id);
+          setCredentialsBanner({ title: `Contraseña restablecida para "${tenantName}"`, credentials });
+        } finally {
+          setResettingId(null);
+        }
+      },
+    });
+  }
+
+  async function handleConfirmAccept() {
+    if (!confirmState) return;
+    setIsConfirmBusy(true);
     try {
-      const credentials = await systemAdminTenantsService.resetOwnerPassword(id);
-      setCredentialsBanner({ title: `Contraseña restablecida para "${tenantName}"`, credentials });
+      await confirmState.onConfirm(confirmReason);
+      setConfirmState(null);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'Error al restablecer la contraseña');
+      setAlertState({
+        title: 'Ocurrió un error',
+        message: err instanceof Error ? err.message : 'Inténtalo de nuevo.',
+      });
     } finally {
-      setResettingId(null);
+      setIsConfirmBusy(false);
     }
   }
 
@@ -276,7 +332,7 @@ export default function SystemAdminTenantsPage() {
     <div className="flex flex-col gap-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-medium text-maison-cream">Tenants</h1>
+          <h1 className="font-display text-2xl font-medium text-maison-cream">Restaurantes</h1>
           <p className="mt-1 text-sm text-maison-cream-muted">Restaurantes registrados en la plataforma</p>
         </div>
         <button
@@ -346,7 +402,7 @@ export default function SystemAdminTenantsPage() {
               error={createFieldErrors.slug}
             />
             <Field
-              label="Email del restaurante"
+              label="Correo del restaurante"
               type="email"
               value={form.email}
               onChange={(v) => setForm({ ...form, email: v })}
@@ -375,7 +431,7 @@ export default function SystemAdminTenantsPage() {
               error={createFieldErrors.ownerName}
             />
             <Field
-              label="Email del OWNER"
+              label="Correo del OWNER"
               type="email"
               value={form.ownerEmail}
               onChange={(v) => setForm({ ...form, ownerEmail: v })}
@@ -445,7 +501,7 @@ export default function SystemAdminTenantsPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`badge ${STATUS_BADGE[t.status]}`}>{t.status}</span>
+                      <span className={`badge ${STATUS_BADGE[t.status]}`}>{STATUS_LABEL[t.status]}</span>
                     </td>
                     <td className="px-4 py-3 font-mono text-maison-cream-dim">{new Date(t.createdAt).toLocaleDateString('es-MX')}</td>
                     <td className="px-4 py-3 text-right space-x-3 whitespace-nowrap">
@@ -469,7 +525,7 @@ export default function SystemAdminTenantsPage() {
                           Activar
                         </button>
                       ) : (
-                        <button type="button" onClick={() => handleSuspend(t.id)} className="text-maison-ruby hover:underline">
+                        <button type="button" onClick={() => handleSuspend(t.id, t.name)} className="text-maison-ruby hover:underline">
                           Suspender
                         </button>
                       )}
@@ -518,7 +574,7 @@ export default function SystemAdminTenantsPage() {
             error={editFieldErrors.name}
           />
           <Field
-            label="Email del restaurante"
+            label="Correo del restaurante"
             type="email"
             value={editForm.email}
             onChange={(v) => setEditForm({ ...editForm, email: v })}
@@ -546,6 +602,70 @@ export default function SystemAdminTenantsPage() {
             </div>
           )}
         </form>
+      </Modal>
+
+      <Modal
+        open={confirmState !== null}
+        onClose={() => !isConfirmBusy && setConfirmState(null)}
+        title={confirmState?.title ?? ''}
+        description={confirmState?.description}
+        size="sm"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setConfirmState(null)}
+              disabled={isConfirmBusy}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-maison-cream-muted hover:text-maison-cream transition disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmAccept}
+              disabled={isConfirmBusy}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${
+                confirmState?.danger
+                  ? 'bg-maison-ruby text-white hover:bg-maison-ruby/90'
+                  : 'bg-maison-amber text-surface-0 hover:bg-maison-amber/90'
+              }`}
+            >
+              {isConfirmBusy ? 'Procesando…' : confirmState?.confirmLabel}
+            </button>
+          </>
+        }
+      >
+        {confirmState?.withReason && (
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-maison-cream-dim uppercase tracking-wider">Motivo (opcional)</label>
+            <textarea
+              value={confirmReason}
+              onChange={(e) => setConfirmReason(e.target.value)}
+              maxLength={255}
+              rows={3}
+              placeholder="Ej. Pago pendiente, incumplimiento de términos…"
+              className="w-full resize-none bg-surface-2 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-maison-cream placeholder:text-maison-cream-muted focus:outline-none focus:border-maison-amber/50 focus:ring-1 focus:ring-maison-amber/30 transition"
+            />
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={alertState !== null}
+        onClose={() => setAlertState(null)}
+        title={alertState?.title ?? ''}
+        size="sm"
+        footer={
+          <button
+            type="button"
+            onClick={() => setAlertState(null)}
+            className="rounded-lg bg-maison-amber px-4 py-2 text-sm font-medium text-surface-0 hover:bg-maison-amber/90 transition"
+          >
+            Entendido
+          </button>
+        }
+      >
+        <p className="text-sm text-maison-cream-muted">{alertState?.message}</p>
       </Modal>
     </div>
   );

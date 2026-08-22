@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { SystemAdminSession } from '@/lib/system-admin-session';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const NAV_ITEMS = [
-  { href: '/system-admin/tenants', label: 'Tenants' },
+  { href: '/system-admin/tenants', label: 'Restaurantes' },
   { href: '/system-admin/audit-log', label: 'Auditoría' },
 ] as const;
 
@@ -48,6 +49,7 @@ export function SystemAdminLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           {email && <span className="hidden text-xs text-maison-cream-muted sm:inline">{email}</span>}
           <button
             type="button"

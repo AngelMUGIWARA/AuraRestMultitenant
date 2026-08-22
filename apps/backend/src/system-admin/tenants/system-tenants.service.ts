@@ -81,9 +81,9 @@ export class SystemTenantsService {
     const planUsage = await this.getPlanUsage(id);
     const nextLimits = PLAN_LIMITS[plan];
     const exceeded = ([
-      ['branches', planUsage.usage.branches, nextLimits.maxBranches],
-      ['menu items', planUsage.usage.menuItems, nextLimits.maxMenuItems],
-      ['staff members', planUsage.usage.staff, nextLimits.maxStaff],
+      ['sucursales', planUsage.usage.branches, nextLimits.maxBranches],
+      ['platillos del menú', planUsage.usage.menuItems, nextLimits.maxMenuItems],
+      ['usuarios de staff', planUsage.usage.staff, nextLimits.maxStaff],
     ] as [string, number, number | null][]).find(
       ([, usage, limit]) => limit !== null && usage > limit,
     );
